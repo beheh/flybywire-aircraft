@@ -321,7 +321,8 @@ a320-neo-upper-ecam .Completed {
   display: none;
 }
 
-a320-neo-upper-ecam .fail-3 {
+a320-neo-upper-ecam .fail-3,
+a320-neo-upper-ecam .red {
   color: var(--displayRed);
 }
 a320-neo-upper-ecam .fail-2 {

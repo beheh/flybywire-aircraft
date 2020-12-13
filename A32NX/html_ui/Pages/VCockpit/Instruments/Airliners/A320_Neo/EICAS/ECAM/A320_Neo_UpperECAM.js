@@ -363,10 +363,142 @@ var A320_Neo_UpperECAM;
             this.ecamMessages = {
                 failures: [
                     {
+                        name: "F/CTL",
+                        messages: [
+                            {
+                                message: "FLAP LVR NOT ZERO",
+                                level: 3,
+                                flightPhasesInhib: [1, 2, 3, 4, 5, 7, 8, 9, 10],
+                                isActive: () => (
+                                    this.getCachedSimVar("INDICATED ALTITUDE", "feet") >= 22000 &&
+                                    this.fwcFlightPhase === 6 &&
+                                    +SimVar.GetSimVarValue("FLAPS HANDLE INDEX", "Enum") !== 0
+                                ),
+                            },
+                        ]
+                    },
+                    {
+                        name: "OVER SPEED",
+                        messages: [
+                            {
+                                id: "overspeed_vfe1",
+                                message: "",
+                                level: 3,
+                                flightPhasesInhib: [2, 3, 4, 8, 9, 10],
+                                isActive: () => this.overspeedVfe1,
+                                actions: [
+                                    {
+                                        style: "red",
+                                        message: "&nbsp;-VFE................177"
+                                    }
+                                ],
+                                alwaysShowCategory: true,
+                            },
+                            {
+                                id: "overspeed_vfe2",
+                                message: "",
+                                level: 3,
+                                flightPhasesInhib: [2, 3, 4, 8, 9, 10],
+                                isActive: () => this.overspeedVfe2,
+                                actions: [
+                                    {
+                                        style: "red",
+                                        message: "&nbsp;-VFE................185"
+                                    }
+                                ],
+                                alwaysShowCategory: true,
+                            },
+                            {
+                                id: "overspeed_vfe3",
+                                message: "",
+                                level: 3,
+                                flightPhasesInhib: [2, 3, 4, 8, 9, 10],
+                                isActive: () => this.overspeedVfe3,
+                                actions: [
+                                    {
+                                        style: "red",
+                                        message: "&nbsp;-VFE................200"
+                                    }
+                                ],
+                                alwaysShowCategory: true,
+                            },
+                            {
+                                id: "overspeed_vfe4",
+                                message: "",
+                                level: 3,
+                                flightPhasesInhib: [2, 3, 4, 8, 9, 10],
+                                isActive: () => this.overspeedVfe4,
+                                actions: [
+                                    {
+                                        style: "red",
+                                        message: "&nbsp;-VFE................215"
+                                    }
+                                ],
+                                alwaysShowCategory: true,
+                            },
+                            {
+                                id: "overspeed_vfe5",
+                                message: "",
+                                level: 3,
+                                flightPhasesInhib: [2, 3, 4, 8, 9, 10],
+                                isActive: () => this.overspeedVfe5,
+                                actions: [
+                                    {
+                                        style: "red",
+                                        message: "&nbsp;-VFE................230"
+                                    }
+                                ],
+                                alwaysShowCategory: true,
+                            },
+                            {
+                                id: "overspeed_vmommo1",
+                                message: "",
+                                level: 3,
+                                flightPhasesInhib: [2, 3, 4, 8, 9, 10],
+                                isActive: () => this.overspeedVmo1,
+                                actions: [
+                                    {
+                                        style: "red",
+                                        message: "&nbsp;-VMO/MMO........350/.82"
+                                    }
+                                ],
+                                alwaysShowCategory: true,
+                            },
+                            {
+                                id: "overspeed_vle",
+                                message: "",
+                                level: 3,
+                                flightPhasesInhib: [2, 3, 4, 8, 9, 10],
+                                isActive: () => this.overspeedVle,
+                                actions: [
+                                    {
+                                        style: "red",
+                                        message: "&nbsp;-VLE............280/.67"
+                                    }
+                                ],
+                                alwaysShowCategory: true,
+                            },
+                            {
+                                id: "overspeed_vmommo2",
+                                message: "",
+                                level: 3,
+                                flightPhasesInhib: [2, 3, 4, 8, 9, 10],
+                                isActive: () => this.overspeedVmo2,
+                                actions: [
+                                    {
+                                        style: "red",
+                                        message: "&nbsp;-VMO/MMO........350/.82"
+                                    }
+                                ],
+                                alwaysShowCategory: true,
+                            },
+                        ]
+                    },
+                    {
                         name: "ENG",
                         messages: [
                             {
-                                message: "DUAL FAILURE",
+                                message: "ALL ENGINES FAILURE",
                                 level: 3,
                                 landASAP: true,
                                 isActive: () => {
@@ -414,9 +546,8 @@ var A320_Neo_UpperECAM;
                                         action: "MAN ON"
                                     },
                                     {
-                                        style: "action",
-                                        message: "OPT RELIGHT SPD",
-                                        action: "280KT"
+                                        style: "cyan",
+                                        message: "&nbsp;OPT RELIGHT SPD.270/.77",
                                     },
                                     {
                                         style: "action",
@@ -435,28 +566,26 @@ var A320_Neo_UpperECAM;
                                         }
                                     },
                                     {
+                                        style: "action",
+                                        message: "FAC 1",
+                                        action: "OFF THEN ON",
+                                    },
+                                    {
                                         style: "cyan",
-                                        message: "GLDG DIST: 2NM/1000FT"
+                                        message: "&nbsp;GLDG DIST: 2NM/1000FT"
                                     },
                                     {
                                         style: "action",
                                         message: "DIVERSION",
                                         action: "INITIATE"
+                                    },
+                                    {
+                                        style: "action",
+                                        message: "ALL ENG FAIL PROC",
+                                        action: "APPLY"
                                     }
                                 ]
                             }
-                        ]
-                    },
-                    //Airborne
-                    {
-                        name: "OVERSPEED",
-                        messages: [
-                            {
-                                message: "",
-                                level: 3,
-                                flightPhasesInhib: [2, 3, 4, 8, 9, 10],
-                                isActive: () => Simplane.getIndicatedSpeed() > (A32NX_Selectors.VMAX() + 4),
-                            },
                         ]
                     },
                     {
@@ -806,6 +935,94 @@ var A320_Neo_UpperECAM;
                         ]
                     },
                     {
+                        name: "NAV",
+                        messages: [
+                            {
+                                message: "TCAS FAULT",
+                                level: 2,
+                                inopSystems: [
+                                    "TCAS"
+                                ],
+                                flightPhasesInhib: [3, 4, 5, 7, 8],
+                                isActive: () => !this.isInFlightPhase(1, 10) && this.getCachedSimVar("L:A320_Neo_ADIRS_STATE", "Enum") !== 2,
+                            },
+                            {
+                                message: "GPWS FAULT",
+                                level: 2,
+                                inopSystems: [
+                                    "GPWS",
+                                ],
+                                flightPhasesInhib: [1, 3, 4, 5, 8, 10],
+                                isActive: () => !this.isInFlightPhase(1, 10) && this.getCachedSimVar("L:A32NX_GPWS_SYS_FAULT", "Bool"),
+                                actions: [
+                                    {
+                                        style: "action",
+                                        message: "GPWS SYS",
+                                        action: "OFF",
+                                    },
+                                ]
+                            },
+                            {
+                                message: "GPWS TERR DET FAULT",
+                                level: 2,
+                                inopSystems: [
+                                    "GPWS TERR",
+                                ],
+                                flightPhasesInhib: [1, 3, 4, 5, 8, 10],
+                                isActive: () => !this.isInFlightPhase(1, 10) && this.getCachedSimVar("L:A32NX_GPWS_TERR_FAULT", "Bool"),
+                                actions: [
+                                    {
+                                        style: "action",
+                                        message: "GPWS TERR",
+                                        action: "OFF",
+                                        isCompleted: () => this.getCachedSimVar("L:A32NX_GPWS_TERR_OFF", "Bool"),
+                                    },
+                                ]
+                            },
+                        ]
+                    },
+                    {
+                        name: "T.O",
+                        messages: [
+                            {
+                                id: "to_speeds_too_low",
+                                message: "SPEEDS TOO LOW",
+                                level: 2,
+                                alwaysShowCategory: true,
+                                isActive: () => (
+                                    (this.fwcFlightPhase === 2 || this.fwcFlightPhase === 3) &&
+                                    this.activeTakeoffConfigWarnings.includes("to_speeds_too_low")
+                                ),
+                                actions: [
+                                    {
+                                        style: "cyan",
+                                        message: "&nbsp;-TOW AND T.O DATA.CHECK"
+                                    }
+                                ]
+                            },
+                            {
+                                id: "to_speeds_disagree",
+                                message: "V1/VR/V2 DISAGREE",
+                                level: 2,
+                                alwaysShowCategory: true,
+                                isActive: () => (
+                                    (this.fwcFlightPhase === 2 || this.fwcFlightPhase === 3) &&
+                                    this.activeTakeoffConfigWarnings.includes("to_speeds_disagree")
+                                ),
+                            },
+                            {
+                                id: "to_no_speeds",
+                                message: "SPEEDS NOT INSERTED",
+                                level: 2,
+                                alwaysShowCategory: true,
+                                isActive: () => (
+                                    (this.fwcFlightPhase === 2 || this.fwcFlightPhase === 3) &&
+                                    this.activeTakeoffConfigWarnings.includes("to_no_speeds")
+                                ),
+                            },
+                        ]
+                    },
+                    {
                         name: "BRAKES",
                         messages : [
                             {
@@ -825,23 +1042,6 @@ var A320_Neo_UpperECAM;
                                         style: "cyan",
                                         message: "&nbsp;-DELAY T.O FOR COOL"
                                     }
-                                ]
-                            },
-                            {
-                                message: "PARK BRK ON",
-                                id: "brakes_park_brk_on",
-                                level: 2,
-                                flightPhasesInhib: [1, 2, 3, 4, 5, 8, 9, 10],
-                                isActive: () => (
-                                    this.isInFlightPhase(8, 6, 7) && SimVar.GetSimVarValue("BRAKE PARKING INDICATOR", "Bool")
-                                ),
-                                actions: [
-                                    {
-                                        style: "action",
-                                        message: "PARK BRK",
-                                        action: "OFF",
-                                        isCompleted: () => !SimVar.GetSimVarValue("BRAKE PARKING INDICATOR", "Bool"),
-                                    },
                                 ]
                             },
                             {
@@ -867,9 +1067,27 @@ var A320_Neo_UpperECAM;
                                         message: "&nbsp;MAX BRK PR......1000PSI"
                                     }
                                 ],
-                            }
+                            },
+                            {
+                                message: "PARK BRK ON",
+                                id: "brakes_park_brk_on",
+                                level: 2,
+                                flightPhasesInhib: [1, 2, 3, 4, 5, 8, 9, 10],
+                                isActive: () => (
+                                    this.isInFlightPhase(8, 6, 7) && SimVar.GetSimVarValue("BRAKE PARKING INDICATOR", "Bool")
+                                ),
+                                actions: [
+                                    {
+                                        style: "action",
+                                        message: "PARK BRK",
+                                        action: "OFF",
+                                        isCompleted: () => !SimVar.GetSimVarValue("BRAKE PARKING INDICATOR", "Bool"),
+                                    },
+                                ]
+                            },
                         ]
                     },
+
                     {
                         name: "SEVERE ICE",
                         messages: [
@@ -917,61 +1135,6 @@ var A320_Neo_UpperECAM;
                                 ],
                                 flightPhasesInhib: [3, 4, 5, 7, 8],
                                 isActive: () => this.iceDetectedTimer2.read(),
-                            },
-                        ]
-                    },
-                    {
-                        name: "NAV",
-                        messages: [
-                            {
-                                message: "TCAS FAULT",
-                                level: 2,
-                                inopSystems: [
-                                    "TCAS"
-                                ],
-                                flightPhasesInhib: [3, 4, 5, 7, 8],
-                                isActive: () => !this.isInFlightPhase(1, 10) && this.getCachedSimVar("L:A320_Neo_ADIRS_STATE", "Enum") !== 2,
-                            }
-                        ]
-                    },
-                    {
-                        name: "T.O",
-                        messages: [
-                            {
-                                id: "to_speeds_too_low",
-                                message: "SPEEDS TOO LOW",
-                                level: 2,
-                                alwaysShowCategory: true,
-                                isActive: () => (
-                                    (this.fwcFlightPhase === 2 || this.fwcFlightPhase === 3) &&
-                                    this.activeTakeoffConfigWarnings.includes("to_speeds_too_low")
-                                ),
-                                actions: [
-                                    {
-                                        style: "cyan",
-                                        message: "&nbsp;-TOW AND T.O DATA.CHECK"
-                                    }
-                                ]
-                            },
-                            {
-                                id: "to_speeds_disagree",
-                                message: "V1/VR/V2 DISAGREE",
-                                level: 2,
-                                alwaysShowCategory: true,
-                                isActive: () => (
-                                    (this.fwcFlightPhase === 2 || this.fwcFlightPhase === 3) &&
-                                    this.activeTakeoffConfigWarnings.includes("to_speeds_disagree")
-                                ),
-                            },
-                            {
-                                id: "to_no_speeds",
-                                message: "SPEEDS NOT INSERTED",
-                                level: 2,
-                                alwaysShowCategory: true,
-                                isActive: () => (
-                                    (this.fwcFlightPhase === 2 || this.fwcFlightPhase === 3) &&
-                                    this.activeTakeoffConfigWarnings.includes("to_no_speeds")
-                                ),
                             },
                         ]
                     },
@@ -1351,6 +1514,7 @@ var A320_Neo_UpperECAM;
             this.overflowArrow.setAttribute("opacity", (this.leftEcamMessagePanel.overflow || this.rightEcamMessagePanel.overflow) ? "1" : "0");
 
             this.updateInhibitMessages(_deltaTime);
+            this.updateOverspeed(_deltaTime);
             this.updateIcing(_deltaTime);
 
             const memosInhibited = this.leftEcamMessagePanel.hasWarnings || this.leftEcamMessagePanel.hasCautions;
@@ -1498,6 +1662,41 @@ var A320_Neo_UpperECAM;
             this.inhibitOverride = this.getCachedSimVar("L:A32NX_FWC_INHIBOVRD", "Bool");
             this.showTakeoffInhibit = this.toInhibitTimer.write(this.isInFlightPhase(3, 4, 5) && !this.inhibOverride, _deltaTime);
             this.showLandingInhibit = this.ldgInhibitTimer.write(this.isInFlightPhase(7, 8) && !this.inhibOverride, _deltaTime);
+        }
+
+        updateOverspeed(_deltaTime) {
+            const lhSlats = this.getCachedSimVar("LEADING EDGE FLAPS LEFT ANGLE", "degrees");
+            const rhSlats = this.getCachedSimVar("LEADING EDGE FLAPS RIGHT ANGLE", "degrees");
+            const lhFlaps = this.getCachedSimVar("TRAILING EDGE FLAPS LEFT ANGLE", "degrees");
+            const rhFlaps = this.getCachedSimVar("TRAILING EDGE FLAPS RIGHT ANGLE", "degrees");
+
+            const landingGearLeft = this.getCachedSimVar("GEAR LEFT POSITION", "Percent Over 100");
+            const landingGearCenter = this.getCachedSimVar("GEAR CENTER POSITION", "Percent Over 100");
+            const landingGearRight = this.getCachedSimVar("GEAR RIGHT POSITION", "Percent Over 100");
+            const gearNotUplocked = landingGearLeft > 0 && landingGearCenter > 0 && landingGearRight > 0;
+
+            const cockpitSettings = SimVar.GetGameVarValue("", "GlassCockpitSettings");
+            const flapsAngles = cockpitSettings.FlapsLevels.flapsAngle;
+            const slatsAngles = cockpitSettings.FlapsLevels.slatsAngle;
+
+            //console.log(lhSlats); // 18 - 22 - 22 - 27
+            //console.log(lhFlaps); // 0 - 15 - 20 - 40
+
+            const airspeed = Simplane.getIndicatedSpeed();
+            const mach = Simplane.getMachSpeed();
+
+            const vfe1 = airspeed > 181 && (lhFlaps > flapsAngles[2] || lhSlats > slatsAngles[2]);
+            const vfe2 = !vfe1 && airspeed > 189 && (lhFlaps > flapsAngles[1] || lhSlats > slatsAngles[1]);
+            const vfe3 = !vfe1 && !vfe2 && airspeed > 204 && (lhFlaps > flapsAngles[0] || lhSlats > slatsAngles[0]);
+            const vfe4 = !vfe1 && !vfe2 && !vfe3 && airspeed > 219 && false;
+            this.overspeedVfe1 = vfe1;
+            this.overspeedVfe2 = vfe2;
+            this.overspeedVfe3 = vfe3;
+            this.overspeedVfe4 = vfe4;
+            this.overspeedVfe5 = false;
+            this.overspeedVmo1 = airspeed > 350 || mach > 0.82;
+            this.overspeedVle = airspeed > 284 && gearNotUplocked;
+            //this.overspeedVmo2 = airspeed > 253 || mach > 0.60;
         }
 
         updateIcing(_deltaTime) {

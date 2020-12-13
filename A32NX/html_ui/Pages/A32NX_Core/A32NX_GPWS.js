@@ -414,39 +414,61 @@ class A32NX_GPWS {
     }
 
     faults() { //GPWS System Fault Checks
-        this.terr_fault();
         this.sys_fault();
-    }
-
-    terr_fault() {
-        const posLAT = SimVar.GetSimVarValue("A:GPS POSITION LAT", "degree latitude");
-        const ADIRS = SimVar.GetSimVarValue("L:A320_Neo_ADIRS_STATE", "Enum");
-        const ADIRS_TIME = SimVar.GetSimVarValue("L:A320_Neo_ADIRS_TIME", "seconds");
-
-        if (ADIRS === 0) {
-            SimVar.SetSimVarValue("L:A32NX_GPWS_TERR_FAULT", "Bool", 1);
-        } else if (ADIRS === 1) { //Maths will only be calculated if ADIRS in state 1 to save update time
-            if (ADIRS_TIME > 120 + (0.055 * Math.pow(posLAT, 2))) { //120 0.055 (A:GPS POSITION LAT, degree latitude) 2 pow * +
-                SimVar.SetSimVarValue("L:A32NX_GPWS_TERR_FAULT", "Bool", 1);
-            } else {
-                SimVar.SetSimVarValue("L:A32NX_GPWS_TERR_FAULT", "Bool", 0);
-            }
-        }
+        this.terr_fault();
     }
 
     sys_fault() {
         const posLAT = SimVar.GetSimVarValue("A:GPS POSITION LAT", "degree latitude");
         const ADIRS = SimVar.GetSimVarValue("L:A320_Neo_ADIRS_STATE", "Enum");
         const ADIRS_TIME = SimVar.GetSimVarValue("L:A320_Neo_ADIRS_TIME", "seconds");
+        const sysOff = SimVar.GetSimVarValue("L:A32NX_GPWS_SYS_OFF", "Bool");
 
-        if (ADIRS === 0) {
+        if (sysOff) {
             SimVar.SetSimVarValue("L:A32NX_GPWS_SYS_FAULT", "Bool", 1);
+            return;
+        }
+
+        if (ADIRS === 2) {
+            SimVar.SetSimVarValue("L:A32NX_GPWS_SYS_FAULT", "Bool", 0);
         } else if (ADIRS === 1) { //Maths will only be calculated if ADIRS in state 1 to save update time
             if (ADIRS_TIME > 305 + (0.095 * Math.pow(posLAT, 2)) - posLAT / 2) { //305 0.095 (A:GPS POSITION LAT, degree latitude) 2 pow * + (A:GPS POSITION LAT, degree latitude) 2 / -
                 SimVar.SetSimVarValue("L:A32NX_GPWS_SYS_FAULT", "Bool", 1);
             } else {
                 SimVar.SetSimVarValue("L:A32NX_GPWS_SYS_FAULT", "Bool", 0);
             }
+        } else {
+            SimVar.SetSimVarValue("L:A32NX_GPWS_SYS_FAULT", "Bool", 1);
+        }
+    }
+
+    terr_fault() {
+        const posLAT = SimVar.GetSimVarValue("A:GPS POSITION LAT", "degree latitude");
+        const ADIRS = SimVar.GetSimVarValue("L:A320_Neo_ADIRS_STATE", "Enum");
+        const ADIRS_TIME = SimVar.GetSimVarValue("L:A320_Neo_ADIRS_TIME", "seconds");
+        const sysFault = SimVar.GetSimVarValue("L:A32NX_GPWS_SYS_FAULT", "Bool");
+        const terrOff = SimVar.GetSimVarValue("L:A32NX_GPWS_TERR_OFF", "Bool");
+
+        if (terrOff) {
+            SimVar.SetSimVarValue("L:A32NX_GPWS_TERR_FAULT", "Bool", 0);
+            return;
+        }
+
+        if (sysFault) {
+            SimVar.SetSimVarValue("L:A32NX_GPWS_TERR_FAULT", "Bool", 1);
+            return;
+        }
+
+        if (ADIRS === 2) {
+            SimVar.SetSimVarValue("L:A32NX_GPWS_TERR_FAULT", "Bool", 0);
+        } else if (ADIRS === 1) { //Maths will only be calculated if ADIRS in state 1 to save update time
+            if (ADIRS_TIME > 120 + (0.055 * Math.pow(posLAT, 2))) { //120 0.055 (A:GPS POSITION LAT, degree latitude) 2 pow * +
+                SimVar.SetSimVarValue("L:A32NX_GPWS_TERR_FAULT", "Bool", 1);
+            } else {
+                SimVar.SetSimVarValue("L:A32NX_GPWS_TERR_FAULT", "Bool", 0);
+            }
+        } else {
+            SimVar.SetSimVarValue("L:A32NX_GPWS_TERR_FAULT", "Bool", 1);
         }
     }
 
