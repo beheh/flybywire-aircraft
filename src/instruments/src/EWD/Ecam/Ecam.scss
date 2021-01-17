@@ -1,0 +1,93 @@
+@font-face {
+  font-family: "Ecam";
+  //noinspection CssUnknownTarget
+  src: url("/Fonts/ECAMFontRegular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+.ewd-ecam-line {
+  stroke: rgba(255, 255, 255, 0.6) !important;
+  stroke-width: 3 !important;
+  z-index: 1;
+
+  &--outer {
+    stroke: rgba(255, 255, 255, 0.1) !important;
+    stroke-width: 5 !important;
+    z-index: 0;
+  }
+}
+
+.ewd-warning-text-left {
+  fill: white;
+  font-size: 1.55em;
+  letter-spacing: 0.047em;
+
+  tspan {
+    white-space: pre;
+  }
+}
+
+.ewd-svg {
+  path.ewd-underline {
+    fill: none;
+    stroke: white;
+    stroke-width: 1.5;
+
+    &.color-yellow {
+      stroke: #ffff00;
+    }
+
+    &.color-red {
+      stroke: #ff0000;
+    }
+
+    &.color-green {
+      stroke: #00ff00;
+    }
+
+    &.color-amber {
+      stroke: #e68000;
+    }
+
+    &.color-cyan {
+      stroke: #00ffff;
+    }
+
+    &.color-magenta {
+      stroke: #ff94ff;
+    }
+
+    &.color-white {
+      stroke: #fff;
+    }
+  }
+}
+
+.color-yellow {
+  fill: #ffff00;
+}
+
+.color-red {
+  fill: #ff0000;
+}
+
+.color-green {
+  fill: #00ff00;
+}
+
+.color-amber {
+  fill: #e68000;
+}
+
+.color-cyan {
+  fill: #00ffff;
+}
+
+.color-magenta {
+  fill: #ff94ff;
+}
+
+.color-white {
+  fill: #fff;
+}

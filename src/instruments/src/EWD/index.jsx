@@ -7,6 +7,7 @@ import {
     getSimVar,
 } from '../util.mjs';
 import './style.scss';
+import Ecam from './Ecam/Ecam.jsx';
 
 // TODO: Move anything dependent on ac power change to A32NX_Core
 function powerAvailable() {
@@ -42,49 +43,49 @@ function Idle() {
     });
 
     return (
-        <>
-            <svg className="ewd-svg" viewBox="0 0 600 600">
-                <text x={300} y={300} stroke="white" fill="white" fontSize={24} textAnchor="middle">Nothing here right now</text>
-            </svg>
-        </>
+        <svg className="ewd-svg" viewBox="0 0 600 600">
+            <Ecam />
+        </svg>
     );
 }
 
 function EWD() {
-    const [state, setState] = useState('DEFAULT');
-
-    useUpdate((_deltaTime) => {
-        if (state === 'OFF') {
-            if (powerAvailable()) {
-                setState('ON');
-            }
-        } else if (!powerAvailable()) {
-            setState('OFF');
+    const [status, setStatus] = useState(() => {
+        if(getSimVar('L:A32NX_COLD_AND_DARK_SPAWN')) {
+            return "OFF";
+        }
+        else {
+            return "IDLE";
         }
     });
 
-    switch (state) {
-    case 'DEFAULT':
-        if (getSimVar('L:A32NX_COLD_AND_DARK_SPAWN')) {
-            setState('OFF');
-        } else {
-            setState('IDLE');
-        }
-        return <></>;
-    case 'OFF':
-        return <></>;
-    case 'ON':
+    /*useEffect(() => {
         setTimeout(() => {
             if (powerAvailable()) {
-                setState('IDLE');
+                setStatus('IDLE');
             }
         }, 8000);
-        return <SelfTest />;
-    case 'IDLE':
-        return <Idle />;
-    default:
-        throw new RangeError();
+    }, [status]);*/
+
+    useUpdate((_deltaTime) => {
+        if (status === 'OFF') {
+            if (powerAvailable()) {
+                setStatus('ON');
+            }
+        } else if (!powerAvailable()) {
+            setStatus('OFF');
+        }
+    });
+
+    if (status == "ON") {
+        return <SelfTest/>;
     }
+
+    if (status === "IDLE") {
+        return <Idle />;
+    }
+
+    return null;
 }
 
 ReactDOM.render(<EWD />, renderTarget);
