@@ -2,6 +2,7 @@ extern crate systems;
 
 mod electrical;
 mod fuel;
+mod flight_warning;
 mod hydraulic;
 mod pneumatic;
 mod power_consumption;
