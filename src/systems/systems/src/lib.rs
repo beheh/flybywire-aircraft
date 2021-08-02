@@ -17,5 +17,6 @@ pub mod navigation;
 pub mod overhead;
 pub mod pneumatic;
 pub mod pressurization;
+pub mod flight_warning;
 pub mod shared;
 pub mod simulation;
