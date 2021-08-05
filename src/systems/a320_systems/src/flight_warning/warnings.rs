@@ -1,6 +1,7 @@
 use std::time::Duration;
 
-use super::signals::*;
+use crate::flight_warning::parameters::*;
+use crate::flight_warning::test::test_bed_with;
 use systems::flight_warning::logic::*;
 use systems::flight_warning::parameters::{SignStatusMatrix, Value};
 use systems::flight_warning::utils::FwcSsm;
@@ -525,15 +526,15 @@ pub(super) trait NeoEcu {
     fn eng_2_limit_mode_soft_ga(&self) -> bool;
 }
 
-pub(super) struct NeoFlightPhasesDefActivation {
+pub(super) struct NeoEcuActivation {
     eng_1_auto_toga: bool,
     eng_1_limit_mode_soft_ga: bool,
     eng_2_auto_toga: bool,
     eng_2_limit_mode_soft_ga: bool,
 }
 
-impl NeoFlightPhasesDefActivation {
-    fn new() -> Self {
+impl NeoEcuActivation {
+    pub fn new() -> Self {
         Self {
             eng_1_auto_toga: false,
             eng_1_limit_mode_soft_ga: false,
@@ -558,7 +559,7 @@ impl NeoFlightPhasesDefActivation {
     }
 }
 
-impl NeoEcu for NeoFlightPhasesDefActivation {
+impl NeoEcu for NeoEcuActivation {
     fn eng_1_auto_toga(&self) -> bool {
         self.eng_1_auto_toga
     }
@@ -595,7 +596,7 @@ pub(super) struct TlaAtMctOrFlexToCfmActivation {
 }
 
 impl TlaAtMctOrFlexToCfmActivation {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             eng_1_tla_mct_cfm: false,
             eng_1_end_mct: false,
@@ -708,7 +709,7 @@ pub(super) struct TlaPwrReverseActivation {
 }
 
 impl TlaPwrReverseActivation {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             conf1: ConfirmationNode::new_falling(Duration::from_secs(10)),
             conf2: ConfirmationNode::new_falling(Duration::from_secs(10)),
@@ -808,7 +809,7 @@ pub(super) struct TlaAtClCfmActivation {
 }
 
 impl TlaAtClCfmActivation {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             eng_1_tla_cl_cfm: false,
             eng_12_mcl_cfm: false,
@@ -903,7 +904,7 @@ impl CfmFlightPhasesDefActivation {
         tla_mct_or_flex_to: &impl TlaAtMctOrFlexToCfm,
         tla_pwr_reverse: &impl TlaPwrReverse,
         altitude_def: &impl AltitudeDef,
-        tla_mcl: &impl TlaAtClCfm,
+        tla_at_cl_cfm: &impl TlaAtClCfm,
     ) {
         let any_cfm = true;
 
@@ -936,7 +937,7 @@ impl CfmFlightPhasesDefActivation {
         let conf1_out = self.conf1.update(context, conf1_in);
 
         let eng1_or_2_to_pwr_cond2 =
-            conf1_out && !altitude_def.h_gt_1500ft() && tla_mcl.eng_12_mcl_cfm();
+            conf1_out && !altitude_def.h_gt_1500ft() && tla_at_cl_cfm.eng_12_mcl_cfm();
 
         let eng1_or_2_to_pwr_cond = eng1_or_2_to_pwr_cond1 || eng1_or_2_to_pwr_cond2;
 
@@ -1028,7 +1029,7 @@ impl AltitudeDef for AltitudeDefActivation {
     }
 }
 
-pub(super) trait FlightPhases1 {
+pub(super) trait FlightPhasesGround {
     fn phase_1(&self) -> bool;
     fn phase_2(&self) -> bool;
     fn phase_3(&self) -> bool;
@@ -1038,7 +1039,7 @@ pub(super) trait FlightPhases1 {
     fn phase_10(&self) -> bool;
 }
 
-pub(super) struct FlightPhasesGround {
+pub(super) struct FlightPhasesGroundActivation {
     trans1: TransientDetectionNode,
     conf1: ConfirmationNode,
     mtrig1: MonostableTriggerNode,
@@ -1059,7 +1060,7 @@ pub(super) struct FlightPhasesGround {
     phase10: bool,
 }
 
-impl FlightPhasesGround {
+impl FlightPhasesGroundActivation {
     pub fn new() -> Self {
         Self {
             trans1: TransientDetectionNode::new(false),
@@ -1164,7 +1165,7 @@ impl FlightPhasesGround {
     }
 }
 
-impl FlightPhases1 for FlightPhasesGround {
+impl FlightPhasesGround for FlightPhasesGroundActivation {
     fn phase_1(&self) -> bool {
         self.phase1
     }
@@ -1194,13 +1195,13 @@ impl FlightPhases1 for FlightPhasesGround {
     }
 }
 
-pub(super) trait FlightPhases2 {
+pub(super) trait FlightPhasesAir {
     fn phase_5(&self) -> bool;
     fn phase_6(&self) -> bool;
     fn phase_7(&self) -> bool;
 }
 
-pub(super) struct FlightPhasesAir {
+pub(super) struct FlightPhasesAirActivation {
     conf1: ConfirmationNode,
     mtrig1: MonostableTriggerNode,
     mtrig2: MonostableTriggerNode,
@@ -1212,7 +1213,7 @@ pub(super) struct FlightPhasesAir {
     phase7: bool,
 }
 
-impl FlightPhasesAir {
+impl FlightPhasesAirActivation {
     pub fn new() -> Self {
         Self {
             conf1: ConfirmationNode::new_leading(Duration::from_secs_f64(0.2)),
@@ -1231,17 +1232,17 @@ impl FlightPhasesAir {
         &mut self,
         context: &UpdateContext,
         ground_sheet: &impl GroundDetection,
-        height_sheet: &impl AltitudeDef,
-        to_power: &impl CfmFlightPhasesDef,
-        flight_phases_1: &impl FlightPhases1,
+        altitude_sheet: &impl AltitudeDef,
+        cfm_flight_phases_sheet: &impl CfmFlightPhasesDef,
+        flight_phases_gnd_sheet: &impl FlightPhasesGround,
     ) {
         let mtrig3_in = ground_sheet.ground_immediate();
         let ground_immediate = self.mtrig3.update(context, mtrig3_in) || mtrig3_in;
 
-        let eng_1_or_2_to_pwr = to_power.eng_1_or_2_to_pwr();
-        let h_fail = height_sheet.h_fail();
-        let h_gt_1500ft = height_sheet.h_gt_1500ft();
-        let h_gt_800ft = height_sheet.h_gt_800ft();
+        let eng_1_or_2_to_pwr = cfm_flight_phases_sheet.eng_1_or_2_to_pwr();
+        let h_fail = altitude_sheet.h_fail();
+        let h_gt_1500ft = altitude_sheet.h_gt_1500ft();
+        let h_gt_800ft = altitude_sheet.h_gt_800ft();
 
         let conf1_cond = self.trans1.update(h_gt_800ft);
         let pulse_cond = self.conf1.update(context, conf1_cond);
@@ -1261,11 +1262,11 @@ impl FlightPhasesAir {
 
         self.phase5 = phase5_cond;
         self.phase6 = !phase5_cond && !ground_immediate && !phase7_cond;
-        self.phase7 = phase7_cond && !flight_phases_1.phase_8();
+        self.phase7 = phase7_cond && !flight_phases_gnd_sheet.phase_8();
     }
 }
 
-impl FlightPhases2 for FlightPhasesAir {
+impl FlightPhasesAir for FlightPhasesAirActivation {
     fn phase_5(&self) -> bool {
         self.phase5
     }
@@ -1281,6 +1282,7 @@ impl FlightPhases2 for FlightPhasesAir {
 
 #[cfg(test)]
 mod tests {
+    use uom::si::angle::radian;
     use uom::si::f64::*;
     use uom::si::{
         acceleration::foot_per_second_squared, length::foot,
@@ -1304,7 +1306,7 @@ mod tests {
                     .ess_lh_lg_compressed()
                     .lh_lg_compressed(2)
                     .norm_lh_lg_compressed()
-                    .signals(),
+                    .parameters(),
             );
             assert_eq!(sheet.new_ground, true);
             assert_eq!(sheet.lgciu_12_inv, false);
@@ -1318,7 +1320,7 @@ mod tests {
                 test_bed_with()
                     .lh_lg_extended(1)
                     .lh_lg_extended(2)
-                    .signals(),
+                    .parameters(),
             );
             assert_eq!(sheet.new_ground, false);
             assert_eq!(sheet.lgciu_12_inv, false);
@@ -1332,7 +1334,7 @@ mod tests {
                 test_bed_with()
                     .lh_lg_compressed(1)
                     .lh_lg_extended(2)
-                    .signals(),
+                    .parameters(),
             );
             assert_eq!(sheet.new_ground, false);
             assert_eq!(sheet.lgciu_12_inv, true);
@@ -1375,11 +1377,11 @@ mod tests {
                     .ess_lh_lg_compressed()
                     .norm_lh_lg_compressed()
                     .radio_heights(Length::new::<foot>(0.0), Length::new::<foot>(-1.0))
-                    .signals(),
+                    .parameters(),
                 &TestLgciuGroundDetection::new(true, false),
             );
-            assert_eq!(sheet.ground_immediate, true);
-            assert_eq!(sheet.ground, true);
+            assert_eq!(sheet.ground_immediate(), true);
+            assert_eq!(sheet.ground(), true);
         }
 
         #[test]
@@ -1391,22 +1393,37 @@ mod tests {
                     .ess_lh_lg_compressed()
                     .norm_lh_lg_compressed()
                     .radio_heights(Length::new::<foot>(0.0), Length::new::<foot>(-1.0))
-                    .signals(),
+                    .parameters(),
                 &TestLgciuGroundDetection::new(true, false),
             );
-            assert_eq!(sheet.ground_immediate, true);
-            assert_eq!(sheet.ground, false);
+            assert_eq!(sheet.ground_immediate(), true);
+            assert_eq!(sheet.ground(), false);
             sheet.update(
                 &gnd_context(Duration::from_millis(500)),
                 test_bed_with()
                     .ess_lh_lg_compressed()
                     .norm_lh_lg_compressed()
                     .radio_heights(Length::new::<foot>(0.0), Length::new::<foot>(-1.0))
-                    .signals(),
+                    .parameters(),
                 &TestLgciuGroundDetection::new(true, false),
             );
-            assert_eq!(sheet.ground_immediate, true);
-            assert_eq!(sheet.ground, true);
+            assert_eq!(sheet.ground_immediate(), true);
+            assert_eq!(sheet.ground(), true);
+        }
+
+        #[test]
+        fn when_dual_ra_failure_on_ground() {
+            let mut sheet = GroundDetectionActivation::new();
+            sheet.update(
+                &gnd_context(Duration::from_millis(500)),
+                test_bed_with()
+                    .ess_lh_lg_compressed()
+                    .norm_lh_lg_compressed()
+                    .parameters(),
+                &TestLgciuGroundDetection::new(true, false),
+            );
+            assert_eq!(sheet.ground_immediate(), true);
+            assert_eq!(sheet.ground(), false);
         }
     }
 
@@ -1420,7 +1437,7 @@ mod tests {
                 &gnd_context(Duration::from_secs(1)),
                 test_bed_with()
                     .eng1_tla(Angle::new::<degree>(37.0))
-                    .signals(),
+                    .parameters(),
             );
             assert_eq!(sheet.eng_1_tla_mct_cfm(), false);
             assert_eq!(sheet.eng_1_end_mct(), false);
@@ -1434,7 +1451,7 @@ mod tests {
                 &gnd_context(Duration::from_secs(1)),
                 test_bed_with()
                     .eng1_tla(Angle::new::<degree>(36.65))
-                    .signals(),
+                    .parameters(),
             );
             assert_eq!(sheet.eng_1_tla_mct_cfm(), true);
             assert_eq!(sheet.eng_1_end_mct(), true);
@@ -1448,7 +1465,7 @@ mod tests {
                 &gnd_context(Duration::from_secs(1)),
                 test_bed_with()
                     .eng1_tla(Angle::new::<degree>(33.0))
-                    .signals(),
+                    .parameters(),
             );
             assert_eq!(sheet.eng_1_tla_mct_cfm(), false);
             assert_eq!(sheet.eng_1_end_mct(), false);
@@ -1462,7 +1479,7 @@ mod tests {
                 &gnd_context(Duration::from_secs(1)),
                 test_bed_with()
                     .eng1_tla(Angle::new::<degree>(35.0))
-                    .signals(),
+                    .parameters(),
             );
             assert_eq!(sheet.eng_1_tla_mct_cfm(), true);
             assert_eq!(sheet.eng_1_end_mct(), false);
@@ -1485,7 +1502,7 @@ mod tests {
                         Velocity::new::<knot>(0.0),
                         Velocity::new::<knot>(0.0),
                     )
-                    .signals(),
+                    .parameters(),
             );
             assert_eq!(sheet.ac_speed_above_80_kt(), false);
         }
@@ -1501,7 +1518,7 @@ mod tests {
                         Velocity::new::<knot>(250.0),
                         Velocity::new::<knot>(250.0),
                     )
-                    .signals(),
+                    .parameters(),
             );
             assert_eq!(sheet.ac_speed_above_80_kt(), true);
         }
@@ -1517,7 +1534,7 @@ mod tests {
                         Velocity::new::<knot>(0.0),
                         Velocity::new::<knot>(0.0),
                     )
-                    .signals(),
+                    .parameters(),
             );
             assert_eq!(sheet.ac_speed_above_80_kt(), false);
         }
@@ -1529,7 +1546,7 @@ mod tests {
                 &gnd_context(Duration::from_secs(1)),
                 test_bed_with()
                     .computed_speed_1(Velocity::new::<knot>(250.0))
-                    .signals(), // todo ADC failures
+                    .parameters(), // TODO ADC failures
             );
             assert_eq!(sheet.ac_speed_above_80_kt(), true);
         }
@@ -1545,7 +1562,7 @@ mod tests {
                         Velocity::new::<knot>(0.0),
                         Velocity::new::<knot>(250.0),
                     )
-                    .signals(),
+                    .parameters(),
             );
             assert_eq!(sheet.ac_speed_above_80_kt(), true);
         }
@@ -1561,7 +1578,7 @@ mod tests {
                         Velocity::new::<knot>(49.0),
                         Velocity::new::<knot>(49.0),
                     )
-                    .signals(),
+                    .parameters(),
             );
             sheet.update(
                 &gnd_context(Duration::from_secs_f64(0.5)),
@@ -1571,7 +1588,7 @@ mod tests {
                         Velocity::new::<knot>(84.0),
                         Velocity::new::<knot>(84.0),
                     )
-                    .signals(),
+                    .parameters(),
             );
             assert_eq!(sheet.ac_speed_above_80_kt(), false);
         }
@@ -1587,7 +1604,7 @@ mod tests {
                         Velocity::new::<knot>(49.0),
                         Velocity::new::<knot>(49.0),
                     )
-                    .signals(),
+                    .parameters(),
             );
             sheet.update(
                 &gnd_context(Duration::from_secs(1)),
@@ -1597,7 +1614,7 @@ mod tests {
                         Velocity::new::<knot>(84.0),
                         Velocity::new::<knot>(84.0),
                     )
-                    .signals(),
+                    .parameters(),
             );
             assert_eq!(sheet.ac_speed_above_80_kt(), true);
         }
@@ -1612,7 +1629,7 @@ mod tests {
             let mut sheet = EnginesNotRunning::new();
             sheet.update(
                 &gnd_context(Duration::from_secs(1)),
-                test_bed_with().signals(),
+                test_bed_with().parameters(),
                 &TestGroundDetection::new(true),
             );
             assert_eq!(sheet.eng_1_not_running(), true);
@@ -1624,7 +1641,7 @@ mod tests {
             let mut sheet = EnginesNotRunning::new();
             sheet.update(
                 &gnd_context(Duration::from_secs(1)),
-                test_bed_with().eng1_master_lever_select_on().signals(),
+                test_bed_with().eng1_master_lever_select_on().parameters(),
                 &TestGroundDetection::new(true),
             );
             assert_eq!(sheet.eng_1_not_running(), true);
@@ -1639,7 +1656,7 @@ mod tests {
                 test_bed_with()
                     .eng1_master_lever_select_on()
                     .eng1_at_or_above_idle()
-                    .signals(),
+                    .parameters(),
                 &TestGroundDetection::new(true),
             );
             assert_eq!(sheet.eng_1_not_running(), false);
@@ -1651,7 +1668,7 @@ mod tests {
             let mut sheet = EnginesNotRunning::new();
             sheet.update(
                 &gnd_context(Duration::from_secs(30)),
-                test_bed_with().eng1_at_or_above_idle().signals(),
+                test_bed_with().eng1_at_or_above_idle().parameters(),
                 &TestGroundDetection::new(true),
             );
             assert_eq!(sheet.eng_1_not_running(), false);
@@ -1667,7 +1684,7 @@ mod tests {
             // Engine 1 just turned on, we would need to wait 30s for "off" confirmation...
             sheet.update(
                 &gnd_context(Duration::from_secs(1)),
-                test_bed_with().eng1_at_or_above_idle().signals(),
+                test_bed_with().eng1_at_or_above_idle().parameters(),
                 &TestGroundDetection::new(false),
             );
             assert_eq!(sheet.eng_1_not_running(), true);
@@ -1678,7 +1695,7 @@ mod tests {
                 test_bed_with()
                     .eng1_at_or_above_idle()
                     .eng1_fire_pb_out()
-                    .signals(),
+                    .parameters(),
                 &TestGroundDetection::new(false),
             );
             assert_eq!(sheet.eng_1_not_running(), false);
@@ -1691,7 +1708,7 @@ mod tests {
             // Engine 2 just turned on, we would need to wait 30s for "off" confirmation...
             sheet.update(
                 &gnd_context(Duration::from_secs(1)),
-                test_bed_with().eng1_at_or_above_idle().signals(),
+                test_bed_with().eng1_at_or_above_idle().parameters(),
                 &TestGroundDetection::new(false),
             );
             assert_eq!(sheet.eng_2_not_running(), true);
@@ -1702,7 +1719,7 @@ mod tests {
                 test_bed_with()
                     .eng1_at_or_above_idle()
                     .eng1_fire_pb_out()
-                    .signals(),
+                    .parameters(),
                 &TestGroundDetection::new(false),
             );
             assert_eq!(sheet.eng_2_not_running(), false);
@@ -1720,7 +1737,7 @@ mod tests {
             let mut sheet = AltitudeDefActivation::new();
             sheet.update(
                 &gnd_context(Duration::from_secs(1)),
-                test_bed_with().radio_heights_at_cruise().signals(),
+                test_bed_with().radio_heights_at_cruise().parameters(),
             );
             assert_eq!(sheet.h_fail(), false);
             assert_eq!(sheet.h_gt_800ft, true);
@@ -1734,7 +1751,7 @@ mod tests {
                 &gnd_context(Duration::from_secs(1)),
                 test_bed_with()
                     .radio_heights(Length::new::<foot>(1600.0), Length::new::<foot>(1600.0))
-                    .signals(),
+                    .parameters(),
             );
             assert_eq!(sheet.h_fail(), false);
             assert_eq!(sheet.h_gt_800ft, true);
@@ -1748,13 +1765,13 @@ mod tests {
                 &gnd_context(Duration::from_secs(1)),
                 test_bed_with()
                     .radio_heights(Length::new::<foot>(1501.0), Length::new::<foot>(1501.0))
-                    .signals(),
+                    .parameters(),
             );
             sheet.update(
                 &gnd_context(Duration::from_secs(1)),
                 test_bed_with()
                     .radio_heights(Length::new::<foot>(1499.0), Length::new::<foot>(1499.0))
-                    .signals(),
+                    .parameters(),
             );
             assert_eq!(sheet.h_fail(), false);
             assert_eq!(sheet.h_gt_800ft, true);
@@ -1768,13 +1785,13 @@ mod tests {
                 &gnd_context(Duration::from_secs(1)),
                 test_bed_with()
                     .radio_heights(Length::new::<foot>(1501.0), Length::new::<foot>(1501.0))
-                    .signals(),
+                    .parameters(),
             );
             sheet.update(
                 &gnd_context(Duration::from_secs(1)),
                 test_bed_with()
                     .radio_heights(Length::new::<foot>(799.0), Length::new::<foot>(799.0))
-                    .signals(),
+                    .parameters(),
             );
             assert_eq!(sheet.h_fail(), false);
             assert_eq!(sheet.h_gt_800ft, false);
@@ -1788,7 +1805,7 @@ mod tests {
                 &gnd_context(Duration::from_secs(1)),
                 test_bed_with()
                     .radio_heights(Length::new::<foot>(0.0), Length::new::<foot>(0.0))
-                    .signals(),
+                    .parameters(),
             );
             assert_eq!(sheet.h_fail(), false);
             assert_eq!(sheet.h_gt_800ft, false);
@@ -1797,119 +1814,162 @@ mod tests {
     }
 
     #[cfg(test)]
-    mod general_flight_phases_1 {
+    mod flight_phases_ground {
         use super::*;
 
         #[test]
         fn when_cold_and_dark_is_phase_1() {
-            let mut sheet = FlightPhasesGround::new();
+            let mut sheet = FlightPhasesGroundActivation::new();
             sheet.update(
                 &gnd_context(Duration::from_secs(1)),
-                test_bed_with().signals(),
+                test_bed_with().parameters(),
                 &TestGroundDetection::new(true),
                 &TestSpeedDetection::new(false),
                 &TestEngRunning::new(false, false),
                 &TestCfmFlightPhasesDef::new_below_flex(),
             );
-            assert_eq!(sheet.phase_1(), true);
+            assert!(sheet.phase_1());
         }
 
         #[test]
         fn when_one_eng_running_is_phase_2() {
-            let mut sheet = FlightPhasesGround::new();
+            let mut sheet = FlightPhasesGroundActivation::new();
             sheet.update(
                 &gnd_context(Duration::from_secs(1)),
-                test_bed_with().signals(),
+                test_bed_with().parameters(),
                 &TestGroundDetection::new(true),
                 &TestSpeedDetection::new(false),
                 &TestEngRunning::new(true, false),
                 &TestCfmFlightPhasesDef::new_below_flex(),
             );
-            assert_eq!(sheet.phase_2(), true);
+            assert!(sheet.phase_2());
         }
 
         #[test]
         fn when_at_flex_takeoff_is_phase_3() {
-            let mut sheet = FlightPhasesGround::new();
+            let mut sheet = FlightPhasesGroundActivation::new();
             sheet.update(
                 &gnd_context(Duration::from_secs(1)),
-                test_bed_with().signals(),
+                test_bed_with().parameters(),
                 &TestGroundDetection::new(true),
                 &TestSpeedDetection::new(false),
                 &TestEngRunning::new(true, true),
                 &TestCfmFlightPhasesDef::new_flex(),
             );
-            assert_eq!(sheet.phase_3(), true);
+            assert!(sheet.phase_3());
         }
 
         #[test]
         fn when_at_toga_takeoff_is_phase_3() {
-            let mut sheet = FlightPhasesGround::new();
+            let mut sheet = FlightPhasesGroundActivation::new();
             sheet.update(
                 &gnd_context(Duration::from_secs(1)),
-                test_bed_with().signals(),
+                test_bed_with().parameters(),
                 &TestGroundDetection::new(true),
                 &TestSpeedDetection::new(false),
                 &TestEngRunning::new(true, true),
                 &TestCfmFlightPhasesDef::new_toga(),
             );
-            assert_eq!(sheet.phase_3(), true);
+            assert!(sheet.phase_3());
         }
 
         #[test]
         fn when_at_toga_above_80_kt_is_phase_4() {
-            let mut sheet = FlightPhasesGround::new();
+            let mut sheet = FlightPhasesGroundActivation::new();
             sheet.update(
                 &gnd_context(Duration::from_secs(1)),
-                test_bed_with().signals(),
+                test_bed_with().parameters(),
                 &TestGroundDetection::new(true),
                 &TestSpeedDetection::new(true),
                 &TestEngRunning::new(true, true),
                 &TestCfmFlightPhasesDef::new_toga(),
             );
-            assert_eq!(sheet.phase_4(), true);
+            assert!(sheet.phase_4());
+        }
+
+        #[test]
+        fn when_engine_failed_above_80_kt_is_phase_4() {
+            let mut sheet = FlightPhasesGroundActivation::new();
+            sheet.update(
+                &gnd_context(Duration::from_secs(1)),
+                test_bed_with().parameters(),
+                &TestGroundDetection::new(true),
+                &TestSpeedDetection::new(true),
+                &TestEngRunning::new(false, true),
+                &TestCfmFlightPhasesDef::new_toga(),
+            );
+            assert!(sheet.phase_4());
         }
 
         #[test]
         fn when_below_flex_above_80_kt_is_phase_8() {
-            let mut sheet = FlightPhasesGround::new();
+            let mut sheet = FlightPhasesGroundActivation::new();
             sheet.update(
                 &gnd_context(Duration::from_secs(1)),
-                test_bed_with().signals(),
+                test_bed_with().parameters(),
                 &TestGroundDetection::new(true),
                 &TestSpeedDetection::new(true),
                 &TestEngRunning::new(true, true),
                 &TestCfmFlightPhasesDef::new_below_flex(),
             );
-            assert_eq!(sheet.phase_8(), true);
-        }
-
-        /*
-        #[test]
-        fn after_high_speed_rto_below_80_knots_is_phase_9() {
-            let mut sheet = FlightPhasesGround::new();
-            sheet.update(&gnd_context(Duration::from_secs(1)), test_bed().signals());
-            sheet.update(&gnd_context(Duration::from_secs(1)), test_bed().signals());
-            sheet.update(&gnd_context(Duration::from_secs(1)), test_bed().signals());
-            assert_eq!(sheet.get_phase(), 9);
+            assert!(sheet.phase_8());
         }
 
         #[test]
-        fn after_high_speed_rto_below_80_knots_and_to_config_is_phase_2() {
-            let mut sheet = FlightPhasesGround::new();
-            sheet.update(&gnd_context(Duration::from_secs(1)), test_bed().signals());
-            sheet.update(&gnd_context(Duration::from_secs(1)), test_bed().signals());
-            sheet.update(&gnd_context(Duration::from_secs(1)), test_bed().signals());
+        fn after_rto_below_80_knots_is_phase_9() {
+            let mut sheet = FlightPhasesGroundActivation::new();
             sheet.update(
                 &gnd_context(Duration::from_secs(1)),
-                test_bed_with().takeoff_config_test_pressed().signals(),
+                test_bed_with().parameters(),
+                &TestGroundDetection::new(true),
+                &TestSpeedDetection::new(false),
+                &TestEngRunning::new(true, true),
+                &TestCfmFlightPhasesDef::new_toga(),
             );
-            assert_eq!(sheet.get_phase(), 2);
+            sheet.update(
+                &gnd_context(Duration::from_secs(1)),
+                test_bed_with().parameters(),
+                &TestGroundDetection::new(true),
+                &TestSpeedDetection::new(false),
+                &TestEngRunning::new(true, true),
+                &TestCfmFlightPhasesDef::new_below_flex(),
+            );
+            assert!(sheet.phase_9());
         }
 
         #[test]
+        fn after_rto_below_80_knots_and_to_config_is_phase_2() {
+            let mut sheet = FlightPhasesGroundActivation::new();
+            sheet.update(
+                &gnd_context(Duration::from_secs(1)),
+                test_bed_with().parameters(),
+                &TestGroundDetection::new(true),
+                &TestSpeedDetection::new(false),
+                &TestEngRunning::new(true, true),
+                &TestCfmFlightPhasesDef::new_toga(),
+            );
+            sheet.update(
+                &gnd_context(Duration::from_secs(1)),
+                test_bed_with().parameters(),
+                &TestGroundDetection::new(true),
+                &TestSpeedDetection::new(false),
+                &TestEngRunning::new(true, true),
+                &TestCfmFlightPhasesDef::new_below_flex(),
+            );
+            sheet.update(
+                &gnd_context(Duration::from_secs(1)),
+                test_bed_with().takeoff_config_test_pressed().parameters(),
+                &TestGroundDetection::new(true),
+                &TestSpeedDetection::new(false),
+                &TestEngRunning::new(true, true),
+                &TestCfmFlightPhasesDef::new_below_flex(),
+            );
+            assert!(sheet.phase_2());
+        }
+
+        /*#[test]
         fn after_engine_shutdown_reset_to_phase_1() {
-            let mut sheet = FlightPhasesGround::new();
+            let mut sheet = FlightPhasesGroundActivation::new();
             sheet.update(&gnd_context(Duration::from_secs(1)), test_bed().signals());
             assert_eq!(sheet.get_phase(), 3);
             sheet.update(&gnd_context(Duration::from_secs(30)), test_bed().signals());
@@ -1923,6 +1983,137 @@ mod tests {
         }*/
     }
 
+    #[cfg(test)]
+    mod flight_phases_air {
+        use super::*;
+
+        #[test]
+        fn when_at_toga_below_1500ft_is_phase_5() {
+            let mut sheet = FlightPhasesAirActivation::new();
+            sheet.update(
+                &gnd_context(Duration::from_secs(1)),
+                &TestGroundDetection::new(false),
+                &TestAltitudeDef::new_takeoff(Length::new::<foot>(1499.0)),
+                &TestCfmFlightPhasesDef::new_toga(),
+                &TestFlightPhasesGround::default(),
+            );
+            assert!(sheet.phase_5());
+        }
+
+        #[test]
+        fn when_at_flex_below_1500ft_is_phase_5() {
+            let mut sheet = FlightPhasesAirActivation::new();
+            sheet.update(
+                &gnd_context(Duration::from_secs(1)),
+                &TestGroundDetection::new(false),
+                &TestAltitudeDef::new_takeoff(Length::new::<foot>(1499.0)),
+                &TestCfmFlightPhasesDef::new_flex(),
+                &TestFlightPhasesGround::default(),
+            );
+            assert!(sheet.phase_5());
+        }
+
+        #[test]
+        fn when_at_takeoff_power_above_1500ft_is_phase_6() {
+            let mut sheet = FlightPhasesAirActivation::new();
+            sheet.update(
+                &gnd_context(Duration::from_secs(1)),
+                &TestGroundDetection::new(false),
+                &TestAltitudeDef::new_takeoff(Length::new::<foot>(1500.1)),
+                &TestCfmFlightPhasesDef::new_toga(),
+                &TestFlightPhasesGround::default(),
+            );
+            assert!(sheet.phase_6());
+        }
+
+        #[test]
+        fn when_at_flex_above_1500ft_is_phase_6() {
+            let mut sheet = FlightPhasesAirActivation::new();
+            sheet.update(
+                &gnd_context(Duration::from_secs(1)),
+                &TestGroundDetection::new(false),
+                &TestAltitudeDef::new_takeoff(Length::new::<foot>(1500.1)),
+                &TestCfmFlightPhasesDef::new_flex(),
+                &TestFlightPhasesGround::default(),
+            );
+            assert!(sheet.phase_6());
+        }
+
+        #[test]
+        fn when_at_below_flex_below_800ft_is_phase_7() {
+            let mut sheet = FlightPhasesAirActivation::new();
+            sheet.update(
+                &gnd_context(Duration::from_secs(1)),
+                &TestGroundDetection::new(false),
+                &TestAltitudeDef::new_landing(Length::new::<foot>(799.9)),
+                &TestCfmFlightPhasesDef::new_below_flex(),
+                &TestFlightPhasesGround::default(),
+            );
+            sheet.update(
+                &gnd_context(Duration::from_secs(1)),
+                &TestGroundDetection::new(false),
+                &TestAltitudeDef::new_landing(Length::new::<foot>(799.9)),
+                &TestCfmFlightPhasesDef::new_below_flex(),
+                &TestFlightPhasesGround::default(),
+            );
+            assert!(sheet.phase_7());
+        }
+
+        #[test]
+        fn when_at_flex_below_800ft_is_phase_5() {
+            let mut sheet = FlightPhasesAirActivation::new();
+            sheet.update(
+                &gnd_context(Duration::from_secs(1)),
+                &TestGroundDetection::new(false),
+                &TestAltitudeDef::new_landing(Length::new::<foot>(799.9)),
+                &TestCfmFlightPhasesDef::new_flex(),
+                &TestFlightPhasesGround::default(),
+            );
+            assert!(sheet.phase_5());
+        }
+
+        #[test]
+        fn when_at_toga_below_800ft_is_phase_5() {
+            let mut sheet = FlightPhasesAirActivation::new();
+            sheet.update(
+                &gnd_context(Duration::from_secs(1)),
+                &TestGroundDetection::new(false),
+                &TestAltitudeDef::new_landing(Length::new::<foot>(799.9)),
+                &TestCfmFlightPhasesDef::new_toga(),
+                &TestFlightPhasesGround::default(),
+            );
+            assert!(sheet.phase_5());
+        }
+
+        #[test]
+        fn when_ra_failed_is_phase_6() {
+            let mut sheet = FlightPhasesAirActivation::new();
+            sheet.update(
+                &gnd_context(Duration::from_secs(1)),
+                &TestGroundDetection::new(false),
+                &TestAltitudeDef::new_failed(),
+                &TestCfmFlightPhasesDef::new_flex(),
+                &TestFlightPhasesGround::default(),
+            );
+            assert!(sheet.phase_6());
+        }
+
+        #[test]
+        fn when_on_ground_and_ra_failed_is_no_phase() {
+            let mut sheet = FlightPhasesAirActivation::new();
+            sheet.update(
+                &gnd_context(Duration::from_secs(1)),
+                &TestGroundDetection::new(true),
+                &TestAltitudeDef::new_failed(),
+                &TestCfmFlightPhasesDef::new_below_flex(),
+                &TestFlightPhasesGround::default(),
+            );
+            assert!(!sheet.phase_5());
+            assert!(!sheet.phase_6());
+            assert!(!sheet.phase_7());
+        }
+    }
+
     fn gnd_context(delta_time: Duration) -> UpdateContext {
         UpdateContext::new(
             delta_time,
@@ -1931,188 +2122,11 @@ mod tests {
             ThermodynamicTemperature::new::<degree_celsius>(25.0),
             true,
             Acceleration::new::<foot_per_second_squared>(0.),
+            Acceleration::new::<foot_per_second_squared>(0.),
+            Acceleration::new::<foot_per_second_squared>(0.),
+            Angle::new::<radian>(0.),
+            Angle::new::<radian>(0.),
         )
-    }
-
-    struct A320SignalTestBed {
-        signals: A320SignalTable,
-    }
-    impl A320SignalTestBed {
-        fn new() -> Self {
-            let mut signals = A320SignalTable::new();
-            Self { signals }
-        }
-
-        fn and(self) -> Self {
-            self
-        }
-
-        fn signals(&self) -> &A320SignalTable {
-            &self.signals
-        }
-
-        fn takeoff_config_test_pressed(mut self) -> Self {
-            self.signals.set_takeoff_config_test(true);
-            self
-        }
-
-        fn computed_speeds(mut self, speed1: Velocity, speed2: Velocity, speed3: Velocity) -> Self {
-            self.signals
-                .set_computed_speed_1(Arinc429Parameter::new(speed1));
-            self.signals
-                .set_computed_speed_2(Arinc429Parameter::new(speed2));
-            self.signals
-                .set_computed_speed_3(Arinc429Parameter::new(speed3));
-            self
-        }
-
-        fn computed_speed_1(mut self, speed: Velocity) -> Self {
-            self.signals
-                .set_computed_speed_1(Arinc429Parameter::new(speed));
-            self
-        }
-
-        fn computed_speed_2(mut self, speed: Velocity) -> Self {
-            self.signals
-                .set_computed_speed_2(Arinc429Parameter::new(speed));
-            self
-        }
-
-        fn computed_speed_3(mut self, speed: Velocity) -> Self {
-            self.signals
-                .set_computed_speed_3(Arinc429Parameter::new(speed));
-            self
-        }
-
-        fn lh_lg_compressed(mut self, lgciu: usize) -> Self {
-            match lgciu {
-                1 => self
-                    .signals
-                    .set_lh_lg_compressed_1(Arinc429Parameter::new(true)),
-                2 => self
-                    .signals
-                    .set_lh_lg_compressed_2(Arinc429Parameter::new(true)),
-                _ => panic!(),
-            }
-            self
-        }
-
-        fn lh_lg_extended(mut self, lgciu: usize) -> Self {
-            match lgciu {
-                1 => self
-                    .signals
-                    .set_lh_lg_compressed_1(Arinc429Parameter::new(false)),
-                2 => self
-                    .signals
-                    .set_lh_lg_compressed_2(Arinc429Parameter::new(false)),
-                _ => panic!(),
-            }
-            self
-        }
-
-        fn ess_lh_lg_compressed(mut self) -> Self {
-            self.signals
-                .set_ess_lh_lg_compressed(DiscreteParameter::new(true));
-            self
-        }
-
-        fn norm_lh_lg_compressed(mut self) -> Self {
-            self.signals
-                .set_norm_lh_lg_compressed(DiscreteParameter::new(true));
-            self
-        }
-
-        fn radio_heights(mut self, height1: Length, height2: Length) -> Self {
-            self.signals
-                .set_radio_height_1(Arinc429Parameter::new(height1));
-            self.signals
-                .set_radio_height_2(Arinc429Parameter::new(height2));
-            self
-        }
-
-        /// Simulates a flight at cruise, where the radio altimeters will not be able to receive a
-        /// valid ground return and mark their data as NCD.
-        fn radio_heights_at_cruise(mut self) -> Self {
-            self.signals
-                .set_radio_height_1(Arinc429Parameter::new_ncd(Length::new::<foot>(10000.0)));
-            self.signals
-                .set_radio_height_2(Arinc429Parameter::new_ncd(Length::new::<foot>(10000.0)));
-            self
-        }
-
-        fn eng1_fire_pb_out(mut self) -> Self {
-            self.signals
-                .set_eng_1_fire_pb_out(DiscreteParameter::new(true));
-            self
-        }
-
-        fn eng1_master_lever_select_on(mut self) -> Self {
-            self.signals
-                .set_eng1_master_lever_select_on(Arinc429Parameter::new(true));
-            self
-        }
-
-        fn eng2_master_lever_select_on(mut self) -> Self {
-            self.signals
-                .set_eng1_master_lever_select_on(Arinc429Parameter::new(true));
-            self
-        }
-
-        fn eng1_at_or_above_idle(mut self) -> Self {
-            self.signals
-                .set_eng1_core_speed_at_or_above_idle_a(Arinc429Parameter::new(true));
-            self.signals
-                .set_eng1_core_speed_at_or_above_idle_b(Arinc429Parameter::new(true));
-            self
-        }
-
-        fn eng2_at_or_above_idle(mut self) -> Self {
-            self.signals
-                .set_eng2_core_speed_at_or_above_idle_a(Arinc429Parameter::new(true));
-            self.signals
-                .set_eng2_core_speed_at_or_above_idle_b(Arinc429Parameter::new(true));
-            self
-        }
-
-        fn eng1_tla(mut self, tla: Angle) -> Self {
-            self.signals.set_eng1_tla_a(Arinc429Parameter::new(tla));
-            self.signals.set_eng1_tla_b(Arinc429Parameter::new(tla));
-            self
-        }
-
-        fn eng1_tla_a(mut self, tla: Angle) -> Self {
-            self.signals.set_eng1_tla_a(Arinc429Parameter::new(tla));
-            self
-        }
-
-        fn eng1_tla_b(mut self, tla: Angle) -> Self {
-            self.signals.set_eng1_tla_b(Arinc429Parameter::new(tla));
-            self
-        }
-
-        fn eng2_tla(mut self, tla: Angle) -> Self {
-            self.signals.set_eng2_tla_a(Arinc429Parameter::new(tla));
-            self.signals.set_eng2_tla_b(Arinc429Parameter::new(tla));
-            self
-        }
-
-        fn eng2_tla_a(mut self, tla: Angle) -> Self {
-            self.signals.set_eng2_tla_a(Arinc429Parameter::new(tla));
-            self
-        }
-
-        fn eng2_tla_b(mut self, tla: Angle) -> Self {
-            self.signals.set_eng2_tla_b(Arinc429Parameter::new(tla));
-            self
-        }
-    }
-
-    fn test_bed() -> A320SignalTestBed {
-        A320SignalTestBed::new()
-    }
-
-    fn test_bed_with() -> A320SignalTestBed {
-        test_bed()
     }
 
     struct TestGroundDetection {
@@ -2174,6 +2188,52 @@ mod tests {
 
         fn adc_test_inhib(&self) -> bool {
             self.adc_test_inhib
+        }
+    }
+
+    struct TestAltitudeDef {
+        h_gt_800ft: bool,
+        h_gt_1500ft: bool,
+        h_fail: bool,
+    }
+
+    impl TestAltitudeDef {
+        fn new_takeoff(height: Length) -> Self {
+            Self {
+                h_gt_800ft: height > Length::new::<foot>(1500.0),
+                h_gt_1500ft: height > Length::new::<foot>(1500.0),
+                h_fail: false,
+            }
+        }
+
+        fn new_landing(height: Length) -> Self {
+            Self {
+                h_gt_800ft: height > Length::new::<foot>(800.0),
+                h_gt_1500ft: height > Length::new::<foot>(1500.0),
+                h_fail: false,
+            }
+        }
+
+        fn new_failed() -> Self {
+            Self {
+                h_gt_800ft: false,
+                h_gt_1500ft: false,
+                h_fail: true,
+            }
+        }
+    }
+
+    impl AltitudeDef for TestAltitudeDef {
+        fn h_gt_800ft(&self) -> bool {
+            self.h_gt_800ft
+        }
+
+        fn h_gt_1500ft(&self) -> bool {
+            self.h_gt_1500ft
+        }
+
+        fn h_fail(&self) -> bool {
+            self.h_fail
         }
     }
 
@@ -2248,6 +2308,52 @@ mod tests {
 
         fn eng_1_or_2_to_pwr(&self) -> bool {
             self.eng_1_or_2_to_pwr
+        }
+    }
+
+    struct TestFlightPhasesGround {
+        phase: usize,
+    }
+
+    impl TestFlightPhasesGround {
+        fn new(phase: usize) -> Self {
+            Self { phase }
+        }
+    }
+
+    impl FlightPhasesGround for TestFlightPhasesGround {
+        fn phase_1(&self) -> bool {
+            self.phase == 1
+        }
+
+        fn phase_2(&self) -> bool {
+            self.phase == 2
+        }
+
+        fn phase_3(&self) -> bool {
+            self.phase == 3
+        }
+
+        fn phase_4(&self) -> bool {
+            self.phase == 4
+        }
+
+        fn phase_8(&self) -> bool {
+            self.phase == 8
+        }
+
+        fn phase_9(&self) -> bool {
+            self.phase == 9
+        }
+
+        fn phase_10(&self) -> bool {
+            self.phase == 10
+        }
+    }
+
+    impl Default for TestFlightPhasesGround {
+        fn default() -> Self {
+            Self::new(0)
         }
     }
 }

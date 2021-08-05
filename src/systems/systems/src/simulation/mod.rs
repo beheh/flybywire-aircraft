@@ -134,6 +134,7 @@ pub trait Aircraft: SimulationElement {
     {
         electricity.report_consumption_to(context, self);
     }
+    fn update_fwc(&mut self, _writer: &FwcWriter) {}
 }
 
 /// The [`Simulation`] runs across many different [`SimulationElement`]s.
@@ -717,5 +718,24 @@ impl<T: Reader> Read<Duration> for T {
 impl<T: Writer> Write<Duration> for T {
     fn convert(&mut self, value: Duration) -> f64 {
         value.as_secs_f64()
+    }
+}
+
+pub trait FwcReaderWriter {
+    fn read(&mut self, name: &str) -> f64;
+    fn write(&mut self, name: &str, value: f64);
+}
+
+pub struct FwcWriter<'a> {
+    fwc_read_writer: &'a mut dyn FwcReaderWriter,
+}
+
+impl<'a> FwcWriter<'a> {
+    pub fn new(fwc_read_writer: &'a mut dyn FwcReaderWriter) -> Self {
+        Self { fwc_read_writer }
+    }
+
+    pub fn write_f64(&mut self, name: &str, value: f64) {
+        self.fwc_read_writer.write(name, value);
     }
 }

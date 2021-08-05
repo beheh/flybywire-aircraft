@@ -107,7 +107,29 @@ pub(super) trait Eng2ChannelInControl {
     fn eng2_channel_b_in_control(&self) -> &Arinc429Parameter<bool>;
 }
 
-pub(super) struct A320SignalTable {
+/// This struct contains the parameters acquired directly by the FWC (in other words: not through an
+/// SDAC). They can be received via ARINC or as discretes.
+pub struct A320FwcDirectParameterTable {
+    lh_lg_compressed_1: Arinc429Parameter<bool>,
+    lh_lg_compressed_2: Arinc429Parameter<bool>,
+    ess_lh_lg_compressed: DiscreteParameter,
+    norm_lh_lg_compressed: DiscreteParameter,
+    radio_height_1: Arinc429Parameter<Length>,
+    radio_height_2: Arinc429Parameter<Length>,
+    computed_speed_1: Arinc429Parameter<Velocity>,
+    computed_speed_2: Arinc429Parameter<Velocity>,
+    computed_speed_3: Arinc429Parameter<Velocity>,
+    eng1_master_lever_select_on: Arinc429Parameter<bool>,
+    eng2_master_lever_select_on: Arinc429Parameter<bool>,
+}
+
+impl A320FwcDirectParameterTable {}
+
+pub struct A320FwcSdacParameterTable {}
+
+/// This struct represents the in-memory representation of the signals used by a Flight Warning
+/// Computer to determine it's activations.
+pub struct A320FWCParameterTable {
     lh_lg_compressed_1: Arinc429Parameter<bool>,
     lh_lg_compressed_2: Arinc429Parameter<bool>,
     ess_lh_lg_compressed: DiscreteParameter,
@@ -146,7 +168,7 @@ pub(super) struct A320SignalTable {
     eng2_channel_a_in_control: Arinc429Parameter<bool>,
     eng2_channel_b_in_control: Arinc429Parameter<bool>,
 }
-impl A320SignalTable {
+impl A320FWCParameterTable {
     pub fn new() -> Self {
         Self {
             lh_lg_compressed_1: Arinc429Parameter::new_inv(false),
@@ -284,8 +306,23 @@ impl A320SignalTable {
     pub(super) fn set_eng2_tla_b(&mut self, tla: Arinc429Parameter<Angle>) {
         self.eng2_tla_b = tla
     }
+
+    pub(super) fn set_eng1_channel_a_in_control(&mut self, in_control: Arinc429Parameter<bool>) {
+        self.eng1_channel_a_in_control = in_control;
+    }
+
+    pub(super) fn set_eng1_channel_b_in_control(&mut self, in_control: Arinc429Parameter<bool>) {
+        self.eng1_channel_b_in_control = in_control;
+    }
+
+    pub(super) fn set_eng2_channel_a_in_control(&mut self, in_control: Arinc429Parameter<bool>) {
+        self.eng2_channel_a_in_control = in_control;
+    }
+    pub(super) fn set_eng2_channel_b_in_control(&mut self, in_control: Arinc429Parameter<bool>) {
+        self.eng2_channel_b_in_control = in_control;
+    }
 }
-impl LhLgCompressed for A320SignalTable {
+impl LhLgCompressed for A320FWCParameterTable {
     fn lh_lg_compressed(&self, index: usize) -> &Arinc429Parameter<bool> {
         match index {
             1 => &self.lh_lg_compressed_1,
@@ -294,17 +331,17 @@ impl LhLgCompressed for A320SignalTable {
         }
     }
 }
-impl EssLhLgCompressed for A320SignalTable {
+impl EssLhLgCompressed for A320FWCParameterTable {
     fn ess_lh_lg_compressed(&self) -> &DiscreteParameter {
         &self.ess_lh_lg_compressed
     }
 }
-impl NormLhLgCompressed for A320SignalTable {
+impl NormLhLgCompressed for A320FWCParameterTable {
     fn norm_lh_lg_compressed(&self) -> &DiscreteParameter {
         &self.norm_lh_lg_compressed
     }
 }
-impl RadioHeight for A320SignalTable {
+impl RadioHeight for A320FWCParameterTable {
     fn radio_height(&self, index: usize) -> &Arinc429Parameter<Length> {
         match index {
             1 => &self.radio_height_1,
@@ -313,7 +350,7 @@ impl RadioHeight for A320SignalTable {
         }
     }
 }
-impl ComputedSpeed for A320SignalTable {
+impl ComputedSpeed for A320FWCParameterTable {
     fn computed_speed(&self, index: usize) -> &Arinc429Parameter<Velocity> {
         match index {
             1 => &self.computed_speed_1,
@@ -323,19 +360,19 @@ impl ComputedSpeed for A320SignalTable {
         }
     }
 }
-impl Eng1MasterLeverSelectOn for A320SignalTable {
+impl Eng1MasterLeverSelectOn for A320FWCParameterTable {
     fn eng1_master_lever_select_on(&self) -> &Arinc429Parameter<bool> {
         &self.eng1_master_lever_select_on
     }
 }
 
-impl Eng2MasterLeverSelectOn for A320SignalTable {
+impl Eng2MasterLeverSelectOn for A320FWCParameterTable {
     fn eng2_master_lever_select_on(&self) -> &Arinc429Parameter<bool> {
         &self.eng2_master_lever_select_on
     }
 }
 
-impl Eng1CoreSpeedAtOrAboveIdle for A320SignalTable {
+impl Eng1CoreSpeedAtOrAboveIdle for A320FWCParameterTable {
     fn eng1_core_speed_at_or_above_idle(&self, index: usize) -> &Arinc429Parameter<bool> {
         match index {
             1 => &self.eng1_core_speed_at_or_above_idle_a,
@@ -345,7 +382,7 @@ impl Eng1CoreSpeedAtOrAboveIdle for A320SignalTable {
     }
 }
 
-impl Eng2CoreSpeedAtOrAboveIdle for A320SignalTable {
+impl Eng2CoreSpeedAtOrAboveIdle for A320FWCParameterTable {
     fn eng2_core_speed_at_or_above_idle(&self, index: usize) -> &Arinc429Parameter<bool> {
         match index {
             1 => &self.eng2_core_speed_at_or_above_idle_a,
@@ -355,19 +392,19 @@ impl Eng2CoreSpeedAtOrAboveIdle for A320SignalTable {
     }
 }
 
-impl Eng1FirePbOut for A320SignalTable {
+impl Eng1FirePbOut for A320FWCParameterTable {
     fn eng_1_fire_pb_out(&self) -> &DiscreteParameter {
         &self.eng_1_fire_pb_out
     }
 }
 
-impl ToConfigTest for A320SignalTable {
+impl ToConfigTest for A320FWCParameterTable {
     fn to_config_test(&self) -> &Arinc429Parameter<bool> {
         &self.to_config_test
     }
 }
 
-impl Eng1Tla for A320SignalTable {
+impl Eng1Tla for A320FWCParameterTable {
     fn eng1_tla(&self, index: usize) -> &Arinc429Parameter<Angle> {
         match index {
             1 => &self.eng1_tla_a,
@@ -377,7 +414,7 @@ impl Eng1Tla for A320SignalTable {
     }
 }
 
-impl Eng2Tla for A320SignalTable {
+impl Eng2Tla for A320FWCParameterTable {
     fn eng2_tla(&self, index: usize) -> &Arinc429Parameter<Angle> {
         match index {
             1 => &self.eng2_tla_a,
@@ -387,7 +424,7 @@ impl Eng2Tla for A320SignalTable {
     }
 }
 
-impl Eng1TlaFto for A320SignalTable {
+impl Eng1TlaFto for A320FWCParameterTable {
     fn eng1_tla_fto(&self, index: usize) -> &Arinc429Parameter<bool> {
         match index {
             1 => &self.eng1_tla_fto_a,
@@ -397,7 +434,7 @@ impl Eng1TlaFto for A320SignalTable {
     }
 }
 
-impl Eng2TlaFto for A320SignalTable {
+impl Eng2TlaFto for A320FWCParameterTable {
     fn eng2_tla_fto(&self, index: usize) -> &Arinc429Parameter<bool> {
         match index {
             1 => &self.eng2_tla_fto_a,
@@ -407,7 +444,7 @@ impl Eng2TlaFto for A320SignalTable {
     }
 }
 
-impl Eng1N1SelectedActual for A320SignalTable {
+impl Eng1N1SelectedActual for A320FWCParameterTable {
     fn eng1_n1_selected_actual(&self, index: usize) -> &Arinc429Parameter<Ratio> {
         match index {
             1 => &self.eng1_n1_selected_actual_a,
@@ -416,7 +453,7 @@ impl Eng1N1SelectedActual for A320SignalTable {
         }
     }
 }
-impl Eng2N1SelectedActual for A320SignalTable {
+impl Eng2N1SelectedActual for A320FWCParameterTable {
     fn eng2_n1_selected_actual(&self, index: usize) -> &Arinc429Parameter<Ratio> {
         match index {
             1 => &self.eng2_n1_selected_actual_a,
@@ -425,7 +462,7 @@ impl Eng2N1SelectedActual for A320SignalTable {
         }
     }
 }
-impl Tla1IdlePwr for A320SignalTable {
+impl Tla1IdlePwr for A320FWCParameterTable {
     fn tla1_idle_pwr(&self, index: usize) -> &Arinc429Parameter<bool> {
         match index {
             1 => &self.tla1_idle_pwr_a,
@@ -434,7 +471,7 @@ impl Tla1IdlePwr for A320SignalTable {
         }
     }
 }
-impl Tla2IdlePwr for A320SignalTable {
+impl Tla2IdlePwr for A320FWCParameterTable {
     fn tla2_idle_pwr(&self, index: usize) -> &Arinc429Parameter<bool> {
         match index {
             1 => &self.tla2_idle_pwr_a,
@@ -443,7 +480,7 @@ impl Tla2IdlePwr for A320SignalTable {
         }
     }
 }
-impl Eng1ChannelInControl for A320SignalTable {
+impl Eng1ChannelInControl for A320FWCParameterTable {
     fn eng1_channel_a_in_control(&self) -> &Arinc429Parameter<bool> {
         &self.eng1_channel_a_in_control
     }
@@ -452,7 +489,7 @@ impl Eng1ChannelInControl for A320SignalTable {
         &self.eng1_channel_b_in_control
     }
 }
-impl Eng2ChannelInControl for A320SignalTable {
+impl Eng2ChannelInControl for A320FWCParameterTable {
     fn eng2_channel_a_in_control(&self) -> &Arinc429Parameter<bool> {
         &self.eng2_channel_a_in_control
     }
