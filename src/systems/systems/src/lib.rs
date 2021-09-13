@@ -9,6 +9,7 @@
 pub mod macros;
 
 pub mod apu;
+pub mod arinc429;
 pub mod electrical;
 pub mod engine;
 pub mod failures;

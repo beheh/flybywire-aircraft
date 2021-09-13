@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 mod update_context;
+use crate::shared::arinc429::Arinc429Label;
 use crate::{
     electrical::Electricity,
     failures::FailureType,
@@ -183,6 +184,9 @@ pub trait SimulationElement {
 
     /// Receives a failure in order to activate or deactivate it.
     fn receive_failure(&mut self, _failure_type: FailureType, _is_active: bool) {}
+
+    /// End of simulation cycle - can be used for cleanups
+    fn post_tick(&mut self) {}
 }
 
 /// Trait for visitors that visit the aircraft's system simulation to call
@@ -468,7 +472,11 @@ pub trait Read<T: Copy> {
         Self: Sized + Reader,
     {
         let value = from_arinc429(self.read_f64(name));
-        Arinc429Word::new(self.convert(value.0), value.1)
+        Arinc429Word::new(
+            Arinc429Label::new(0o00, 0x00),
+            self.convert(value.0),
+            value.1,
+        )
     }
 
     fn convert(&mut self, value: f64) -> T;
