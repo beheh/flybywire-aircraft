@@ -113,6 +113,8 @@ impl Default for LandingGear {
 }
 
 pub struct LandingGearControlInterfaceUnit {
+    index: usize,
+
     is_powered: bool,
     powered_by: ElectricalBusType,
     external_power_available: bool,
@@ -128,10 +130,43 @@ pub struct LandingGearControlInterfaceUnit {
     right_gear_down_and_locked: bool,
     left_gear_down_and_locked: bool,
     nose_gear_down_and_locked: bool,
+
+    arinc_bus: Arinc429Bus,
 }
 impl LandingGearControlInterfaceUnit {
-    pub fn new(powered_by: ElectricalBusType) -> Self {
+    const ARINC_DISCRETE_WORD_1_LABEL_BUILDER: Arinc429LabelBuilder<Arinc429Discretes> =
+        Arinc429LabelBuilder::new(0o020);
+    const ARINC_DISCRETE_WORD_2_LABEL_BUILDER: Arinc429LabelBuilder<Arinc429Discretes> =
+        Arinc429LabelBuilder::new(0o021);
+    const ARINC_DISCRETE_WORD_3_LABEL_BUILDER: Arinc429LabelBuilder<Arinc429Discretes> =
+        Arinc429LabelBuilder::new(0o022);
+
+    const LGCIU1_ARINC_SDI: u8 = 0x01;
+    const LGCIU2_ARINC_SDI: u8 = 0x10;
+
+    pub const LGCIU1_DISCRETE_WORD_1_ARINC_LABEL: Arinc429Label<Arinc429Discretes> =
+        LandingGearControlInterfaceUnit::ARINC_DISCRETE_WORD_1_LABEL_BUILDER
+            .build(LGCIU_1_ARINC_SDI);
+    pub const LGCIU1_DISCRETE_WORD_2_ARINC_LABEL: Arinc429Label<Arinc429Discretes> =
+        LandingGearControlInterfaceUnit::ARINC_DISCRETE_WORD_2_LABEL_BUILDER
+            .build(LGCIU_1_ARINC_SDI);
+    pub const LGCIU2_DISCRETE_WORD_3_ARINC_LABEL: Arinc429Label<Arinc429Discretes> =
+        LandingGearControlInterfaceUnit::ARINC_DISCRETE_WORD_3_LABEL_BUILDER
+            .build(LGCIU_1_ARINC_SDI);
+
+    pub const LGCIU2_DISCRETE_WORD_1_ARINC_LABEL: Arinc429Label<Arinc429Discretes> =
+        LandingGearControlInterfaceUnit::ARINC_DISCRETE_WORD_1_LABEL_BUILDER
+            .build(LGCIU_2_ARINC_SDI);
+    pub const LGCIU2_DISCRETE_WORD_2_ARINC_LABEL: Arinc429Label<Arinc429Discretes> =
+        LandingGearControlInterfaceUnit::ARINC_DISCRETE_WORD_2_LABEL_BUILDER
+            .build(LGCIU_2_ARINC_SDI);
+    pub const LGCIU2_DISCRETE_WORD_3_ARINC_ABEL: Arinc429Label<Arinc429Discretes> =
+        LandingGearControlInterfaceUnit::ARINC_DISCRETE_WORD_3_LABEL_BUILDER
+            .build(LGCIU_2_ARINC_SDI);
+
+    pub fn new(index: usize, powered_by: ElectricalBusType) -> Self {
         Self {
+            index,
             is_powered: false,
             powered_by,
             external_power_available: false,
@@ -144,6 +179,7 @@ impl LandingGearControlInterfaceUnit {
             right_gear_down_and_locked: false,
             left_gear_down_and_locked: false,
             nose_gear_down_and_locked: false,
+            arinc_bus: Arinc429Bus::new(),
         }
     }
 
@@ -163,9 +199,56 @@ impl LandingGearControlInterfaceUnit {
         self.left_gear_down_and_locked = landing_gear.is_wheel_id_down_and_locked(GearWheel::LEFT);
         self.nose_gear_down_and_locked =
             landing_gear.is_wheel_id_down_and_locked(GearWheel::CENTER);
+
+        let sdi = match self.index {
+            1 => LGCIU_1_ARINC_SDI,
+            2 => LGCIU_2_ARINC_SDI,
+            _ => panic!(),
+        };
+
+        let mut word1 = Arinc429DiscretesWordBuilder::new(
+            LandingGearControlInterfaceUnit::ARINC_DISCRETE_WORD_1_LABEL.build(sdi),
+        );
+        word1.set(23, self.left_gear_down_and_locked); // LH GEAR DNLKD
+        word1.set(24, self.right_gear_down_and_locked); // RH GEAR DNLKD
+        word1.set(25, self.nose_gear_down_and_locked); // NOSE GEAR DNLKD
+        word1.set(26, self.nose_gear_sensor_compressed); // LH L/G SHOCK-ABSORBER NOT EXTENDED
+        word1.set(27, self.left_gear_sensor_compressed); // RH L/G SHOCK-ABSORBER NOT EXTENDED
+        word1.set(28, self.right_gear_sensor_compressed); // NOSE L/G SHOCK-ABSORBER NOT EXTENDED
+        self.arinc_bus
+            .write_value(word1.build(SignStatus::NormalOperation));
+
+        let mut word2 = Arinc429DiscretesWordBuilder::new(LGCIU_DISCRETE_WORD_2.build(sdi));
+        word2.set(
+            11,
+            self.left_gear_sensor_compressed && self.right_gear_sensor_compressed,
+        ); // MAIN (LH / RH) L/G COMPRESSED
+        word2.set(12, self.nose_gear_sensor_compressed); // NOSE L/G COMPRESSED
+        word2.set(13, self.left_gear_sensor_compressed); // LH L/G COMPRESSED
+        word2.set(14, self.right_gear_sensor_compressed); // RH L/G COMPRESSED
+        word2.set(
+            15,
+            self.left_gear_down_and_locked && self.right_gear_down_and_locked,
+        ); // MAIN L/G (LH & RH) DNLKD
+        self.arinc_bus
+            .write_value(word2.build(SignStatus::NormalOperation));
+
+        let mut word3 = Arinc429DiscretesWordBuilder::new(LGCIU_DISCRETE_WORD_2.build(sdi));
+        word3.set(11, !self.left_gear_up_and_locked); // LH GEAR NOT LKD UP
+        word3.set(12, !self.right_gear_up_and_locked); // RH GEAR NOT LKD UP
+        word3.set(13, !self.nose_gear_up_and_locked); // NOSE GEAR NOT LKD UP
+        self.arinc_bus
+            .write_value(word3.build(SignStatus::NormalOperation));
     }
 }
+
 impl SimulationElement for LandingGearControlInterfaceUnit {
+    fn accept<T: SimulationElementVisitor>(&mut self, visitor: &mut T) {
+        self.arinc_bus.accept(visitor);
+
+        visitor.visit(self);
+    }
+
     fn receive_power(&mut self, buses: &impl ElectricalBuses) {
         self.is_powered = buses.is_powered(self.powered_by);
     }
@@ -229,7 +312,11 @@ impl LgciuGearExtension for LandingGearControlInterfaceUnit {
             && self.left_gear_up_and_locked
     }
 }
-
+impl LgciuArincReader for LandingGearControlInterfaceUnit {
+    fn arinc_bus(&self) -> &Arinc429Bus {
+        &self.arinc_bus
+    }
+}
 impl LgciuInterface for LandingGearControlInterfaceUnit {}
 
 #[cfg(test)]

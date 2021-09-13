@@ -66,8 +66,11 @@ pub trait LgciuGearExtension {
     fn all_down_and_locked(&self) -> bool;
     fn all_up_and_locked(&self) -> bool;
 }
+pub trait LgciuArincReader {
+    fn arinc_bus(&self) -> &arinc429::Arinc429Bus;
+}
 
-pub trait LgciuInterface: LgciuWeightOnWheels + LgciuGearExtension {}
+pub trait LgciuInterface: LgciuWeightOnWheels + LgciuGearExtension + LgciuArincReader {}
 pub trait EngineCorrectedN1 {
     fn corrected_n1(&self) -> Ratio;
 }

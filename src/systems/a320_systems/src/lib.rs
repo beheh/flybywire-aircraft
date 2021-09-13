@@ -78,8 +78,11 @@ impl A320 {
             electrical: A320Electrical::new(electricity),
             power_consumption: A320PowerConsumption::new(),
             ext_pwr: ExternalPowerSource::new(electricity),
-            lgciu1: LandingGearControlInterfaceUnit::new(ElectricalBusType::DirectCurrentEssential),
-            lgciu2: LandingGearControlInterfaceUnit::new(ElectricalBusType::DirectCurrent(2)),
+            lgciu1: LandingGearControlInterfaceUnit::new(
+                1,
+                ElectricalBusType::DirectCurrentEssential,
+            ),
+            lgciu2: LandingGearControlInterfaceUnit::new(2, ElectricalBusType::DirectCurrent(2)),
             hydraulic: A320Hydraulic::new(),
             hydraulic_overhead: A320HydraulicOverheadPanel::new(),
             autobrake_panel: AutobrakePanel::new(),
