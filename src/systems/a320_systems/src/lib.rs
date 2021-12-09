@@ -1,8 +1,8 @@
 extern crate systems;
 
 mod electrical;
-mod fuel;
 mod flight_warning;
+mod fuel;
 mod hydraulic;
 mod pneumatic;
 mod power_consumption;
@@ -16,6 +16,7 @@ use electrical::{
     APU_START_MOTOR_BUS_TYPE,
 };
 
+use crate::flight_warning::A320FlightWarningSystem;
 use hydraulic::{A320Hydraulic, A320HydraulicOverheadPanel};
 use power_consumption::A320PowerConsumption;
 use systems::simulation::InitContext;
@@ -45,6 +46,7 @@ pub struct A320 {
     pneumatic_overhead: A320PneumaticOverheadPanel,
     electrical_overhead: A320ElectricalOverheadPanel,
     emergency_electrical_overhead: A320EmergencyElectricalOverheadPanel,
+    flight_warning_system: A320FlightWarningSystem,
     fuel: A320Fuel,
     engine_1: LeapEngine,
     engine_2: LeapEngine,
@@ -77,6 +79,7 @@ impl A320 {
             apu_fire_overhead: AuxiliaryPowerUnitFireOverheadPanel::new(context),
             apu_overhead: AuxiliaryPowerUnitOverheadPanel::new(context),
             pneumatic_overhead: A320PneumaticOverheadPanel::new(context),
+            flight_warning_system: A320FlightWarningSystem::new(context),
             electrical_overhead: A320ElectricalOverheadPanel::new(context),
             emergency_electrical_overhead: A320EmergencyElectricalOverheadPanel::new(context),
             fuel: A320Fuel::new(context),
@@ -182,6 +185,8 @@ impl Aircraft for A320 {
 
         self.adirs.update(context, &self.adirs_overhead);
         self.adirs_overhead.update(context, &self.adirs);
+
+        self.flight_warning_system.update(context);
 
         self.power_consumption.update(context);
 

@@ -28,11 +28,6 @@ pub trait SignStatusMatrix {
     fn is_fw(&self) -> bool;
 }
 
-/// This trait encodes whether a parameter has a valid parity bit.
-pub trait Parity {
-    fn parity(&self) -> bool;
-}
-
 pub struct DiscreteParameter {
     value: bool,
     ssm1: bool,
@@ -79,9 +74,13 @@ impl SignStatusMatrix for DiscreteParameter {
     }
 }
 
-impl Parity for DiscreteParameter {
-    fn parity(&self) -> bool {
-        true
+impl Default for DiscreteParameter {
+    fn default() -> Self {
+        Self {
+            value: false,
+            ssm1: true,
+            ssm2: true,
+        }
     }
 }
 
@@ -134,12 +133,6 @@ impl SignStatusMatrix for SynchroParameter {
     }
     fn is_fw(&self) -> bool {
         !self.ssm1() && !self.ssm2()
-    }
-}
-
-impl Parity for SynchroParameter {
-    fn parity(&self) -> bool {
-        true
     }
 }
 
@@ -203,9 +196,13 @@ impl<T> SignStatusMatrix for Arinc429Parameter<T> {
     }
 }
 
-impl<T> Parity for Arinc429Parameter<T> {
-    fn parity(&self) -> bool {
-        true
+impl<T: Default> Default for Arinc429Parameter<T> {
+    fn default() -> Self {
+        Self {
+            value: T::default(),
+            ssm1: false,
+            ssm2: false,
+        }
     }
 }
 

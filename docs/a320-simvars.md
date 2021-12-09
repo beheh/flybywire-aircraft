@@ -6,6 +6,7 @@
 1. [EIS Display System](#eis-display-system)
 1. [Fly-By-Wire System](#fly-by-wire-system)
 1. [ADIRS](#adirs)
+1. [Flight Warning System](#flight-warning-system)
 1. [Autopilot System](#autopilot-system)
 1. [Autothrust System](#autothrust-system)
 1. [Throttle Mapping System](#throttle-mapping-system)
@@ -230,27 +231,6 @@
 - A32NX_DEPARTURE_ELEVATION
     - Feet
     - Departure runway elevation as calculated by the FMC
-
-- A32NX_FWC_FLIGHT_PHASE
-    - Enum
-    - Contains the numeric flight phase as determined by the FWC
-    - Input for: systems.wasm
-
-- A32NX_FWC_SKIP_STARTUP
-    - Bool
-    - Set to true in a non-cold and dark flight phase to skip the initial memorization step
-
-- A32NX_FWC_TOMEMO
-    - Bool
-    - True when the FWC decides that the takeoff memo should be shown
-
-- A32NX_FWC_LDGMEMO
-    - Bool
-    - True when the FWC decides that the landing memo should be shown
-
-- A32NX_FWC_INHIBOVRD
-    - Bool
-    - True when the FWC decides that flight phase inhibits should be overridden (and ignored)
 
 - A32NX_VSPEEDS_VS
     - Number
@@ -1472,6 +1452,37 @@ In the variables below, {number} should be replaced with one item in the set: { 
 - A32NX_ADIRS_USES_GPS_AS_PRIMARY
     - Bool
     - Whether or not the GPS is used as the primary means of navigation/position determination.
+
+## Flight Warning System
+
+- A32NX_FWC_FLIGHT_PHASE
+    - Enum
+    - Contains the numeric flight phase as determined by the FWC
+    - **WARNING:** This value may be nonsensical or unset if the FWCs have lost power or have failed. Only use this if you're modeling a screen or system that truly retrieves this from an FWC.
+
+- A32NX_FWC_SKIP_STARTUP
+    - Bool
+    - Set to true in a non-cold and dark flight phase to skip the initial memorization step
+
+- A32NX_FWC_TOMEMO
+    - Bool
+    - True when the FWC responsible for the ECAM determines that the takeoff memo should be shown
+
+- A32NX_FWC_LDGMEMO
+    - Bool
+    - True when the FWC responsible for the ECAM determines that the landing memo should be shown
+
+- A32NX_FWC_INHIBOVRD
+    - Bool
+    - True when the FWC responsible for the ECAM determines that flight phase inhibits should be overridden (and ignored)
+
+- A32NX_FWC_AUDIO_ATTENUATION
+    - Bool
+    - True when the FWC responsible for the aural warnings has determined that aural warnings should be 6dB quieter.
+
+- A32NX_FWC_{1|2}_NORMAL
+    - Bool
+    - True when the corresponding FWC is working.
 
 ## Flight Management System
 

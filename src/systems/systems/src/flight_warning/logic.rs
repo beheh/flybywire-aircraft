@@ -1,4 +1,3 @@
-use crate::simulation::UpdateContext;
 use std::time::Duration;
 
 /// A confirmation circuit, which only passes a signal once it has been stable for a certain amount
@@ -18,7 +17,7 @@ impl ConfirmationNode {
         Self {
             leading_edge,
             time_delay,
-            condition_since: Duration::from_secs(0),
+            condition_since: Duration::ZERO,
             output: false,
         }
     }
@@ -31,17 +30,17 @@ impl ConfirmationNode {
         Self::new(false, time_delay)
     }
 
-    pub fn update(&mut self, context: &UpdateContext, hi: bool) -> bool {
+    pub fn update(&mut self, hi: bool, delta: Duration) -> bool {
         let condition_met = hi == self.leading_edge;
         if condition_met {
-            self.condition_since += context.delta();
+            self.condition_since += delta;
             self.output = if self.condition_since >= self.time_delay {
                 self.leading_edge
             } else {
                 !self.leading_edge
             };
         } else {
-            self.condition_since = Duration::from_secs(0);
+            self.condition_since = Duration::ZERO;
             self.output = !self.leading_edge;
         }
         self.output
@@ -67,7 +66,7 @@ impl MonostableTriggerNode {
             leading_edge,
             time_delay,
             retriggerable: false,
-            remaining_trigger: Duration::from_secs(0),
+            remaining_trigger: Duration::ZERO,
             last_hi: false,
             output: false,
         }
@@ -78,7 +77,7 @@ impl MonostableTriggerNode {
             leading_edge,
             time_delay,
             retriggerable: true,
-            remaining_trigger: Duration::from_secs(0),
+            remaining_trigger: Duration::ZERO,
             last_hi: false,
             output: false,
         }
@@ -92,19 +91,19 @@ impl MonostableTriggerNode {
         Self::new(false, time_delay)
     }
 
-    pub fn update(&mut self, context: &UpdateContext, hi: bool) -> bool {
+    pub fn update(&mut self, hi: bool, delta: Duration) -> bool {
         self.remaining_trigger = self
             .remaining_trigger
-            .checked_sub(context.delta())
+            .checked_sub(delta)
             .unwrap_or_default();
-        if self.retriggerable || self.remaining_trigger == Duration::from_secs(0) {
+        if self.retriggerable || self.remaining_trigger == Duration::ZERO {
             let condition_met = self.last_hi != hi && hi == self.leading_edge;
             if condition_met {
                 self.remaining_trigger = self.time_delay;
             }
         }
         self.last_hi = hi;
-        self.output = self.remaining_trigger > Duration::from_secs(0);
+        self.output = self.remaining_trigger > Duration::ZERO;
         self.output
     }
 }
@@ -287,12 +286,8 @@ impl TransientDetectionNode {
 mod tests {
     use super::*;
 
-    use uom::si::angle::radian;
     use uom::si::f64::*;
-    use uom::si::{
-        acceleration::foot_per_second_squared, length::foot,
-        thermodynamic_temperature::degree_celsius, velocity::knot,
-    };
+    use uom::si::length::foot;
 
     #[cfg(test)]
     mod confirmation_node_tests {
@@ -301,65 +296,53 @@ mod tests {
         #[test]
         fn leading_stays_lo_when_lo() {
             let mut node = ConfirmationNode::new_leading(Duration::from_secs(1));
-            assert_eq!(node.update(&context(Duration::from_secs(1)), false), false);
+            assert_eq!(node.update(false, Duration::from_secs(1)), false);
         }
 
         #[test]
         fn falling_stays_hi_when_hi() {
             let mut node = ConfirmationNode::new_falling(Duration::from_secs(1));
-            assert_eq!(node.update(&context(Duration::from_secs(1)), true), true);
+            assert_eq!(node.update(true, Duration::from_secs(1)), true);
         }
 
         #[test]
         fn leading_initially_stays_lo_when_hi() {
             let mut node = ConfirmationNode::new_leading(Duration::from_secs(1));
-            assert_eq!(
-                node.update(&context(Duration::from_secs_f64(0.1)), true),
-                false
-            );
+            assert_eq!(node.update(true, Duration::from_secs_f64(0.1)), false);
         }
 
         #[test]
         fn falling_initially_stays_hi_when_lo() {
             let mut node = ConfirmationNode::new_falling(Duration::from_secs(1));
-            assert_eq!(
-                node.update(&context(Duration::from_secs_f64(0.1)), false),
-                true
-            );
+            assert_eq!(node.update(false, Duration::from_secs_f64(0.1)), true);
         }
 
         #[test]
         fn leading_eventually_becomes_hi_when_hi() {
             let mut node = ConfirmationNode::new_leading(Duration::from_secs(1));
-            assert_eq!(node.update(&context(Duration::from_secs(1)), true), true);
+            assert_eq!(node.update(true, Duration::from_secs(1)), true);
         }
 
         #[test]
         fn falling_eventually_becomes_lo_when_lo() {
             let mut node = ConfirmationNode::new_falling(Duration::from_secs(1));
-            assert_eq!(node.update(&context(Duration::from_secs(1)), false), false);
+            assert_eq!(node.update(false, Duration::from_secs(1)), false);
         }
 
         #[test]
         fn leading_resets_timer_when_lo() {
             let mut node = ConfirmationNode::new_leading(Duration::from_secs(1));
-            node.update(&context(Duration::from_secs(1)), true);
-            node.update(&context(Duration::from_secs_f64(0.1)), false);
-            assert_eq!(
-                node.update(&context(Duration::from_secs_f64(0.1)), true),
-                false
-            );
+            node.update(true, Duration::from_secs(1));
+            node.update(false, Duration::from_secs_f64(0.1));
+            assert_eq!(node.update(true, Duration::from_secs_f64(0.1)), false);
         }
 
         #[test]
         fn falling_resets_timer_when_hi() {
             let mut node = ConfirmationNode::new_falling(Duration::from_secs(1));
-            node.update(&context(Duration::from_secs(1)), false);
-            node.update(&context(Duration::from_secs_f64(0.1)), true);
-            assert_eq!(
-                node.update(&context(Duration::from_secs_f64(0.1)), false),
-                true
-            );
+            node.update(false, Duration::from_secs(1));
+            node.update(true, Duration::from_secs_f64(0.1));
+            assert_eq!(node.update(false, Duration::from_secs_f64(0.1)), true);
         }
     }
 
@@ -370,44 +353,38 @@ mod tests {
         #[test]
         fn when_created_outputs_lo() {
             let mut node = MonostableTriggerNode::new(true, Duration::from_secs(1));
-            assert_eq!(node.update(&context(Duration::from_secs(1)), false), false);
+            assert_eq!(node.update(false, Duration::from_secs(1)), false);
         }
 
         #[test]
         fn when_triggered_outputs_hi() {
             let mut node = MonostableTriggerNode::new(true, Duration::from_secs(1));
-            assert_eq!(node.update(&context(Duration::from_secs(1)), true), true);
+            assert_eq!(node.update(true, Duration::from_secs(1)), true);
         }
 
         #[test]
         fn when_triggered_and_elapses_outputs_lo() {
             let mut node = MonostableTriggerNode::new(true, Duration::from_secs(1));
-            node.update(&context(Duration::from_secs(1)), true);
-            assert_eq!(node.update(&context(Duration::from_secs(1)), false), false);
+            node.update(true, Duration::from_secs(1));
+            assert_eq!(node.update(false, Duration::from_secs(1)), false);
         }
 
         #[test]
         fn when_retriggered_and_elapses_outputs_lo() {
             let mut node = MonostableTriggerNode::new(true, Duration::from_secs(1));
-            node.update(&context(Duration::from_secs(1)), true);
-            node.update(&context(Duration::from_secs_f64(0.5)), false);
-            node.update(&context(Duration::from_secs_f64(0.4)), true);
-            assert_eq!(
-                node.update(&context(Duration::from_secs_f64(0.1)), false),
-                false
-            );
+            node.update(true, Duration::from_secs(1));
+            node.update(false, Duration::from_secs_f64(0.5));
+            node.update(true, Duration::from_secs_f64(0.4));
+            assert_eq!(node.update(false, Duration::from_secs_f64(0.1)), false);
         }
 
         #[test]
         fn when_retriggerable_retriggered_and_elapses_outputs_lo() {
             let mut node = MonostableTriggerNode::new_retriggerable(true, Duration::from_secs(1));
-            node.update(&context(Duration::from_secs(1)), true);
-            node.update(&context(Duration::from_secs_f64(0.5)), false);
-            node.update(&context(Duration::from_secs_f64(0.4)), true);
-            assert_eq!(
-                node.update(&context(Duration::from_secs_f64(0.1)), false),
-                true
-            );
+            node.update(true, Duration::from_secs(1));
+            node.update(false, Duration::from_secs_f64(0.5));
+            node.update(true, Duration::from_secs_f64(0.4));
+            assert_eq!(node.update(false, Duration::from_secs_f64(0.1)), true);
         }
     }
 
@@ -573,20 +550,5 @@ mod tests {
             node.update(true);
             assert_eq!(node.update(false), true);
         }
-    }
-
-    fn context(delta_time: Duration) -> UpdateContext {
-        UpdateContext::new(
-            delta_time,
-            Velocity::new::<knot>(250.),
-            Length::new::<foot>(5000.),
-            ThermodynamicTemperature::new::<degree_celsius>(25.0),
-            true,
-            Acceleration::new::<foot_per_second_squared>(0.),
-            Acceleration::new::<foot_per_second_squared>(0.),
-            Acceleration::new::<foot_per_second_squared>(0.),
-            Angle::new::<radian>(0.),
-            Angle::new::<radian>(0.),
-        )
     }
 }

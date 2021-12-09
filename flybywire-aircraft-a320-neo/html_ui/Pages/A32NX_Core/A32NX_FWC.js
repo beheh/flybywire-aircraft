@@ -6,18 +6,8 @@ class A32NX_FWC {
 
         // persistent
         this.flightPhase = null;
-        this.ldgMemo = null;
-        this.toMemo = null;
 
         this.memoFlightPhaseInhibOvrd_memo = new NXLogic_MemoryNode(false);
-
-        this.memoTo_conf01 = new NXLogic_ConfirmNode(120, true);
-        this.memoTo_memo = new NXLogic_MemoryNode(false);
-
-        this.memoLdgMemo_conf01 = new NXLogic_ConfirmNode(1, true);
-        this.memoLdgMemo_memory1 = new NXLogic_MemoryNode(false);
-        this.memoLdgMemo_conf02 = new NXLogic_ConfirmNode(10, true);
-        this.memoLdgMemo_below2000ft = new NXLogic_MemoryNode(true);
 
         // master warning & caution buttons
         this.warningPressed = false;
@@ -75,45 +65,6 @@ class A32NX_FWC {
         } else {
             this.cautionPressed = false;
         }
-    }
-
-    _updateTakeoffMemo(_deltaTime) {
-        const setFlightPhaseMemo = this.flightPhase === 2 && this.toConfigTest;
-        const resetFlightPhaseMemo = (
-            this.flightPhase === 10 ||
-            this.flightPhase === 3 ||
-            this.flightPhase === 1 ||
-            this.flightPhase === 6
-        );
-        const flightPhaseMemo = this.memoTo_memo.write(setFlightPhaseMemo, resetFlightPhaseMemo);
-
-        const eng1NotRunning = SimVar.GetSimVarValue("ENG N1 RPM:1", "Percent") < 15;
-        const eng2NotRunning = SimVar.GetSimVarValue("ENG N1 RPM:2", "Percent") < 15;
-        const toTimerElapsed = this.memoTo_conf01.write(!eng1NotRunning && !eng2NotRunning, _deltaTime);
-
-        this.toMemo = flightPhaseMemo || (this.flightPhase === 2 && toTimerElapsed);
-        SimVar.SetSimVarValue("L:A32NX_FWC_TOMEMO", "Bool", this.toMemo);
-    }
-
-    _updateLandingMemo(_deltaTime) {
-        const radioHeight = SimVar.GetSimVarValue("RADIO HEIGHT", "Feet");
-        const radioHeightInvalid = false;
-        const gearDownlocked = SimVar.GetSimVarValue("GEAR TOTAL PCT EXTENDED", "percent") > 0.95;
-
-        const setBelow2000ft = radioHeight < 2000;
-        const resetBelow2000ft = radioHeight > 2200;
-        const memo2 = this.memoLdgMemo_below2000ft.write(setBelow2000ft, resetBelow2000ft);
-
-        const setLandingMemo = this.memoLdgMemo_conf01.write(!radioHeightInvalid && resetBelow2000ft, _deltaTime);
-        const resetLandingMemo = !(this.flightPhase === 7 || this.flightPhase === 8 || this.flightPhase === 6);
-        const memo1 = this.memoLdgMemo_memory1.write(setLandingMemo, resetLandingMemo);
-
-        const showInApproach = memo1 && memo2 && this.flightPhase === 6;
-
-        const invalidRadioMemo = this.memoLdgMemo_conf02.write(radioHeightInvalid && gearDownlocked);
-
-        this.ldgMemo = showInApproach || invalidRadioMemo || this.flightPhase === 8 || this.flightPhase === 7;
-        SimVar.SetSimVarValue("L:A32NX_FWC_LDGMEMO", "Bool", this.ldgMemo);
     }
 
     _updateAltitudeWarning() {

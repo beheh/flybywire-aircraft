@@ -5,8 +5,16 @@ use uom::si::length::foot;
 use uom::si::ratio::percent;
 use uom::si::velocity::knot;
 
+pub(super) trait FwcIdentSide1 {
+    fn fwc_ident_side1(&self) -> &DiscreteParameter;
+}
+
+pub(super) trait FwcIdentSide2 {
+    fn fwc_ident_side2(&self) -> &DiscreteParameter;
+}
+
 pub(super) trait LhLgCompressed {
-    fn lh_lg_compressed(&self, index: usize) -> &Arinc429Parameter<bool>;
+    fn lh_lg_compressed(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait EssLhLgCompressed {
@@ -17,12 +25,24 @@ pub(super) trait NormLhLgCompressed {
     fn norm_lh_lg_compressed(&self) -> &DiscreteParameter;
 }
 
+pub(super) trait LhGearDownLock {
+    fn lh_gear_down_lock(&self, index: u8) -> &Arinc429Parameter<bool>;
+}
+
+pub(super) trait RhGearDownLock {
+    fn rh_gear_down_lock(&self, index: u8) -> &Arinc429Parameter<bool>;
+}
+
+pub(super) trait NoseGearDownLock {
+    fn nose_gear_down_lock(&self, index: u8) -> &Arinc429Parameter<bool>;
+}
+
 pub(super) trait RadioHeight {
-    fn radio_height(&self, index: usize) -> &Arinc429Parameter<Length>;
+    fn radio_height(&self, index: u8) -> &Arinc429Parameter<Length>;
 }
 
 pub(super) trait ComputedSpeed {
-    fn computed_speed(&self, index: usize) -> &Arinc429Parameter<Velocity>;
+    fn computed_speed(&self, index: u8) -> &Arinc429Parameter<Velocity>;
 }
 
 pub(super) trait Eng1MasterLeverSelectOn {
@@ -34,11 +54,11 @@ pub(super) trait Eng2MasterLeverSelectOn {
 }
 
 pub(super) trait Eng1CoreSpeedAtOrAboveIdle {
-    fn eng1_core_speed_at_or_above_idle(&self, index: usize) -> &Arinc429Parameter<bool>;
+    fn eng1_core_speed_at_or_above_idle(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Eng2CoreSpeedAtOrAboveIdle {
-    fn eng2_core_speed_at_or_above_idle(&self, index: usize) -> &Arinc429Parameter<bool>;
+    fn eng2_core_speed_at_or_above_idle(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Eng1FirePbOut {
@@ -50,51 +70,51 @@ pub(super) trait ToConfigTest {
 }
 
 pub(super) trait Eng1Tla {
-    fn eng1_tla(&self, index: usize) -> &Arinc429Parameter<Angle>;
+    fn eng1_tla(&self, index: u8) -> &Arinc429Parameter<Angle>;
 }
 
 pub(super) trait Eng2Tla {
-    fn eng2_tla(&self, index: usize) -> &Arinc429Parameter<Angle>;
+    fn eng2_tla(&self, index: u8) -> &Arinc429Parameter<Angle>;
 }
 
 pub(super) trait Eng1TlaFto {
-    fn eng1_tla_fto(&self, index: usize) -> &Arinc429Parameter<bool>;
+    fn eng1_tla_fto(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Eng2TlaFto {
-    fn eng2_tla_fto(&self, index: usize) -> &Arinc429Parameter<bool>;
+    fn eng2_tla_fto(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Eng1AutoToga {
-    fn eng_1_auto_toga(&self, index: usize) -> &Arinc429Parameter<bool>;
+    fn eng_1_auto_toga(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Eng1LimitModeSoftGa {
-    fn eng_1_limit_mode_soft_ga(&self, index: usize) -> &Arinc429Parameter<bool>;
+    fn eng_1_limit_mode_soft_ga(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Eng2AutoToga {
-    fn eng_2_auto_toga(&self, index: usize) -> &Arinc429Parameter<bool>;
+    fn eng_2_auto_toga(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Eng2LimitModeSoftGa {
-    fn eng_2_limit_mode_soft_ga(&self, index: usize) -> &Arinc429Parameter<bool>;
+    fn eng_2_limit_mode_soft_ga(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Eng1N1SelectedActual {
-    fn eng1_n1_selected_actual(&self, index: usize) -> &Arinc429Parameter<Ratio>;
+    fn eng1_n1_selected_actual(&self, index: u8) -> &Arinc429Parameter<Ratio>;
 }
 
 pub(super) trait Eng2N1SelectedActual {
-    fn eng2_n1_selected_actual(&self, index: usize) -> &Arinc429Parameter<Ratio>;
+    fn eng2_n1_selected_actual(&self, index: u8) -> &Arinc429Parameter<Ratio>;
 }
 
 pub(super) trait Tla1IdlePwr {
-    fn tla1_idle_pwr(&self, index: usize) -> &Arinc429Parameter<bool>;
+    fn tla1_idle_pwr(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Tla2IdlePwr {
-    fn tla2_idle_pwr(&self, index: usize) -> &Arinc429Parameter<bool>;
+    fn tla2_idle_pwr(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Eng1ChannelInControl {
@@ -105,6 +125,32 @@ pub(super) trait Eng1ChannelInControl {
 pub(super) trait Eng2ChannelInControl {
     fn eng2_channel_a_in_control(&self) -> &Arinc429Parameter<bool>;
     fn eng2_channel_b_in_control(&self) -> &Arinc429Parameter<bool>;
+}
+
+pub(super) trait Altitude {
+    fn altitude(&self, index: u8) -> Arinc429Parameter<Length>;
+}
+
+pub(super) trait AltiSelect {
+    fn alti_select(&self) -> Arinc429Parameter<Length>;
+}
+
+pub(super) trait AltSelectChg {
+    fn alt_select_chg(&self) -> &Arinc429Parameter<bool>;
+}
+
+pub(super) trait Ap1Engd {
+    fn ap1_engd_com(&self) -> DiscreteParameter;
+    fn ap1_engd_mon(&self) -> DiscreteParameter;
+}
+
+pub(super) trait Ap2Engd {
+    fn ap2_engd_com(&self) -> DiscreteParameter;
+    fn ap2_engd_mon(&self) -> DiscreteParameter;
+}
+
+pub(super) trait FakeSignalApTcasEngaged {
+    fn ap_tcas_engaged(&self) -> bool;
 }
 
 /// This struct contains the parameters acquired directly by the FWC (in other words: not through an
@@ -130,10 +176,18 @@ pub struct A320FwcSdacParameterTable {}
 /// This struct represents the in-memory representation of the signals used by a Flight Warning
 /// Computer to determine it's activations.
 pub struct A320FWCParameterTable {
+    fwc_ident_side1: DiscreteParameter,
+    fwc_ident_side2: DiscreteParameter,
     lh_lg_compressed_1: Arinc429Parameter<bool>,
     lh_lg_compressed_2: Arinc429Parameter<bool>,
     ess_lh_lg_compressed: DiscreteParameter,
     norm_lh_lg_compressed: DiscreteParameter,
+    lh_gear_down_lock_1: Arinc429Parameter<bool>,
+    lh_gear_down_lock_2: Arinc429Parameter<bool>,
+    rh_gear_down_lock_1: Arinc429Parameter<bool>,
+    rh_gear_down_lock_2: Arinc429Parameter<bool>,
+    nose_gear_down_lock_1: Arinc429Parameter<bool>,
+    nose_gear_down_lock_2: Arinc429Parameter<bool>,
     radio_height_1: Arinc429Parameter<Length>,
     radio_height_2: Arinc429Parameter<Length>,
     computed_speed_1: Arinc429Parameter<Velocity>,
@@ -167,14 +221,30 @@ pub struct A320FWCParameterTable {
     eng1_channel_b_in_control: Arinc429Parameter<bool>,
     eng2_channel_a_in_control: Arinc429Parameter<bool>,
     eng2_channel_b_in_control: Arinc429Parameter<bool>,
+    eng_1_auto_toga_a: Arinc429Parameter<bool>,
+    eng_1_auto_toga_b: Arinc429Parameter<bool>,
+    eng_2_auto_toga_a: Arinc429Parameter<bool>,
+    eng_2_auto_toga_b: Arinc429Parameter<bool>,
+    eng_1_limit_mode_soft_ga_a: Arinc429Parameter<bool>,
+    eng_1_limit_mode_soft_ga_b: Arinc429Parameter<bool>,
+    eng_2_limit_mode_soft_ga_a: Arinc429Parameter<bool>,
+    eng_2_limit_mode_soft_ga_b: Arinc429Parameter<bool>,
 }
 impl A320FWCParameterTable {
     pub fn new() -> Self {
         Self {
+            fwc_ident_side1: DiscreteParameter::new_inv(false),
+            fwc_ident_side2: DiscreteParameter::new_inv(false),
             lh_lg_compressed_1: Arinc429Parameter::new_inv(false),
             lh_lg_compressed_2: Arinc429Parameter::new_inv(false),
             ess_lh_lg_compressed: DiscreteParameter::new_inv(false),
             norm_lh_lg_compressed: DiscreteParameter::new_inv(false),
+            lh_gear_down_lock_1: Arinc429Parameter::new_inv(false),
+            lh_gear_down_lock_2: Arinc429Parameter::new_inv(false),
+            rh_gear_down_lock_1: Arinc429Parameter::new_inv(false),
+            rh_gear_down_lock_2: Arinc429Parameter::new_inv(false),
+            nose_gear_down_lock_1: Arinc429Parameter::new_inv(false),
+            nose_gear_down_lock_2: Arinc429Parameter::new_inv(false),
             radio_height_1: Arinc429Parameter::new_inv(Length::new::<foot>(0.0)),
             radio_height_2: Arinc429Parameter::new_inv(Length::new::<foot>(0.0)),
             computed_speed_1: Arinc429Parameter::new_inv(Velocity::new::<knot>(0.0)),
@@ -208,6 +278,14 @@ impl A320FWCParameterTable {
             eng1_channel_b_in_control: Arinc429Parameter::new_inv(false),
             eng2_channel_a_in_control: Arinc429Parameter::new_inv(false),
             eng2_channel_b_in_control: Arinc429Parameter::new_inv(false),
+            eng_1_auto_toga_a: Arinc429Parameter::new_inv(false),
+            eng_1_auto_toga_b: Arinc429Parameter::new_inv(false),
+            eng_2_auto_toga_a: Arinc429Parameter::new_inv(false),
+            eng_2_auto_toga_b: Arinc429Parameter::new_inv(false),
+            eng_1_limit_mode_soft_ga_a: Arinc429Parameter::new_inv(false),
+            eng_1_limit_mode_soft_ga_b: Arinc429Parameter::new_inv(false),
+            eng_2_limit_mode_soft_ga_a: Arinc429Parameter::new_inv(false),
+            eng_2_limit_mode_soft_ga_b: Arinc429Parameter::new_inv(false),
         }
     }
 
@@ -322,8 +400,18 @@ impl A320FWCParameterTable {
         self.eng2_channel_b_in_control = in_control;
     }
 }
+impl FwcIdentSide1 for A320FWCParameterTable {
+    fn fwc_ident_side1(&self) -> &DiscreteParameter {
+        &self.fwc_ident_side1
+    }
+}
+impl FwcIdentSide2 for A320FWCParameterTable {
+    fn fwc_ident_side2(&self) -> &DiscreteParameter {
+        &self.fwc_ident_side2
+    }
+}
 impl LhLgCompressed for A320FWCParameterTable {
-    fn lh_lg_compressed(&self, index: usize) -> &Arinc429Parameter<bool> {
+    fn lh_lg_compressed(&self, index: u8) -> &Arinc429Parameter<bool> {
         match index {
             1 => &self.lh_lg_compressed_1,
             2 => &self.lh_lg_compressed_2,
@@ -341,8 +429,35 @@ impl NormLhLgCompressed for A320FWCParameterTable {
         &self.norm_lh_lg_compressed
     }
 }
+impl LhGearDownLock for A320FWCParameterTable {
+    fn lh_gear_down_lock(&self, index: u8) -> &Arinc429Parameter<bool> {
+        match index {
+            1 => &self.lh_gear_down_lock_1,
+            2 => &self.lh_gear_down_lock_2,
+            _ => panic!(),
+        }
+    }
+}
+impl RhGearDownLock for A320FWCParameterTable {
+    fn rh_gear_down_lock(&self, index: u8) -> &Arinc429Parameter<bool> {
+        match index {
+            1 => &self.rh_gear_down_lock_1,
+            2 => &self.rh_gear_down_lock_2,
+            _ => panic!(),
+        }
+    }
+}
+impl NoseGearDownLock for A320FWCParameterTable {
+    fn nose_gear_down_lock(&self, index: u8) -> &Arinc429Parameter<bool> {
+        match index {
+            1 => &self.nose_gear_down_lock_1,
+            2 => &self.nose_gear_down_lock_2,
+            _ => panic!(),
+        }
+    }
+}
 impl RadioHeight for A320FWCParameterTable {
-    fn radio_height(&self, index: usize) -> &Arinc429Parameter<Length> {
+    fn radio_height(&self, index: u8) -> &Arinc429Parameter<Length> {
         match index {
             1 => &self.radio_height_1,
             2 => &self.radio_height_2,
@@ -351,7 +466,7 @@ impl RadioHeight for A320FWCParameterTable {
     }
 }
 impl ComputedSpeed for A320FWCParameterTable {
-    fn computed_speed(&self, index: usize) -> &Arinc429Parameter<Velocity> {
+    fn computed_speed(&self, index: u8) -> &Arinc429Parameter<Velocity> {
         match index {
             1 => &self.computed_speed_1,
             2 => &self.computed_speed_2,
@@ -373,7 +488,7 @@ impl Eng2MasterLeverSelectOn for A320FWCParameterTable {
 }
 
 impl Eng1CoreSpeedAtOrAboveIdle for A320FWCParameterTable {
-    fn eng1_core_speed_at_or_above_idle(&self, index: usize) -> &Arinc429Parameter<bool> {
+    fn eng1_core_speed_at_or_above_idle(&self, index: u8) -> &Arinc429Parameter<bool> {
         match index {
             1 => &self.eng1_core_speed_at_or_above_idle_a,
             2 => &self.eng1_core_speed_at_or_above_idle_b,
@@ -383,7 +498,7 @@ impl Eng1CoreSpeedAtOrAboveIdle for A320FWCParameterTable {
 }
 
 impl Eng2CoreSpeedAtOrAboveIdle for A320FWCParameterTable {
-    fn eng2_core_speed_at_or_above_idle(&self, index: usize) -> &Arinc429Parameter<bool> {
+    fn eng2_core_speed_at_or_above_idle(&self, index: u8) -> &Arinc429Parameter<bool> {
         match index {
             1 => &self.eng2_core_speed_at_or_above_idle_a,
             2 => &self.eng2_core_speed_at_or_above_idle_b,
@@ -405,7 +520,7 @@ impl ToConfigTest for A320FWCParameterTable {
 }
 
 impl Eng1Tla for A320FWCParameterTable {
-    fn eng1_tla(&self, index: usize) -> &Arinc429Parameter<Angle> {
+    fn eng1_tla(&self, index: u8) -> &Arinc429Parameter<Angle> {
         match index {
             1 => &self.eng1_tla_a,
             2 => &self.eng1_tla_b,
@@ -415,7 +530,7 @@ impl Eng1Tla for A320FWCParameterTable {
 }
 
 impl Eng2Tla for A320FWCParameterTable {
-    fn eng2_tla(&self, index: usize) -> &Arinc429Parameter<Angle> {
+    fn eng2_tla(&self, index: u8) -> &Arinc429Parameter<Angle> {
         match index {
             1 => &self.eng2_tla_a,
             2 => &self.eng2_tla_b,
@@ -425,7 +540,7 @@ impl Eng2Tla for A320FWCParameterTable {
 }
 
 impl Eng1TlaFto for A320FWCParameterTable {
-    fn eng1_tla_fto(&self, index: usize) -> &Arinc429Parameter<bool> {
+    fn eng1_tla_fto(&self, index: u8) -> &Arinc429Parameter<bool> {
         match index {
             1 => &self.eng1_tla_fto_a,
             2 => &self.eng1_tla_fto_b,
@@ -435,7 +550,7 @@ impl Eng1TlaFto for A320FWCParameterTable {
 }
 
 impl Eng2TlaFto for A320FWCParameterTable {
-    fn eng2_tla_fto(&self, index: usize) -> &Arinc429Parameter<bool> {
+    fn eng2_tla_fto(&self, index: u8) -> &Arinc429Parameter<bool> {
         match index {
             1 => &self.eng2_tla_fto_a,
             2 => &self.eng2_tla_fto_b,
@@ -445,7 +560,7 @@ impl Eng2TlaFto for A320FWCParameterTable {
 }
 
 impl Eng1N1SelectedActual for A320FWCParameterTable {
-    fn eng1_n1_selected_actual(&self, index: usize) -> &Arinc429Parameter<Ratio> {
+    fn eng1_n1_selected_actual(&self, index: u8) -> &Arinc429Parameter<Ratio> {
         match index {
             1 => &self.eng1_n1_selected_actual_a,
             2 => &self.eng1_n1_selected_actual_b,
@@ -454,16 +569,16 @@ impl Eng1N1SelectedActual for A320FWCParameterTable {
     }
 }
 impl Eng2N1SelectedActual for A320FWCParameterTable {
-    fn eng2_n1_selected_actual(&self, index: usize) -> &Arinc429Parameter<Ratio> {
+    fn eng2_n1_selected_actual(&self, index: u8) -> &Arinc429Parameter<Ratio> {
         match index {
             1 => &self.eng2_n1_selected_actual_a,
-            2 => &self.eng2_n1_selected_actual_a,
+            2 => &self.eng2_n1_selected_actual_b,
             _ => panic!(),
         }
     }
 }
 impl Tla1IdlePwr for A320FWCParameterTable {
-    fn tla1_idle_pwr(&self, index: usize) -> &Arinc429Parameter<bool> {
+    fn tla1_idle_pwr(&self, index: u8) -> &Arinc429Parameter<bool> {
         match index {
             1 => &self.tla1_idle_pwr_a,
             2 => &self.tla1_idle_pwr_b,
@@ -472,7 +587,7 @@ impl Tla1IdlePwr for A320FWCParameterTable {
     }
 }
 impl Tla2IdlePwr for A320FWCParameterTable {
-    fn tla2_idle_pwr(&self, index: usize) -> &Arinc429Parameter<bool> {
+    fn tla2_idle_pwr(&self, index: u8) -> &Arinc429Parameter<bool> {
         match index {
             1 => &self.tla2_idle_pwr_a,
             2 => &self.tla2_idle_pwr_b,
@@ -496,5 +611,41 @@ impl Eng2ChannelInControl for A320FWCParameterTable {
 
     fn eng2_channel_b_in_control(&self) -> &Arinc429Parameter<bool> {
         &self.eng2_channel_a_in_control
+    }
+}
+impl Eng1AutoToga for A320FWCParameterTable {
+    fn eng_1_auto_toga(&self, index: u8) -> &Arinc429Parameter<bool> {
+        match index {
+            1 => &self.eng_1_auto_toga_a,
+            2 => &self.eng_1_auto_toga_b,
+            _ => panic!(),
+        }
+    }
+}
+impl Eng2AutoToga for A320FWCParameterTable {
+    fn eng_2_auto_toga(&self, index: u8) -> &Arinc429Parameter<bool> {
+        match index {
+            1 => &self.eng_2_auto_toga_a,
+            2 => &self.eng_2_auto_toga_b,
+            _ => panic!(),
+        }
+    }
+}
+impl Eng1LimitModeSoftGa for A320FWCParameterTable {
+    fn eng_1_limit_mode_soft_ga(&self, index: u8) -> &Arinc429Parameter<bool> {
+        match index {
+            1 => &self.eng_1_limit_mode_soft_ga_a,
+            2 => &self.eng_1_limit_mode_soft_ga_b,
+            _ => panic!(),
+        }
+    }
+}
+impl Eng2LimitModeSoftGa for A320FWCParameterTable {
+    fn eng_2_limit_mode_soft_ga(&self, index: u8) -> &Arinc429Parameter<bool> {
+        match index {
+            1 => &self.eng_2_limit_mode_soft_ga_a,
+            2 => &self.eng_2_limit_mode_soft_ga_b,
+            _ => panic!(),
+        }
     }
 }

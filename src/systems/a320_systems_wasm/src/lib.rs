@@ -63,6 +63,8 @@ async fn systems(mut gauge: msfs::Gauge) -> Result<(), Box<dyn Error>> {
                     29_008,
                     FailureType::ReservoirReturnLeak(HydraulicColor::Yellow),
                 ),
+                (31_500, FailureType::FlightWarningComputer(1)),
+                (31_501, FailureType::FlightWarningComputer(2)),
             ])
             .provides_aircraft_variable("ACCELERATION BODY X", "feet per second squared", 0)?
             .provides_aircraft_variable("ACCELERATION BODY Y", "feet per second squared", 0)?

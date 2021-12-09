@@ -97,6 +97,7 @@ var A320_Neo_UpperECAM;
             this.simVarCache = {};
             this.frameCount = 0;
             this._aircraft = Aircraft.A320_NEO;
+            this.dualFwcFaultTimer = new NXLogic_ConfirmNode(30);
             this.toInhibitTimer = new NXLogic_ConfirmNode(3);
             this.ldgInhibitTimer = new NXLogic_ConfirmNode(3);
             this.iceSevereDetectedTimer = new NXLogic_ConfirmNode(40, false);
@@ -1185,7 +1186,25 @@ var A320_Neo_UpperECAM;
                                 ]
                             }
                         ]
-
+                    },
+                    {
+                        name: "FWS",
+                        messages: [
+                            {
+                                message: "FWC 1 FAULT",
+                                level: 1,
+                                flightPhasesInhib: [3, 4, 5, 7, 8],
+                                isActive: () => !this.getCachedSimVar("L:A32NX_FWC_1_NORMAL", "Bool"),
+                                inopSystems: ["FWC 1"],
+                            },
+                            {
+                                message: "FWC 2 FAULT",
+                                level: 1,
+                                flightPhasesInhib: [3, 4, 5, 7, 8],
+                                isActive: () => !this.getCachedSimVar("L:A32NX_FWC_2_NORMAL", "Bool"),
+                                inopSystems: ["FWC 2"],
+                            },
+                        ]
                     }
                 ],
                 normal: [
@@ -1615,6 +1634,22 @@ var A320_Neo_UpperECAM;
 
                 ),
             ]);
+
+            this.dualFwcFault = [
+                "",
+                "FWS FWC 1+2 FAULT",
+                "-MONITOR SYS",
+                "-MONITOR OVERHEAD PANEL",
+            ];
+            this.dualFwcStatus = [
+                " NOT AVAIL",
+                "ECAM WARN",
+                "ALTI ALERT",
+                "STATUS",
+                "A/CALL OUT",
+                "MEMO"
+            ];
+
             this.allPanels.push(this.enginePanel);
             this.allPanels.push(this.infoTopPanel);
             this.allPanels.push(this.flapsPanel);
@@ -1700,6 +1735,22 @@ var A320_Neo_UpperECAM;
             }
 
             this.fwcFlightPhase = SimVar.GetSimVarValue("L:A32NX_FWC_FLIGHT_PHASE", "Enum");
+
+            // check if at least one FWC is operating normally
+            const fwc1Normal = SimVar.GetSimVarValue("L:A32NX_FWC_1_NORMAL", "Bool");
+            const fwc2Normal = SimVar.GetSimVarValue("L:A32NX_FWC_2_NORMAL", "Bool");
+
+            if (fwc1Normal || fwc2Normal) {
+                // generate warnings etc.
+            } else {
+
+                // dual FWC fault timer has elapsed?
+                if (fault) {
+                    // clear the entire screen
+
+                    // render dual FWC fault
+                }
+            }
 
             this.overflowArrow.setAttribute("opacity", (this.leftEcamMessagePanel.overflow || this.rightEcamMessagePanel.overflow) ? "1" : "0");
 

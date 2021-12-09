@@ -3,17 +3,14 @@ use systems::flight_warning::parameters::*;
 use uom::si::angle::degree;
 use uom::si::f64::*;
 use uom::si::length::foot;
-use uom::si::ratio::percent;
-use uom::si::velocity::knot;
 
 pub struct A320FWCParameterTestBed {
     parameters: A320FWCParameterTable,
 }
 impl A320FWCParameterTestBed {
     pub fn new() -> Self {
-        let mut signals = A320FWCParameterTable::new();
         Self {
-            parameters: signals,
+            parameters: A320FWCParameterTable::new(),
         }
     }
 

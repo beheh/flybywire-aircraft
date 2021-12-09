@@ -15,4 +15,6 @@ export const A320Failure = Object.freeze({
     YellowReservoirReturnLeak: 29008,
     LeftPfdDisplay: 31000,
     RightPfdDisplay: 31001,
+    FlightWarningComputer1: 31500,
+    FlightWarningComputer2: 31501,
 });
