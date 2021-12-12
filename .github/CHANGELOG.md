@@ -89,6 +89,7 @@
 1. [ATHR] Fixed ATHR being armed in flight when TOGA applied without GA condition - @aguther (Andreas Guther)
 1. [ECAM] Fixed gross weight being shown without engines running - @BlueberryKing (BlueberryKing)
 1. [FLIGHT MODEL] Fixes co-pilot not being shown in external view -  @donstim (donbikes#4084)
+1. [ND] Display cross track error with one digit by default - @beheh (Benedict Etzel)
 
 ## 0.7.0
 

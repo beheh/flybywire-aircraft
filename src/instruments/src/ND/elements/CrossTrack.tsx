@@ -3,6 +3,7 @@ import React, { memo } from 'react';
 
 export const CrossTrack: React.FC<{ x: number, y: number}> = memo(({ x, y }) => {
     const [crossTrackError] = useSimVar('L:A32NX_FG_CROSS_TRACK_ERROR', 'nautical miles', 250);
+    const [showHighResolutionLdev] = useSimVar('L:A32NX_FM_DISPLAY_LATERAL_DEVIATION', 'Bool', 250);
 
     let crossTrackText = '';
     let crossTrackAnchor = 'start';
@@ -10,7 +11,7 @@ export const CrossTrack: React.FC<{ x: number, y: number}> = memo(({ x, y }) => 
     const crossTrackAbs = Math.abs(crossTrackError);
 
     if (crossTrackAbs > 0.02) {
-        crossTrackText = crossTrackAbs.toFixed(crossTrackAbs < 0.3 ? 2 : 1);
+        crossTrackText = crossTrackAbs.toFixed(showHighResolutionLdev && crossTrackAbs < 0.3 ? 2 : 1);
         if (crossTrackError < 0) {
             crossTrackText += 'R';
             crossTrackAnchor = 'start';
