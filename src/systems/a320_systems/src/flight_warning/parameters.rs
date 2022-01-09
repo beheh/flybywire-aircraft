@@ -140,13 +140,31 @@ pub(super) trait AltSelectChg {
 }
 
 pub(super) trait Ap1Engd {
-    fn ap1_engd_com(&self) -> DiscreteParameter;
-    fn ap1_engd_mon(&self) -> DiscreteParameter;
+    fn ap1_engd_com(&self) -> &DiscreteParameter;
+    fn ap1_engd_mon(&self) -> &DiscreteParameter;
 }
 
 pub(super) trait Ap2Engd {
-    fn ap2_engd_com(&self) -> DiscreteParameter;
-    fn ap2_engd_mon(&self) -> DiscreteParameter;
+    fn ap2_engd_com(&self) -> &DiscreteParameter;
+    fn ap2_engd_mon(&self) -> &DiscreteParameter;
+}
+
+pub(super) trait InstincDiscnct1ApEngd {
+    /// This signal indicates when the A/P Disconnect button on the Captain's side is pressed
+    fn instinc_discnct_1ap_engd(&self) -> &DiscreteParameter;
+}
+
+pub(super) trait InstincDiscnct2ApEngd {
+    /// This signal indicates when the A/P Disconnect button on the F/Os side is pressed
+    fn instinc_discnct_2ap_engd(&self) -> &DiscreteParameter;
+}
+
+pub(super) trait CaptMwCancelOn {
+    fn capt_mw_cancel_on(&self) -> &DiscreteParameter;
+}
+
+pub(super) trait FoMwCancelOn {
+    fn fo_mw_cancel_on(&self) -> &DiscreteParameter;
 }
 
 pub(super) trait FakeSignalApTcasEngaged {
@@ -229,6 +247,14 @@ pub struct A320FWCParameterTable {
     eng_1_limit_mode_soft_ga_b: Arinc429Parameter<bool>,
     eng_2_limit_mode_soft_ga_a: Arinc429Parameter<bool>,
     eng_2_limit_mode_soft_ga_b: Arinc429Parameter<bool>,
+    ap1_engd_com: DiscreteParameter,
+    ap1_engd_mon: DiscreteParameter,
+    ap2_engd_com: DiscreteParameter,
+    ap2_engd_mon: DiscreteParameter,
+    instinc_discnct_1ap_engd: DiscreteParameter,
+    instinc_discnct_2ap_engd: DiscreteParameter,
+    capt_mw_cancel_on: DiscreteParameter,
+    fo_mw_cancel_on: DiscreteParameter,
 }
 impl A320FWCParameterTable {
     pub fn new() -> Self {
@@ -286,6 +312,14 @@ impl A320FWCParameterTable {
             eng_1_limit_mode_soft_ga_b: Arinc429Parameter::new_inv(false),
             eng_2_limit_mode_soft_ga_a: Arinc429Parameter::new_inv(false),
             eng_2_limit_mode_soft_ga_b: Arinc429Parameter::new_inv(false),
+            ap1_engd_com: DiscreteParameter::new_inv(false),
+            ap1_engd_mon: DiscreteParameter::new_inv(false),
+            ap2_engd_com: DiscreteParameter::new_inv(false),
+            ap2_engd_mon: DiscreteParameter::new_inv(false),
+            instinc_discnct_1ap_engd: DiscreteParameter::new_inv(false),
+            instinc_discnct_2ap_engd: DiscreteParameter::new_inv(false),
+            capt_mw_cancel_on: DiscreteParameter::new_inv(false),
+            fo_mw_cancel_on: DiscreteParameter::new_inv(false),
         }
     }
 
@@ -398,6 +432,24 @@ impl A320FWCParameterTable {
     }
     pub(super) fn set_eng2_channel_b_in_control(&mut self, in_control: Arinc429Parameter<bool>) {
         self.eng2_channel_b_in_control = in_control;
+    }
+
+    pub(super) fn set_ap1_engd(&mut self, com: DiscreteParameter, mon: DiscreteParameter) {
+        self.ap1_engd_com = com;
+        self.ap1_engd_mon = mon;
+    }
+
+    pub(super) fn set_ap2_engd(&mut self, com: DiscreteParameter, mon: DiscreteParameter) {
+        self.ap2_engd_com = com;
+        self.ap2_engd_mon = mon;
+    }
+
+    pub(super) fn set_instinc_discnct_1ap_engd(&mut self, engd: DiscreteParameter) {
+        self.instinc_discnct_1ap_engd = engd;
+    }
+
+    pub(super) fn set_instinc_discnct_2ap_engd(&mut self, engd: DiscreteParameter) {
+        self.instinc_discnct_2ap_engd = engd;
     }
 }
 impl FwcIdentSide1 for A320FWCParameterTable {
@@ -647,5 +699,43 @@ impl Eng2LimitModeSoftGa for A320FWCParameterTable {
             2 => &self.eng_2_limit_mode_soft_ga_b,
             _ => panic!(),
         }
+    }
+}
+impl Ap1Engd for A320FWCParameterTable {
+    fn ap1_engd_com(&self) -> &DiscreteParameter {
+        &self.ap1_engd_com
+    }
+
+    fn ap1_engd_mon(&self) -> &DiscreteParameter {
+        &self.ap1_engd_mon
+    }
+}
+impl Ap2Engd for A320FWCParameterTable {
+    fn ap2_engd_com(&self) -> &DiscreteParameter {
+        &self.ap2_engd_com
+    }
+
+    fn ap2_engd_mon(&self) -> &DiscreteParameter {
+        &self.ap2_engd_mon
+    }
+}
+impl InstincDiscnct1ApEngd for A320FWCParameterTable {
+    fn instinc_discnct_1ap_engd(&self) -> &DiscreteParameter {
+        &self.instinc_discnct_1ap_engd
+    }
+}
+impl InstincDiscnct2ApEngd for A320FWCParameterTable {
+    fn instinc_discnct_2ap_engd(&self) -> &DiscreteParameter {
+        &self.instinc_discnct_2ap_engd
+    }
+}
+impl CaptMwCancelOn for A320FWCParameterTable {
+    fn capt_mw_cancel_on(&self) -> &DiscreteParameter {
+        &self.capt_mw_cancel_on
+    }
+}
+impl FoMwCancelOn for A320FWCParameterTable {
+    fn fo_mw_cancel_on(&self) -> &DiscreteParameter {
+        &self.fo_mw_cancel_on
     }
 }

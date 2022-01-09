@@ -213,6 +213,34 @@ impl A320FWCParameterTestBed {
         self.parameters.set_eng2_tla_b(Arinc429Parameter::new(tla));
         self
     }
+
+    pub fn ap1_engaged(mut self, engaged: bool) -> Self {
+        self.parameters.set_ap1_engd(
+            DiscreteParameter::new(engaged),
+            DiscreteParameter::new(engaged),
+        );
+        self
+    }
+
+    pub fn ap2_engaged(mut self, engaged: bool) -> Self {
+        self.parameters.set_ap2_engd(
+            DiscreteParameter::new(engaged),
+            DiscreteParameter::new(engaged),
+        );
+        self
+    }
+
+    pub fn instinc_disconnect_1ap_engd(mut self, engaged: bool) -> Self {
+        self.parameters
+            .set_instinc_discnct_1ap_engd(DiscreteParameter::new(engaged));
+        self
+    }
+
+    pub fn instinc_disconnect_2ap_engd(mut self, engaged: bool) -> Self {
+        self.parameters
+            .set_instinc_discnct_1ap_engd(DiscreteParameter::new(engaged));
+        self
+    }
 }
 
 pub fn test_bed() -> A320FWCParameterTestBed {

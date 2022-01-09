@@ -1523,38 +1523,148 @@ impl AltitudeActivation {
     }
 }
 
-pub(super) trait AutoFlightAutopilot {
+pub(super) trait AutoFlightAutopilotOffVoluntary {
+    /// This signal indicates that AP1 is fully engaged (command & monitor channel).
     fn ap1_engd(&self) -> bool;
+
+    /// This signal indicates that AP2 is fully engaged (command & monitor channel).
     fn ap2_engd(&self) -> bool;
+
+    /// This signal indicates that any one of the APs is fully engaged (command & monitor).
     fn one_ap_engd(&self) -> bool;
-    // todo master warning
+
+    /// This signal indicates that the Cavalry Charge should be playing due to one of the
+    /// instinctive P/Bs being pressed.
+    fn ap_off_audio(&self) -> bool;
+
+    /// This signal indicates that the MW should start flashing due to one of the instinctive P/Bs
+    /// being pressed.
+    fn ap_off_mw(&self) -> bool;
+
+    /// This signal indicates that the special line "AP OFF" in the EWD should be shown due to one
+    /// of the instinctive P/Bs being pressed.
+    fn ap_off_text(&self) -> bool;
 }
 
-pub(super) struct AutoFlightAutopilotActivation {
+pub(super) struct AutoFlightAutopilotOffVoluntaryActivation {
+    pulse1: PulseNode,
+    pulse2: PulseNode,
+    pulse3: PulseNode,
+    instinc_discnct_pulse: PulseNode,
+    conf1: ConfirmationNode,
+    mtrig1: MonostableTriggerNode,
+    mtrig2: MonostableTriggerNode,
+    mtrig3: MonostableTriggerNode,
+    mtrig4: MonostableTriggerNode,
+    mtrig5: MonostableTriggerNode,
+    mtrig6: MonostableTriggerNode,
+    mtrig7: MonostableTriggerNode,
+    mtrig8: MonostableTriggerNode,
+    mtrig9: MonostableTriggerNode,
+    mtrig10: MonostableTriggerNode,
+    ap_off_audio_mem: MemoryNode,
     ap1_engd: bool,
     ap2_engd: bool,
     one_ap_engd: bool,
+    ap_off_audio: bool,
+    ap_off_mw: bool,
+    ap_off_text: bool,
 }
 
-impl Default for AutoFlightAutopilotActivation {
+impl Default for AutoFlightAutopilotOffVoluntaryActivation {
     fn default() -> Self {
         Self {
+            pulse1: PulseNode::new(false),
+            pulse2: PulseNode::new(false),
+            pulse3: PulseNode::new(false),
+            instinc_discnct_pulse: PulseNode::new(true),
+            conf1: ConfirmationNode::new_leading(Duration::from_secs_f64(0.2)),
+            mtrig1: MonostableTriggerNode::new_leading(Duration::from_secs_f64(1.3)),
+            mtrig2: MonostableTriggerNode::new_leading(Duration::from_secs_f64(1.3)),
+            mtrig3: MonostableTriggerNode::new_leading(Duration::from_secs_f64(5.0)),
+            mtrig4: MonostableTriggerNode::new_leading(Duration::from_secs_f64(1.5)),
+            mtrig5: MonostableTriggerNode::new_leading(Duration::from_secs_f64(3.0)),
+            mtrig6: MonostableTriggerNode::new_leading(Duration::from_secs_f64(3.0)),
+            mtrig7: MonostableTriggerNode::new_leading(Duration::from_secs_f64(9.0)),
+            mtrig8: MonostableTriggerNode::new_leading(Duration::from_secs_f64(9.0)),
+            mtrig9: MonostableTriggerNode::new_leading(Duration::from_secs_f64(0.5)),
+            mtrig10: MonostableTriggerNode::new_falling(Duration::from_secs_f64(1.5)),
+            ap_off_audio_mem: MemoryNode::new(true),
             ap1_engd: false,
             ap2_engd: false,
             one_ap_engd: false,
+            ap_off_audio: false,
+            ap_off_mw: false,
+            ap_off_text: false,
         }
     }
 }
 
-impl AutoFlightAutopilotActivation {
-    pub fn update(&mut self, signals: &(impl Ap1Engd + Ap2Engd)) {
+impl AutoFlightAutopilotOffVoluntaryActivation {
+    pub fn update(
+        &mut self,
+        delta: Duration,
+        cavalry_charge_emitted: bool,
+        signals: &(impl Ap1Engd
+              + Ap2Engd
+              + CaptMwCancelOn
+              + FoMwCancelOn
+              + InstincDiscnct1ApEngd
+              + InstincDiscnct2ApEngd),
+    ) {
         self.ap1_engd = signals.ap1_engd_com().value() && signals.ap1_engd_mon().value();
         self.ap2_engd = signals.ap2_engd_com().value() && signals.ap2_engd_mon().value();
-        self.one_ap_engd = self.ap1_engd || self.ap2_engd;
+        let one_ap_engd = self.ap1_engd || self.ap2_engd;
+        self.one_ap_engd = one_ap_engd;
+
+        let allow_cancel = self.conf1.update(!one_ap_engd, delta);
+
+        let instinc_discnct_1ap_engd = signals.instinc_discnct_1ap_engd().value();
+        let instinc_discnct_2ap_engd = signals.instinc_discnct_2ap_engd().value();
+        let instinc_discnct_pulse_out = self
+            .instinc_discnct_pulse
+            .update(instinc_discnct_1ap_engd || instinc_discnct_2ap_engd);
+
+        let red_warning = false; // TODO certain red warnings should have priority over AP cancel
+        let mw_cancel = (signals.capt_mw_cancel_on().value() || signals.fo_mw_cancel_on().value())
+            && !red_warning;
+        let do_cancel = allow_cancel && (mw_cancel || instinc_discnct_pulse_out);
+
+        let any_instinc_discnct_mtrig = self.mtrig1.update(instinc_discnct_1ap_engd, delta)
+            || self.mtrig2.update(instinc_discnct_2ap_engd, delta);
+        let ap_disengage_pulse = self.pulse1.update(self.ap1_engd || self.ap2_engd);
+        let instinctive_disconnect = ap_disengage_pulse && any_instinc_discnct_mtrig;
+
+        let reset_ap_off_audio_cond_1 = self.pulse2.update(
+            self.mtrig3
+                .update(ap_disengage_pulse && any_instinc_discnct_mtrig, delta),
+        );
+        let reset_ap_off_audio_cond_2 = self
+            .pulse3
+            .update(self.mtrig4.update(cavalry_charge_emitted, delta));
+
+        // these signals are true if the warning should be active in the first place
+        let ap_off_audio_mem_out = self.ap_off_audio_mem.update(
+            instinctive_disconnect,
+            reset_ap_off_audio_cond_1 || reset_ap_off_audio_cond_2,
+        );
+        let ap_off_mw_mtrig_out = self.mtrig5.update(instinctive_disconnect, delta);
+        let ap_of_text_mtrig_out = self.mtrig7.update(instinctive_disconnect, delta);
+
+        // these signals are true if the warning should be cancelled
+        let cancel_ap_off_audio = self
+            .mtrig10
+            .update(self.mtrig9.update(do_cancel, delta), delta);
+        let cancel_ap_off_mw = self.mtrig6.update(do_cancel, delta);
+        let cancel_ap_off_text = self.mtrig8.update(do_cancel, delta);
+
+        self.ap_off_audio = ap_off_audio_mem_out && !one_ap_engd && !cancel_ap_off_audio;
+        self.ap_off_mw = ap_off_mw_mtrig_out && !one_ap_engd && !cancel_ap_off_mw;
+        self.ap_off_text = ap_of_text_mtrig_out && !one_ap_engd && !cancel_ap_off_text;
     }
 }
 
-impl AutoFlightAutopilot for AutoFlightAutopilotActivation {
+impl AutoFlightAutopilotOffVoluntary for AutoFlightAutopilotOffVoluntaryActivation {
     fn ap1_engd(&self) -> bool {
         self.ap1_engd
     }
@@ -1565,6 +1675,156 @@ impl AutoFlightAutopilot for AutoFlightAutopilotActivation {
 
     fn one_ap_engd(&self) -> bool {
         self.one_ap_engd
+    }
+
+    fn ap_off_audio(&self) -> bool {
+        self.ap_off_audio
+    }
+
+    fn ap_off_mw(&self) -> bool {
+        self.ap_off_mw
+    }
+
+    fn ap_off_text(&self) -> bool {
+        self.ap_off_text
+    }
+}
+
+pub(super) trait AutoFlightAutopilotOffUnvoluntary {
+    fn ap_off_warning(&self) -> bool;
+    /// This signal indicates that an involuntary AP disocnnect was detected and and that the MW
+    /// should start flashing.
+    fn ap_unvol_off(&self) -> bool;
+
+    /// This signal indicates that the AP condition for MW no longer exists because either an AP was
+    /// reengaged or Phase 1 was reached, and that the MW related to the AP disconnect should stop
+    /// flashing.
+    fn ap_off_reset(&self) -> bool;
+
+    /// This signal indicates that a MW cancel button has been pressed and that the MW related to
+    /// the AP disconnect should stop flashing.
+    fn ap_mw(&self) -> bool;
+}
+
+pub(super) struct AutoFlightAutopilotOffUnvoluntaryActivation {
+    pulse_ap_disengage: PulseNode,
+    pulse_ap_unvol_off: PulseNode,
+    pulse_instinc_discnct: PulseNode,
+    pulse_phase1: PulseNode,
+    pulse_ap_engage: PulseNode,
+    pulse_mw_cancel: PulseNode,
+    mtrig1: MonostableTriggerNode,
+    mtrig2: MonostableTriggerNode,
+    mtrig3: MonostableTriggerNode,
+    mem_ap_unvol_off: MemoryNode,
+    mem_warning: MemoryNode,
+    ap_off_warning: bool,
+    ap_unvol_off: bool,
+    ap_off_reset: bool,
+    ap_mw: bool,
+}
+
+impl Default for AutoFlightAutopilotOffUnvoluntaryActivation {
+    fn default() -> Self {
+        Self {
+            pulse_ap_disengage: PulseNode::new(false),
+            pulse_ap_unvol_off: PulseNode::new(true),
+            pulse_instinc_discnct: PulseNode::new(true),
+            pulse_phase1: PulseNode::new(true),
+            pulse_ap_engage: PulseNode::new(true),
+            pulse_mw_cancel: PulseNode::new(true),
+            mtrig1: MonostableTriggerNode::new(true, Duration::from_secs_f64(1.3)),
+            mtrig2: MonostableTriggerNode::new(true, Duration::from_secs_f64(1.3)),
+            mtrig3: MonostableTriggerNode::new(true, Duration::from_secs_f64(1.5)),
+            mem_ap_unvol_off: MemoryNode::new(false),
+            mem_warning: MemoryNode::new(false),
+            ap_off_warning: false,
+            ap_unvol_off: false,
+            ap_off_reset: false,
+            ap_mw: false,
+        }
+    }
+}
+
+impl AutoFlightAutopilotOffUnvoluntaryActivation {
+    pub fn update(
+        &mut self,
+        delta: Duration,
+        voluntary_sheet: &impl AutoFlightAutopilotOffVoluntary,
+        flight_phases_ground: &impl FlightPhasesGround,
+        cavalry_charge_emitted: bool,
+        signals: &(impl Ap1Engd
+              + Ap2Engd
+              + CaptMwCancelOn
+              + FoMwCancelOn
+              + InstincDiscnct1ApEngd
+              + InstincDiscnct2ApEngd),
+    ) {
+        let phase1 = flight_phases_ground.phase_1();
+        let blue_sys_lo_pr = false; // TODO tripple low pressure should inhibit flashing MW in phase 1
+        let yellow_sys_lo_pr = false;
+        let green_sys_lo_pr = false;
+        let inhibited_on_ground = phase1 && blue_sys_lo_pr && yellow_sys_lo_pr && green_sys_lo_pr;
+        let instinc_discnct_1ap = signals.instinc_discnct_1ap_engd().value();
+        let instinc_discnct_2ap = signals.instinc_discnct_2ap_engd().value();
+        let mtrig1_out = self.mtrig1.update(instinc_discnct_1ap, delta);
+        let mtrig2_out = self.mtrig2.update(instinc_discnct_2ap, delta);
+        let recent_voluntary_disconnect = mtrig1_out || mtrig2_out;
+
+        let ap1_engaged = signals.ap1_engd_com().value() && signals.ap1_engd_mon().value();
+        let ap2_engaged = signals.ap2_engd_com().value() && signals.ap2_engd_mon().value();
+        let any_ap_engaged = ap1_engaged || ap2_engaged;
+        let ap_disenage_pulse = self.pulse_ap_disengage.update(any_ap_engaged);
+        let phase1_pulse = self.pulse_phase1.update(phase1);
+        let ap_engage_pulse = self.pulse_ap_engage.update(any_ap_engaged);
+
+        let reset_ap_warnings = ap_engage_pulse || phase1_pulse;
+
+        let ap_unvol_off = self.mem_ap_unvol_off.update(
+            !inhibited_on_ground && !recent_voluntary_disconnect && ap_disenage_pulse,
+            reset_ap_warnings,
+        );
+        let ap_unvol_off_pulse = self.pulse_ap_unvol_off.update(self.ap_unvol_off);
+        let ap_recently_unvol_off = self.mtrig3.update(ap_unvol_off_pulse, delta);
+
+        let any_mw_cancel = (signals.capt_mw_cancel_on().value()
+            || signals.fo_mw_cancel_on().value())
+            && cavalry_charge_emitted;
+        let ap_mw = self
+            .pulse_mw_cancel
+            .update(!any_ap_engaged && any_mw_cancel);
+
+        let any_instinc_discnct = instinc_discnct_1ap || instinc_discnct_2ap;
+        let any_instinc_discnct_pulse =
+            self.pulse_instinc_discnct.update(any_instinc_discnct) && !any_ap_engaged;
+
+        let ap_off_reset =
+            reset_ap_warnings || (!ap_recently_unvol_off && (any_instinc_discnct_pulse || ap_mw));
+
+        let warning = self.mem_warning.update(ap_unvol_off_pulse, ap_off_reset); // TODO use
+
+        self.ap_off_warning = voluntary_sheet.ap_off_text() || ap_unvol_off;
+        self.ap_unvol_off = ap_unvol_off;
+        self.ap_off_reset = ap_off_reset;
+        self.ap_mw = ap_mw;
+    }
+}
+
+impl AutoFlightAutopilotOffUnvoluntary for AutoFlightAutopilotOffUnvoluntaryActivation {
+    fn ap_off_warning(&self) -> bool {
+        self.ap_off_warning
+    }
+
+    fn ap_unvol_off(&self) -> bool {
+        self.ap_unvol_off
+    }
+
+    fn ap_off_reset(&self) -> bool {
+        self.ap_off_reset
+    }
+
+    fn ap_mw(&self) -> bool {
+        self.ap_mw
     }
 }
 
@@ -1742,7 +2002,7 @@ impl AutoFlightAltAlertActivation {
         delta: Duration,
         signals: &impl AltSelectChg,
         gnd_sheet: &impl GroundDetection,
-        ap_sheet: &impl AutoFlightAutopilot,
+        ap_sheet: &impl AutoFlightAutopilotOffVoluntary,
         ap_tcas_alt_inhibit_sheet: &impl AutopilotTcasAltitudeAlertInhibition,
         threshold_sheet: &impl AutoFlightAltitudeThreshold,
         inhibit_sheet: &impl AutoFlightGeneralInhibit,
@@ -2627,6 +2887,231 @@ mod tests {
             assert!(!sheet.phase_5());
             assert!(!sheet.phase_6());
             assert!(!sheet.phase_7());
+        }
+    }
+
+    mod voluntary_autopilot_warnings {
+        use super::*;
+        use crate::flight_warning::test::test_bed;
+
+        #[test]
+        fn reports_ap1_engaged() {
+            let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
+            sheet.update(
+                Duration::from_secs(1),
+                false,
+                test_bed_with().ap1_engaged(true).parameters(),
+            );
+            assert_eq!(sheet.ap1_engd(), true);
+            assert_eq!(sheet.ap2_engd(), false);
+            assert_eq!(sheet.one_ap_engd(), true);
+            assert_eq!(sheet.ap_off_audio(), false);
+            assert_eq!(sheet.ap_off_mw(), false);
+            assert_eq!(sheet.ap_off_text(), false);
+        }
+
+        #[test]
+        fn reports_ap2_engaged() {
+            let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
+            sheet.update(
+                Duration::from_secs(1),
+                false,
+                test_bed_with().ap2_engaged(true).parameters(),
+            );
+            assert_eq!(sheet.ap1_engd(), false);
+            assert_eq!(sheet.ap2_engd(), true);
+            assert_eq!(sheet.one_ap_engd(), true);
+            assert_eq!(sheet.ap_off_audio(), false);
+            assert_eq!(sheet.ap_off_mw(), false);
+            assert_eq!(sheet.ap_off_text(), false);
+        }
+
+        #[test]
+        fn reports_both_aps_engaged() {
+            let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
+            sheet.update(
+                Duration::from_secs(1),
+                false,
+                test_bed_with()
+                    .ap1_engaged(true)
+                    .ap2_engaged(true)
+                    .parameters(),
+            );
+            assert_eq!(sheet.ap1_engd(), true);
+            assert_eq!(sheet.ap2_engd(), true);
+            assert_eq!(sheet.one_ap_engd(), true);
+            assert_eq!(sheet.ap_off_audio(), false);
+            assert_eq!(sheet.ap_off_mw(), false);
+            assert_eq!(sheet.ap_off_text(), false);
+        }
+
+        #[test]
+        fn warns_when_ap1_is_instinctively_disconnected() {
+            let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                false,
+                test_bed_with().ap1_engaged(true).parameters(),
+            );
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                false,
+                test_bed_with()
+                    .ap1_engaged(false)
+                    .instinc_disconnect_1ap_engd(true)
+                    .parameters(),
+            );
+            assert_eq!(sheet.ap_off_audio(), true);
+            assert_eq!(sheet.ap_off_mw(), true);
+            assert_eq!(sheet.ap_off_text(), true);
+            sheet.update(Duration::from_secs_f64(1.5), true, test_bed().parameters());
+            assert_eq!(sheet.ap_off_audio(), true);
+            assert_eq!(sheet.ap_off_mw(), true);
+            assert_eq!(sheet.ap_off_text(), true);
+            sheet.update(Duration::from_secs_f64(1.5), true, test_bed().parameters());
+            assert_eq!(sheet.ap_off_audio(), false);
+            assert_eq!(sheet.ap_off_mw(), false);
+            assert_eq!(sheet.ap_off_text(), true);
+            sheet.update(Duration::from_secs_f64(6.0), false, test_bed().parameters());
+            assert_eq!(sheet.ap_off_audio(), false);
+            assert_eq!(sheet.ap_off_mw(), false);
+            assert_eq!(sheet.ap_off_text(), false);
+        }
+
+        #[test]
+        fn stops_warning_when_instinctive_disconnect_is_pressed_again() {
+            let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
+            sheet.update(
+                Duration::from_secs_f64(0.001),
+                false,
+                test_bed_with().ap1_engaged(true).parameters(),
+            );
+            sheet.update(
+                Duration::from_secs_f64(0.001),
+                false,
+                test_bed_with()
+                    .ap1_engaged(false)
+                    .instinc_disconnect_1ap_engd(true)
+                    .parameters(),
+            );
+            assert_eq!(sheet.ap_off_audio(), true);
+            assert_eq!(sheet.ap_off_mw(), true);
+            assert_eq!(sheet.ap_off_text(), true);
+            sheet.update(
+                Duration::from_secs_f64(0.001),
+                false,
+                test_bed_with()
+                    .instinc_disconnect_1ap_engd(false)
+                    .parameters(),
+            );
+
+            // another press within 0.2s is inhibited
+            sheet.update(
+                Duration::from_secs_f64(0.001),
+                false,
+                test_bed_with()
+                    .instinc_disconnect_1ap_engd(true)
+                    .parameters(),
+            );
+            sheet.update(
+                Duration::from_secs_f64(0.001),
+                false,
+                test_bed_with()
+                    .instinc_disconnect_1ap_engd(false)
+                    .parameters(),
+            );
+            assert_eq!(sheet.ap_off_audio(), true);
+            assert_eq!(sheet.ap_off_mw(), true);
+            assert_eq!(sheet.ap_off_text(), true);
+
+            // after 0.2s a press inhibits the mw and text signal, but audio remains
+            sheet.update(
+                Duration::from_secs_f64(0.2),
+                false,
+                test_bed_with()
+                    .instinc_disconnect_1ap_engd(true)
+                    .parameters(),
+            );
+            assert_eq!(sheet.ap_off_audio(), true);
+            assert_eq!(sheet.ap_off_mw(), false);
+            assert_eq!(sheet.ap_off_text(), false);
+
+            // once 0.5s have passed since the inhibit is pressed, the audio is also inhibited
+            sheet.update(
+                Duration::from_secs_f64(0.5),
+                false,
+                test_bed_with()
+                    .instinc_disconnect_1ap_engd(true)
+                    .parameters(),
+            );
+            assert_eq!(sheet.ap_off_audio(), false);
+        }
+
+        #[test]
+        fn warns_when_ap2_is_instinctively_disconnected() {
+            let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                false,
+                test_bed_with().ap2_engaged(true).parameters(),
+            );
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                false,
+                test_bed_with()
+                    .ap2_engaged(false)
+                    .instinc_disconnect_2ap_engd(true)
+                    .parameters(),
+            );
+            assert_eq!(sheet.ap_off_audio, true);
+            assert_eq!(sheet.ap_off_mw, true);
+            assert_eq!(sheet.ap_off_text, true);
+        }
+
+        #[test]
+        fn warns_when_both_aps_are_instinctively_disconnected() {
+            let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                false,
+                test_bed_with()
+                    .ap1_engaged(true)
+                    .ap2_engaged(true)
+                    .parameters(),
+            );
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                false,
+                test_bed_with()
+                    .ap1_engaged(false)
+                    .ap2_engaged(false)
+                    .instinc_disconnect_1ap_engd(true)
+                    .parameters(),
+            );
+            assert_eq!(sheet.ap_off_audio, true);
+            assert_eq!(sheet.ap_off_mw, true);
+            assert_eq!(sheet.ap_off_text, true);
+        }
+
+        #[test]
+        fn does_not_warn_when_ap1_is_involuntarily_disconnected() {
+            let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                false,
+                test_bed_with().ap1_engaged(true).parameters(),
+            );
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                false,
+                test_bed_with()
+                    .ap1_engaged(false)
+                    .instinc_disconnect_1ap_engd(false)
+                    .parameters(),
+            );
+            assert_eq!(sheet.ap_off_audio, false);
+            assert_eq!(sheet.ap_off_mw, false);
+            assert_eq!(sheet.ap_off_text, false);
         }
     }
 

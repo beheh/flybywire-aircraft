@@ -602,6 +602,18 @@ var A320_Neo_UpperECAM;
                         ]
                     },
                     {
+                        name: "AUTO FLT",
+                        messages: [
+                            {
+                                message: "AP OFF",
+                                level: 3,
+                                isActive: () => {
+                                    return this.getCachedSimVar("L:A32NX_FWC_AP_OFF_WARNING", "Bool");
+                                },
+                            }
+                        ]
+                    },
+                    {
                         name: "CARGO SMOKE",
                         messages: [
                             {
@@ -1314,6 +1326,18 @@ var A320_Neo_UpperECAM;
                 failures: [],
                 normal: [
                     {
+                        message: "T.O. INHIBIT",
+                        style: "InfoSpecial",
+                        important: true,
+                        isActive: () => this.showTakeoffInhibit,
+                    },
+                    {
+                        message: "LDG INHIBIT",
+                        style: "InfoSpecial",
+                        important: true,
+                        isActive: () => this.showLandingInhibit,
+                    },
+                    {
                         message: "LAND ASAP",
                         style: "fail-3",
                         important: true,
@@ -1326,16 +1350,10 @@ var A320_Neo_UpperECAM;
                         isActive: () => this.leftEcamMessagePanel.landASAP === 2 && !Simplane.getIsGrounded()
                     },
                     {
-                        message: "T.O. INHIBIT",
-                        style: "InfoSpecial",
+                        message: "AP OFF",
+                        style: "fail-3",
                         important: true,
-                        isActive: () => this.showTakeoffInhibit,
-                    },
-                    {
-                        message: "LDG INHIBIT",
-                        style: "InfoSpecial",
-                        important: true,
-                        isActive: () => this.showLandingInhibit,
+                        isActive: () => this.getCachedSimVar("L:A32NX_FWC_AP_OFF", "Bool")
                     },
 
                     //Secondary failures
