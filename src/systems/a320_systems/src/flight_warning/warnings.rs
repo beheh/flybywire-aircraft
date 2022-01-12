@@ -1710,7 +1710,14 @@ impl AutoFlightAutopilotOffVoluntary for AutoFlightAutopilotOffVoluntaryActivati
 }
 
 pub(super) trait AutoFlightAutopilotOffUnvoluntary {
+    /// This signal indicates that the textual warning part of the AP OFF warning should be visible
+    /// on the EWD.
     fn ap_off_warning(&self) -> bool;
+
+    /// This signal indicates that the aural part of the AP off warning should be active.
+    /// TODO Replace with real warning block (so it can be cleared)
+    fn ap_off_audio(&self) -> bool;
+
     /// This signal indicates that an involuntary AP disocnnect was detected and and that the MW
     /// should start flashing.
     fn ap_unvol_off(&self) -> bool;
@@ -1741,6 +1748,7 @@ pub(super) struct AutoFlightAutopilotOffUnvoluntaryActivation {
     ap_unvol_off: bool,
     ap_off_reset: bool,
     ap_mw: bool,
+    ap_off_audio: bool,
 }
 
 impl Default for AutoFlightAutopilotOffUnvoluntaryActivation {
@@ -1758,6 +1766,7 @@ impl Default for AutoFlightAutopilotOffUnvoluntaryActivation {
             mem_ap_unvol_off: MemoryNode::new(false),
             mem_warning: MemoryNode::new(false),
             ap_off_warning: false,
+            ap_off_audio: false,
             ap_unvol_off: false,
             ap_off_reset: false,
             ap_mw: false,
@@ -1847,6 +1856,10 @@ impl AutoFlightAutopilotOffUnvoluntary for AutoFlightAutopilotOffUnvoluntaryActi
 
     fn ap_mw(&self) -> bool {
         self.ap_mw
+    }
+
+    fn ap_off_audio(&self) -> bool {
+        self.ap_off_audio
     }
 }
 
@@ -3157,9 +3170,9 @@ mod tests {
                     .parameters(),
                 false,
             );
-            assert_eq!(sheet.ap_off_audio, true);
-            assert_eq!(sheet.ap_off_mw, true);
-            assert_eq!(sheet.ap_off_text, true);
+            assert_eq!(sheet.ap_off_audio(), true);
+            assert_eq!(sheet.ap_off_mw(), true);
+            assert_eq!(sheet.ap_off_text(), true);
         }
 
         #[test]
@@ -3182,9 +3195,9 @@ mod tests {
                     .parameters(),
                 false,
             );
-            assert_eq!(sheet.ap_off_audio, true);
-            assert_eq!(sheet.ap_off_mw, true);
-            assert_eq!(sheet.ap_off_text, true);
+            assert_eq!(sheet.ap_off_audio(), true);
+            assert_eq!(sheet.ap_off_mw(), true);
+            assert_eq!(sheet.ap_off_text(), true);
         }
 
         #[test]
@@ -3203,9 +3216,9 @@ mod tests {
                     .parameters(),
                 false,
             );
-            assert_eq!(sheet.ap_off_audio, false);
-            assert_eq!(sheet.ap_off_mw, false);
-            assert_eq!(sheet.ap_off_text, false);
+            assert_eq!(sheet.ap_off_audio(), false);
+            assert_eq!(sheet.ap_off_mw(), false);
+            assert_eq!(sheet.ap_off_text(), false);
         }
     }
 

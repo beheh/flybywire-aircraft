@@ -146,12 +146,12 @@ pub(super) trait Eng2ChannelInControl {
 pub(super) trait AltitudeParameter {
     /// This parameter contains the barometric altitude as measures by the ADR.
     /// The index is 1, 2, or 3, for ADR 1, 2, or 3 respectively.
-    fn altitude(&self, index: u8) -> Arinc429Parameter<Length>;
+    fn altitude(&self, index: u8) -> &Arinc429Parameter<Length>;
 }
 
 pub(super) trait AltiSelect {
     /// This parameter contains the selected altitude in the FCU.
-    fn alti_select(&self) -> Arinc429Parameter<Length>;
+    fn alti_select(&self) -> &Arinc429Parameter<Length>;
 }
 
 pub(super) trait AltSelectChg {
@@ -298,6 +298,11 @@ pub struct A320FWCParameterTable {
     eng_1_limit_mode_soft_ga_b: Arinc429Parameter<bool>,
     eng_2_limit_mode_soft_ga_a: Arinc429Parameter<bool>,
     eng_2_limit_mode_soft_ga_b: Arinc429Parameter<bool>,
+    altitude_1: Arinc429Parameter<Length>,
+    altitude_2: Arinc429Parameter<Length>,
+    altitude_3: Arinc429Parameter<Length>,
+    alti_select: Arinc429Parameter<Length>,
+    alti_select_chg: Arinc429Parameter<bool>,
     ap1_engd_com: DiscreteParameter,
     ap1_engd_mon: DiscreteParameter,
     ap2_engd_com: DiscreteParameter,
@@ -306,7 +311,14 @@ pub struct A320FWCParameterTable {
     instinc_discnct_2ap_engd: DiscreteParameter,
     capt_mw_cancel_on: DiscreteParameter,
     fo_mw_cancel_on: DiscreteParameter,
+    blue_sys_lo_pr: DiscreteParameter,
+    yellow_sys_lo_pr: DiscreteParameter,
+    green_sys_lo_pr: DiscreteParameter,
+    tcas_engaged: Arinc429Parameter<bool>,
+    gs_mode_on_1: Arinc429Parameter<bool>,
+    gs_mode_on_2: Arinc429Parameter<bool>,
 }
+
 impl A320FWCParameterTable {
     pub fn new() -> Self {
         Self {
@@ -363,6 +375,11 @@ impl A320FWCParameterTable {
             eng_1_limit_mode_soft_ga_b: Arinc429Parameter::new_inv(false),
             eng_2_limit_mode_soft_ga_a: Arinc429Parameter::new_inv(false),
             eng_2_limit_mode_soft_ga_b: Arinc429Parameter::new_inv(false),
+            altitude_1: Arinc429Parameter::new_inv(Length::new::<foot>(0.0)),
+            altitude_2: Arinc429Parameter::new_inv(Length::new::<foot>(0.0)),
+            altitude_3: Arinc429Parameter::new_inv(Length::new::<foot>(0.0)),
+            alti_select: Arinc429Parameter::new_inv(Length::new::<foot>(0.0)),
+            alti_select_chg: Arinc429Parameter::new_inv(false),
             ap1_engd_com: DiscreteParameter::new_inv(false),
             ap1_engd_mon: DiscreteParameter::new_inv(false),
             ap2_engd_com: DiscreteParameter::new_inv(false),
@@ -371,6 +388,12 @@ impl A320FWCParameterTable {
             instinc_discnct_2ap_engd: DiscreteParameter::new_inv(false),
             capt_mw_cancel_on: DiscreteParameter::new_inv(false),
             fo_mw_cancel_on: DiscreteParameter::new_inv(false),
+            blue_sys_lo_pr: DiscreteParameter::new_inv(false),
+            yellow_sys_lo_pr: DiscreteParameter::new_inv(false),
+            green_sys_lo_pr: DiscreteParameter::new_inv(false),
+            tcas_engaged: Arinc429Parameter::new_inv(false),
+            gs_mode_on_1: Arinc429Parameter::new_inv(false),
+            gs_mode_on_2: Arinc429Parameter::new_inv(false),
         }
     }
 
@@ -752,6 +775,26 @@ impl Eng2LimitModeSoftGa for A320FWCParameterTable {
         }
     }
 }
+impl AltitudeParameter for A320FWCParameterTable {
+    fn altitude(&self, index: u8) -> &Arinc429Parameter<Length> {
+        match index {
+            1 => &self.altitude_1,
+            2 => &self.altitude_2,
+            3 => &self.altitude_3,
+            _ => panic!(),
+        }
+    }
+}
+impl AltiSelect for A320FWCParameterTable {
+    fn alti_select(&self) -> &Arinc429Parameter<Length> {
+        &self.alti_select
+    }
+}
+impl AltSelectChg for A320FWCParameterTable {
+    fn alt_select_chg(&self) -> &Arinc429Parameter<bool> {
+        &self.alti_select_chg
+    }
+}
 impl Ap1Engd for A320FWCParameterTable {
     fn ap1_engd_com(&self) -> &DiscreteParameter {
         &self.ap1_engd_com
@@ -788,5 +831,39 @@ impl CaptMwCancelOn for A320FWCParameterTable {
 impl FoMwCancelOn for A320FWCParameterTable {
     fn fo_mw_cancel_on(&self) -> &DiscreteParameter {
         &self.fo_mw_cancel_on
+    }
+}
+
+impl BlueSysLoPr for A320FWCParameterTable {
+    fn blue_sys_lo_pr(&self) -> &DiscreteParameter {
+        &self.blue_sys_lo_pr
+    }
+}
+
+impl YellowSysLoPr for A320FWCParameterTable {
+    fn yellow_sys_lo_pr(&self) -> &DiscreteParameter {
+        &self.yellow_sys_lo_pr
+    }
+}
+
+impl GreenSysLoPr for A320FWCParameterTable {
+    fn green_sys_lo_pr(&self) -> &DiscreteParameter {
+        &self.green_sys_lo_pr
+    }
+}
+
+impl TcasEngaged for A320FWCParameterTable {
+    fn tcas_engaged(&self) -> &Arinc429Parameter<bool> {
+        &self.tcas_engaged
+    }
+}
+
+impl GsModeOn for A320FWCParameterTable {
+    fn gs_mode_on(&self, index: u8) -> &Arinc429Parameter<bool> {
+        match index {
+            1 => &self.gs_mode_on_1,
+            2 => &self.gs_mode_on_2,
+            _ => panic!(),
+        }
     }
 }

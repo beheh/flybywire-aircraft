@@ -18,6 +18,10 @@ impl A320FWCParameterTestBed {
         self
     }
 
+    pub fn with(self) -> Self {
+        self
+    }
+
     pub fn parameters(&self) -> &A320FWCParameterTable {
         &self.parameters
     }

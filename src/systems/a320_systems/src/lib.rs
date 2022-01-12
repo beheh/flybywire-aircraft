@@ -186,7 +186,7 @@ impl Aircraft for A320 {
         self.adirs.update(context, &self.adirs_overhead);
         self.adirs_overhead.update(context, &self.adirs);
 
-        self.flight_warning_system.update(context);
+        self.flight_warning_system.update(context, &self.hydraulic);
 
         self.power_consumption.update(context);
 
