@@ -899,7 +899,7 @@ impl CfmFlightPhasesDefActivation {
         neo_def: &impl NeoEcu,
         tla_mct_or_flex_to: &impl TlaAtMctOrFlexToCfm,
         tla_pwr_reverse: &impl TlaPwrReverse,
-        altitude_def: &impl AltitudeDef,
+        altitude_def: &impl FlightPhasesAltitudeDef,
         tla_at_cl_cfm: &impl TlaAtClCfm,
     ) {
         let any_cfm = true;
@@ -951,7 +951,7 @@ impl CfmFlightPhasesDef for CfmFlightPhasesDefActivation {
     }
 }
 
-pub(super) trait AltitudeDef {
+pub(super) trait FlightPhasesAltitudeDef {
     fn h_gt_800ft(&self) -> bool;
     fn h_gt_1500ft(&self) -> bool;
     fn h_fail(&self) -> bool;
@@ -1011,7 +1011,7 @@ impl AltitudeDefActivation {
     }
 }
 
-impl AltitudeDef for AltitudeDefActivation {
+impl FlightPhasesAltitudeDef for AltitudeDefActivation {
     fn h_gt_800ft(&self) -> bool {
         self.h_gt_800ft
     }
@@ -1226,7 +1226,7 @@ impl FlightPhasesAirActivation {
         &mut self,
         delta: Duration,
         ground_sheet: &impl GroundDetection,
-        altitude_sheet: &impl AltitudeDef,
+        altitude_sheet: &impl FlightPhasesAltitudeDef,
         cfm_flight_phases_sheet: &impl CfmFlightPhasesDef,
         flight_phases_gnd_sheet: &impl FlightPhasesGround,
     ) {
@@ -1502,24 +1502,43 @@ impl LdgMemo for LdgMemoActivation {
     }
 }
 
-#[derive(Default)]
-pub(super) struct AltitudeActivation {
-    altitude: Length,
+pub(super) trait AutoFlightBaroAltitude {
+    /// This signal contains the barometric altitude that is picked from the first available ADR.
+    /// It may be nonsensical if all three ADRs are unavailable.
+    fn alti_basic(&self) -> Length;
 }
 
-impl AltitudeActivation {
-    pub fn update(&mut self, signals: &(impl Altitude)) {
+#[derive(Default)]
+pub(super) struct AutoFlightBaroAltitudeActivation {
+    alti_basic: Length,
+}
+
+impl AutoFlightBaroAltitudeActivation {
+    pub fn update(&mut self, signals: &(impl AltitudeParameter)) {
         let alti1 = signals.altitude(1);
         let alti2 = signals.altitude(2);
         let alti3 = signals.altitude(3);
 
-        self.altitude = if !alti1.is_inv() {
-            alti1.value()
-        } else if !alti2.is_inv() {
+        let bad_alti1 = alti1.is_ncd() || alti1.is_inv();
+        let bad_alti2 = alti2.is_ncd() || alti2.is_inv();
+        let bad_alti3 = alti3.is_ncd() || alti3.is_inv();
+
+        let two_over_one = bad_alti1;
+        let three_over_one_and_two = bad_alti1 && bad_alti2;
+
+        self.alti_basic = if three_over_one_and_two {
+            alti3.value()
+        } else if two_over_one {
             alti2.value()
         } else {
-            alti3.value()
+            alti1.value()
         };
+    }
+}
+
+impl AutoFlightBaroAltitude for AutoFlightBaroAltitudeActivation {
+    fn alti_basic(&self) -> Length {
+        self.alti_basic
     }
 }
 
@@ -1604,13 +1623,13 @@ impl AutoFlightAutopilotOffVoluntaryActivation {
     pub fn update(
         &mut self,
         delta: Duration,
-        cavalry_charge_emitted: bool,
         signals: &(impl Ap1Engd
               + Ap2Engd
               + CaptMwCancelOn
               + FoMwCancelOn
               + InstincDiscnct1ApEngd
               + InstincDiscnct2ApEngd),
+        cavalry_charge_emitted: bool,
     ) {
         self.ap1_engd = signals.ap1_engd_com().value() && signals.ap1_engd_mon().value();
         self.ap2_engd = signals.ap2_engd_com().value() && signals.ap2_engd_mon().value();
@@ -1750,21 +1769,24 @@ impl AutoFlightAutopilotOffUnvoluntaryActivation {
     pub fn update(
         &mut self,
         delta: Duration,
-        voluntary_sheet: &impl AutoFlightAutopilotOffVoluntary,
-        flight_phases_ground: &impl FlightPhasesGround,
-        cavalry_charge_emitted: bool,
         signals: &(impl Ap1Engd
               + Ap2Engd
               + CaptMwCancelOn
               + FoMwCancelOn
               + InstincDiscnct1ApEngd
-              + InstincDiscnct2ApEngd),
+              + InstincDiscnct2ApEngd
+              + BlueSysLoPr
+              + YellowSysLoPr
+              + GreenSysLoPr),
+        voluntary_sheet: &impl AutoFlightAutopilotOffVoluntary,
+        flight_phases_ground: &impl FlightPhasesGround,
+        cavalry_charge_emitted: bool,
     ) {
         let phase1 = flight_phases_ground.phase_1();
-        let blue_sys_lo_pr = false; // TODO tripple low pressure should inhibit flashing MW in phase 1
-        let yellow_sys_lo_pr = false;
-        let green_sys_lo_pr = false;
-        let inhibited_on_ground = phase1 && blue_sys_lo_pr && yellow_sys_lo_pr && green_sys_lo_pr;
+        let inhibited_on_ground = phase1
+            && signals.blue_sys_lo_pr().value()
+            && signals.yellow_sys_lo_pr().value()
+            && signals.green_sys_lo_pr().value();
         let instinc_discnct_1ap = signals.instinc_discnct_1ap_engd().value();
         let instinc_discnct_2ap = signals.instinc_discnct_2ap_engd().value();
         let mtrig1_out = self.mtrig1.update(instinc_discnct_1ap, delta);
@@ -1828,44 +1850,24 @@ impl AutoFlightAutopilotOffUnvoluntary for AutoFlightAutopilotOffUnvoluntaryActi
     }
 }
 
-pub(super) trait AutoFlightGeneralInhibit {
-    fn general_inhibit(&self) -> bool;
-}
-
-#[derive(Default)]
-pub(super) struct AutoFlightGeneralInhibitActivation {
-    general_inhibit: bool,
-}
-
-impl AutoFlightGeneralInhibitActivation {
-    pub fn update(&mut self, signals: &(impl AltiSelect + AltSelectChg)) {
-        let alti_select = signals.alti_select();
-        let bad_alti_select = alti_select.is_ncd() || alti_select.is_inv();
-
-        self.general_inhibit = bad_alti_select || signals.alt_select_chg().value();
-    }
-}
-
-impl AutoFlightGeneralInhibit for AutoFlightGeneralInhibitActivation {
-    fn general_inhibit(&self) -> bool {
-        self.general_inhibit
-    }
-}
-
-pub(super) trait AutoFlightAltitudeThreshold {
+pub(super) trait AltitudeAlertThresholds {
     fn alt_200(&self) -> bool;
     fn alt_750(&self) -> bool;
 }
 
 #[derive(Default)]
-pub(super) struct AutoFlightAltitudeThresholdActivation {
+pub(super) struct AltitudeAlertThresholdsActivation {
     alt_200: bool,
     alt_750: bool,
 }
 
-impl AutoFlightAltitudeThresholdActivation {
-    pub fn update(&mut self, signals: &impl AltiSelect, altitude_sheet: AltitudeActivation) {
-        let difference = altitude_sheet.altitude - signals.alti_select().value();
+impl AltitudeAlertThresholdsActivation {
+    pub fn update(
+        &mut self,
+        signals: &impl AltiSelect,
+        altitude_sheet: &impl AutoFlightBaroAltitude,
+    ) {
+        let difference = altitude_sheet.alti_basic() - signals.alti_select().value();
 
         // TODO baro-corrected altitudes
         self.alt_200 = difference.abs() < Length::new::<foot>(200.0);
@@ -1873,7 +1875,7 @@ impl AutoFlightAltitudeThresholdActivation {
     }
 }
 
-impl AutoFlightAltitudeThreshold for AutoFlightAltitudeThresholdActivation {
+impl AltitudeAlertThresholds for AltitudeAlertThresholdsActivation {
     fn alt_200(&self) -> bool {
         self.alt_200
     }
@@ -1883,12 +1885,97 @@ impl AutoFlightAltitudeThreshold for AutoFlightAltitudeThresholdActivation {
     }
 }
 
-pub(super) trait AutopilotTcasAltitudeAlertInhibition {
+pub(super) trait AltitudeAlertSlatInhibit {
+    /// This signal indicates that the altitude alerts should be inhibited because the gear is down.
+    fn slat_inhibit(&self) -> bool;
+}
+
+#[derive(Default)]
+pub(super) struct AltitudeAlertSlatInhibitActivation {
+    slat_inhibit: bool,
+}
+
+impl AltitudeAlertSlatInhibitActivation {
+    pub fn update(&mut self, lg_downlocked_sheet: &impl LgDownlocked) {
+        let lg_downlocked = lg_downlocked_sheet.lg_downlocked();
+        self.slat_inhibit = lg_downlocked; // TODO gear down selection with flap setting
+    }
+}
+
+impl AltitudeAlertSlatInhibit for AltitudeAlertSlatInhibitActivation {
+    fn slat_inhibit(&self) -> bool {
+        self.slat_inhibit
+    }
+}
+
+pub(super) trait AltitudeAlertFmgcInhibit {
+    /// This signal indicates that the altitude alerts should be inhibited because a descent is
+    /// expected, for example because the aircraft is following a glide slope.
+    fn fmgc_inhibit(&self) -> bool;
+}
+
+#[derive(Default)]
+pub(super) struct AltitudeAlertFmgcInhibitActivation {
+    fmgc_inhibit: bool,
+}
+
+impl AltitudeAlertFmgcInhibitActivation {
+    pub fn update(&mut self, signals: &impl GsModeOn) {
+        self.fmgc_inhibit = signals.gs_mode_on(1).value(); // TODO dual FMGC, LAND mode, FINAL DESCENT
+    }
+}
+
+impl AltitudeAlertFmgcInhibit for AltitudeAlertFmgcInhibitActivation {
+    fn fmgc_inhibit(&self) -> bool {
+        self.fmgc_inhibit
+    }
+}
+
+pub(super) trait AltitudeAlertGeneralInhibit {
+    /// This signal indicates that the altitude alerts should be inhibited for example because a
+    /// descent is expected (on glideslope, or gear down) or because of a system failure (invalid altitude source).
+    fn general_inhibit(&self) -> bool;
+}
+
+#[derive(Default)]
+pub(super) struct AltitudeAlertGeneralInhibitActivation {
+    general_inhibit: bool,
+}
+
+impl AltitudeAlertGeneralInhibitActivation {
+    pub fn update(
+        &mut self,
+        signals: &(impl AltiSelect + AltSelectChg),
+        slat_sheet: &impl AltitudeAlertSlatInhibit,
+        fmgc_sheet: &impl AltitudeAlertFmgcInhibit,
+    ) {
+        let alti_select = signals.alti_select();
+        let bad_alti_select = alti_select.is_ncd() || alti_select.is_inv();
+
+        self.general_inhibit = bad_alti_select
+            || signals.alt_select_chg().value()
+            || slat_sheet.slat_inhibit()
+            || fmgc_sheet.fmgc_inhibit();
+        // TODO baro failures
+    }
+}
+
+impl AltitudeAlertGeneralInhibit for AltitudeAlertGeneralInhibitActivation {
+    fn general_inhibit(&self) -> bool {
+        self.general_inhibit
+    }
+}
+
+pub(super) trait AltitudeAlertApTcasInhibit {
+    /// This signal indicates that the Autopilot TCAS is available and engaged.
     fn ap_tcas_mode_eng(&self) -> bool;
+
+    /// This signal indicates that the aural altitude alert should be inhibited because the
+    /// deviation was initiated by AP TCAS.
     fn alt_alert_inib(&self) -> bool;
 }
 
-pub(super) struct AutopilotTcasAltitudeAlertInhibitionActivation {
+pub(super) struct AltitudeAlertApTcasInhibitActivation {
     pulse1: PulseNode,
     pulse2: PulseNode,
     pulse3: PulseNode,
@@ -1900,7 +1987,7 @@ pub(super) struct AutopilotTcasAltitudeAlertInhibitionActivation {
     alt_alert_inib: bool,
 }
 
-impl Default for AutopilotTcasAltitudeAlertInhibitionActivation {
+impl Default for AltitudeAlertApTcasInhibitActivation {
     fn default() -> Self {
         Self {
             mem_altitude_alert_inhib: MemoryNode::new(true),
@@ -1916,16 +2003,16 @@ impl Default for AutopilotTcasAltitudeAlertInhibitionActivation {
     }
 }
 
-impl AutopilotTcasAltitudeAlertInhibitionActivation {
+impl AltitudeAlertApTcasInhibitActivation {
     pub fn update(
         &mut self,
         delta: Duration,
-        signals: &(impl FakeSignalApTcasEngaged + AltSelectChg),
+        signals: &(impl TcasEngaged + AltSelectChg),
         lg_downlocked_sheet: &impl LgDownlocked,
-        alti_threshold_sheet: &impl AutoFlightAltitudeThreshold,
-        general_inhibit_sheet: &impl AutoFlightGeneralInhibit,
+        alti_threshold_sheet: &impl AltitudeAlertThresholds,
+        general_inhibit_sheet: &impl AltitudeAlertGeneralInhibit,
     ) {
-        self.ap_tcas_mode_eng = signals.ap_tcas_engaged();
+        self.ap_tcas_mode_eng = signals.tcas_engaged().value(); // TODO pin programming
 
         let alt_200 = alti_threshold_sheet.alt_200();
         let alt_750 = alti_threshold_sheet.alt_750();
@@ -1950,7 +2037,7 @@ impl AutopilotTcasAltitudeAlertInhibitionActivation {
     }
 }
 
-impl AutopilotTcasAltitudeAlertInhibition for AutopilotTcasAltitudeAlertInhibitionActivation {
+impl AltitudeAlertApTcasInhibit for AltitudeAlertApTcasInhibitActivation {
     fn ap_tcas_mode_eng(&self) -> bool {
         self.ap_tcas_mode_eng
     }
@@ -1960,13 +2047,20 @@ impl AutopilotTcasAltitudeAlertInhibition for AutopilotTcasAltitudeAlertInhibiti
     }
 }
 
-pub(super) trait AutoFlightAltAlert {
+pub(super) trait AltitudeAlert {
+    /// This signal indicates that the C. Chord (Altitude Alert) should be playing.
     fn c_chord(&self) -> bool;
+
+    /// This signal indicates that the altitude indicator on the PFDs should be slowly flashing in
+    /// yellow (slight altitude deviation).
     fn steady_light(&self) -> bool;
+
+    /// This signal indicates that the altitude indicator on the PFDs should be rapidly flashing in
+    /// amber (severe altitude deviation).
     fn flashing_light(&self) -> bool;
 }
 
-pub(super) struct AutoFlightAltAlertActivation {
+pub(super) struct AltitudeAlertActivation {
     pulse1: PulseNode,
     mtrig1: MonostableTriggerNode,
     mtrig2: MonostableTriggerNode,
@@ -1979,7 +2073,7 @@ pub(super) struct AutoFlightAltAlertActivation {
     flashing_light: bool,
 }
 
-impl Default for AutoFlightAltAlertActivation {
+impl Default for AltitudeAlertActivation {
     fn default() -> Self {
         Self {
             pulse1: PulseNode::new(false),
@@ -1996,16 +2090,16 @@ impl Default for AutoFlightAltAlertActivation {
     }
 }
 
-impl AutoFlightAltAlertActivation {
+impl AltitudeAlertActivation {
     pub fn update(
         &mut self,
         delta: Duration,
         signals: &impl AltSelectChg,
         gnd_sheet: &impl GroundDetection,
         ap_sheet: &impl AutoFlightAutopilotOffVoluntary,
-        ap_tcas_alt_inhibit_sheet: &impl AutopilotTcasAltitudeAlertInhibition,
-        threshold_sheet: &impl AutoFlightAltitudeThreshold,
-        inhibit_sheet: &impl AutoFlightGeneralInhibit,
+        ap_tcas_alt_inhibit_sheet: &impl AltitudeAlertApTcasInhibit,
+        threshold_sheet: &impl AltitudeAlertThresholds,
+        inhibit_sheet: &impl AltitudeAlertGeneralInhibit,
         lg_sheet: &impl LgDownlocked,
     ) {
         let ap_tcas_mode_eng = ap_tcas_alt_inhibit_sheet.ap_tcas_mode_eng();
@@ -2040,7 +2134,7 @@ impl AutoFlightAltAlertActivation {
         let one_ap_engd = ap_sheet.one_ap_engd();
         let mtrig3_out = self.mtrig3.update(!one_ap_engd && within_750, delta);
 
-        let mtrig4_in = (!one_ap_engd && self.pulse1.update(ap_tcas_mode_eng) && !general_inhibit);
+        let mtrig4_in = !one_ap_engd && self.pulse1.update(ap_tcas_mode_eng) && !general_inhibit;
         let mtrig4_out = self.mtrig4.update(mtrig4_in, delta);
 
         self.c_chord = !ground_or_ap_tcas
@@ -2050,7 +2144,7 @@ impl AutoFlightAltAlertActivation {
     }
 }
 
-impl AutoFlightAltAlert for AutoFlightAltAlertActivation {
+impl AltitudeAlert for AltitudeAlertActivation {
     fn c_chord(&self) -> bool {
         self.c_chord
     }
@@ -2501,7 +2595,7 @@ mod tests {
             assert_eq!(sheet.eng_2_not_running(), false);
         }
 
-        // TODO: a/b channel discrepancy
+        // TODO a/b channel discrepancy
     }
 
     #[cfg(test)]
@@ -2899,8 +2993,8 @@ mod tests {
             let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
             sheet.update(
                 Duration::from_secs(1),
-                false,
                 test_bed_with().ap1_engaged(true).parameters(),
+                false,
             );
             assert_eq!(sheet.ap1_engd(), true);
             assert_eq!(sheet.ap2_engd(), false);
@@ -2915,8 +3009,8 @@ mod tests {
             let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
             sheet.update(
                 Duration::from_secs(1),
-                false,
                 test_bed_with().ap2_engaged(true).parameters(),
+                false,
             );
             assert_eq!(sheet.ap1_engd(), false);
             assert_eq!(sheet.ap2_engd(), true);
@@ -2931,11 +3025,11 @@ mod tests {
             let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
             sheet.update(
                 Duration::from_secs(1),
-                false,
                 test_bed_with()
                     .ap1_engaged(true)
                     .ap2_engaged(true)
                     .parameters(),
+                false,
             );
             assert_eq!(sheet.ap1_engd(), true);
             assert_eq!(sheet.ap2_engd(), true);
@@ -2950,29 +3044,29 @@ mod tests {
             let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
             sheet.update(
                 Duration::from_secs_f64(0.1),
-                false,
                 test_bed_with().ap1_engaged(true).parameters(),
+                false,
             );
             sheet.update(
                 Duration::from_secs_f64(0.1),
-                false,
                 test_bed_with()
                     .ap1_engaged(false)
                     .instinc_disconnect_1ap_engd(true)
                     .parameters(),
+                false,
             );
             assert_eq!(sheet.ap_off_audio(), true);
             assert_eq!(sheet.ap_off_mw(), true);
             assert_eq!(sheet.ap_off_text(), true);
-            sheet.update(Duration::from_secs_f64(1.5), true, test_bed().parameters());
+            sheet.update(Duration::from_secs_f64(1.5), test_bed().parameters(), true);
             assert_eq!(sheet.ap_off_audio(), true);
             assert_eq!(sheet.ap_off_mw(), true);
             assert_eq!(sheet.ap_off_text(), true);
-            sheet.update(Duration::from_secs_f64(1.5), true, test_bed().parameters());
+            sheet.update(Duration::from_secs_f64(1.5), test_bed().parameters(), true);
             assert_eq!(sheet.ap_off_audio(), false);
             assert_eq!(sheet.ap_off_mw(), false);
             assert_eq!(sheet.ap_off_text(), true);
-            sheet.update(Duration::from_secs_f64(6.0), false, test_bed().parameters());
+            sheet.update(Duration::from_secs_f64(6.0), test_bed().parameters(), false);
             assert_eq!(sheet.ap_off_audio(), false);
             assert_eq!(sheet.ap_off_mw(), false);
             assert_eq!(sheet.ap_off_text(), false);
@@ -2983,42 +3077,42 @@ mod tests {
             let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
             sheet.update(
                 Duration::from_secs_f64(0.001),
-                false,
                 test_bed_with().ap1_engaged(true).parameters(),
+                false,
             );
             sheet.update(
                 Duration::from_secs_f64(0.001),
-                false,
                 test_bed_with()
                     .ap1_engaged(false)
                     .instinc_disconnect_1ap_engd(true)
                     .parameters(),
+                false,
             );
             assert_eq!(sheet.ap_off_audio(), true);
             assert_eq!(sheet.ap_off_mw(), true);
             assert_eq!(sheet.ap_off_text(), true);
             sheet.update(
                 Duration::from_secs_f64(0.001),
-                false,
                 test_bed_with()
                     .instinc_disconnect_1ap_engd(false)
                     .parameters(),
+                false,
             );
 
             // another press within 0.2s is inhibited
             sheet.update(
                 Duration::from_secs_f64(0.001),
-                false,
                 test_bed_with()
                     .instinc_disconnect_1ap_engd(true)
                     .parameters(),
+                false,
             );
             sheet.update(
                 Duration::from_secs_f64(0.001),
-                false,
                 test_bed_with()
                     .instinc_disconnect_1ap_engd(false)
                     .parameters(),
+                false,
             );
             assert_eq!(sheet.ap_off_audio(), true);
             assert_eq!(sheet.ap_off_mw(), true);
@@ -3027,10 +3121,10 @@ mod tests {
             // after 0.2s a press inhibits the mw and text signal, but audio remains
             sheet.update(
                 Duration::from_secs_f64(0.2),
-                false,
                 test_bed_with()
                     .instinc_disconnect_1ap_engd(true)
                     .parameters(),
+                false,
             );
             assert_eq!(sheet.ap_off_audio(), true);
             assert_eq!(sheet.ap_off_mw(), false);
@@ -3039,10 +3133,10 @@ mod tests {
             // once 0.5s have passed since the inhibit is pressed, the audio is also inhibited
             sheet.update(
                 Duration::from_secs_f64(0.5),
-                false,
                 test_bed_with()
                     .instinc_disconnect_1ap_engd(true)
                     .parameters(),
+                false,
             );
             assert_eq!(sheet.ap_off_audio(), false);
         }
@@ -3052,16 +3146,16 @@ mod tests {
             let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
             sheet.update(
                 Duration::from_secs_f64(0.1),
-                false,
                 test_bed_with().ap2_engaged(true).parameters(),
+                false,
             );
             sheet.update(
                 Duration::from_secs_f64(0.1),
-                false,
                 test_bed_with()
                     .ap2_engaged(false)
                     .instinc_disconnect_2ap_engd(true)
                     .parameters(),
+                false,
             );
             assert_eq!(sheet.ap_off_audio, true);
             assert_eq!(sheet.ap_off_mw, true);
@@ -3073,20 +3167,20 @@ mod tests {
             let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
             sheet.update(
                 Duration::from_secs_f64(0.1),
-                false,
                 test_bed_with()
                     .ap1_engaged(true)
                     .ap2_engaged(true)
                     .parameters(),
+                false,
             );
             sheet.update(
                 Duration::from_secs_f64(0.1),
-                false,
                 test_bed_with()
                     .ap1_engaged(false)
                     .ap2_engaged(false)
                     .instinc_disconnect_1ap_engd(true)
                     .parameters(),
+                false,
             );
             assert_eq!(sheet.ap_off_audio, true);
             assert_eq!(sheet.ap_off_mw, true);
@@ -3098,16 +3192,16 @@ mod tests {
             let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
             sheet.update(
                 Duration::from_secs_f64(0.1),
-                false,
                 test_bed_with().ap1_engaged(true).parameters(),
+                false,
             );
             sheet.update(
                 Duration::from_secs_f64(0.1),
-                false,
                 test_bed_with()
                     .ap1_engaged(false)
                     .instinc_disconnect_1ap_engd(false)
                     .parameters(),
+                false,
             );
             assert_eq!(sheet.ap_off_audio, false);
             assert_eq!(sheet.ap_off_mw, false);
@@ -3209,7 +3303,7 @@ mod tests {
         }
     }
 
-    impl AltitudeDef for TestAltitudeDef {
+    impl FlightPhasesAltitudeDef for TestAltitudeDef {
         fn h_gt_800ft(&self) -> bool {
             self.h_gt_800ft
         }

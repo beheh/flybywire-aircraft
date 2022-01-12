@@ -27,7 +27,7 @@ impl A320FWCParameterTestBed {
         self
     }
 
-    pub fn on_ground(mut self) -> Self {
+    pub fn on_ground(self) -> Self {
         self.ess_lh_lg_compressed()
             .norm_lh_lg_compressed()
             .lh_lg_compressed(1)
@@ -35,23 +35,23 @@ impl A320FWCParameterTestBed {
             .radio_heights(Length::new::<foot>(0.0), Length::new::<foot>(0.0))
     }
 
-    pub fn one_engine_running(mut self) -> Self {
+    pub fn one_engine_running(self) -> Self {
         self.eng1_master_lever_select_on().eng1_at_or_above_idle()
     }
 
-    pub fn engines_running(mut self) -> Self {
+    pub fn engines_running(self) -> Self {
         self.eng1_master_lever_select_on()
             .eng1_at_or_above_idle()
             .eng2_master_lever_select_on()
             .eng2_at_or_above_idle()
     }
 
-    pub fn engines_at_takeoff_power(mut self) -> Self {
+    pub fn engines_at_takeoff_power(self) -> Self {
         self.eng1_tla(Angle::new::<degree>(45.0))
             .eng2_tla(Angle::new::<degree>(45.0))
     }
 
-    pub fn engines_at_idle(mut self) -> Self {
+    pub fn engines_at_idle(self) -> Self {
         self.eng1_tla(Angle::new::<degree>(0.0))
             .eng2_tla(Angle::new::<degree>(0.0))
     }

@@ -6,38 +6,54 @@ use uom::si::ratio::percent;
 use uom::si::velocity::knot;
 
 pub(super) trait FwcIdentSide1 {
+    /// This signal indicates that the FWC is installed as FWC 1.
     fn fwc_ident_side1(&self) -> &DiscreteParameter;
 }
 
 pub(super) trait FwcIdentSide2 {
+    /// This signal indicates that the FWC is installed as FWC 2.
     fn fwc_ident_side2(&self) -> &DiscreteParameter;
 }
 
 pub(super) trait LhLgCompressed {
+    /// This signal indicates that the left main landing gear is compressed.
+    /// The index is either 1 or 2, corresponding to LGCIU 1 or 2 respectively.
     fn lh_lg_compressed(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait EssLhLgCompressed {
+    /// This signal indicates that the left main landing gear is compressed.
+    /// This discrete signal is provided by LGCIU 1, which is powered by the ESS bus.
     fn ess_lh_lg_compressed(&self) -> &DiscreteParameter;
 }
 
 pub(super) trait NormLhLgCompressed {
+    /// This signal indicates that the left main landing gear is compressed.
+    /// This discrete signal is provided by LGCIU 2.
     fn norm_lh_lg_compressed(&self) -> &DiscreteParameter;
 }
 
 pub(super) trait LhGearDownLock {
+    /// This signal indicates that the left main landing gear is downlocked.
+    /// The index is either 1 or 2, corresponding to LGCIU 1 or 2 respectively.
     fn lh_gear_down_lock(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait RhGearDownLock {
+    /// This signal indicates that the right main landing gear is downlocked.
+    /// The index is either 1 or 2, corresponding to LGCIU 1 or 2 respectively.
     fn rh_gear_down_lock(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait NoseGearDownLock {
+    /// This signal indicates that the nose landing gear is downlocked.
+    /// The index is either 1 or 2, corresponding to LGCIU 1 or 2 respectively.
     fn nose_gear_down_lock(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait RadioHeight {
+    /// This signal contains the measured radio altitude.
+    /// The index is either 1 or 2, corresponding to Radio Altimeter 1 or 2 respectively.
     fn radio_height(&self, index: u8) -> &Arinc429Parameter<Length>;
 }
 
@@ -127,15 +143,19 @@ pub(super) trait Eng2ChannelInControl {
     fn eng2_channel_b_in_control(&self) -> &Arinc429Parameter<bool>;
 }
 
-pub(super) trait Altitude {
+pub(super) trait AltitudeParameter {
+    /// This parameter contains the barometric altitude as measures by the ADR.
+    /// The index is 1, 2, or 3, for ADR 1, 2, or 3 respectively.
     fn altitude(&self, index: u8) -> Arinc429Parameter<Length>;
 }
 
 pub(super) trait AltiSelect {
+    /// This parameter contains the selected altitude in the FCU.
     fn alti_select(&self) -> Arinc429Parameter<Length>;
 }
 
 pub(super) trait AltSelectChg {
+    /// This parameter indicates that the selected altitude in the FCU has been changed.
     fn alt_select_chg(&self) -> &Arinc429Parameter<bool>;
 }
 
@@ -150,25 +170,56 @@ pub(super) trait Ap2Engd {
 }
 
 pub(super) trait InstincDiscnct1ApEngd {
-    /// This signal indicates when the A/P Disconnect button on the Captain's side is pressed
+    /// This signal indicates when the A/P Disconnect button on the Captain's sidestick has been
+    /// pressed.
     fn instinc_discnct_1ap_engd(&self) -> &DiscreteParameter;
 }
 
 pub(super) trait InstincDiscnct2ApEngd {
-    /// This signal indicates when the A/P Disconnect button on the F/Os side is pressed
+    /// This signal indicates when the A/P Disconnect button on the First Officer's sidestick has
+    /// been pressed.
     fn instinc_discnct_2ap_engd(&self) -> &DiscreteParameter;
 }
 
 pub(super) trait CaptMwCancelOn {
+    /// This parameter indicates that the master warning cancel button on the Captain's side
+    /// has been pressed.
     fn capt_mw_cancel_on(&self) -> &DiscreteParameter;
 }
 
 pub(super) trait FoMwCancelOn {
+    /// This parameter indicates that the master warning cancel button on the First Officer's side
+    /// has been pressed.
     fn fo_mw_cancel_on(&self) -> &DiscreteParameter;
 }
 
-pub(super) trait FakeSignalApTcasEngaged {
-    fn ap_tcas_engaged(&self) -> bool;
+pub(super) trait BlueSysLoPr {
+    /// This parameter indicates that the pressure switch in the blue hydraulic system has detected
+    /// low hydraulic pressure.
+    fn blue_sys_lo_pr(&self) -> &DiscreteParameter;
+}
+
+pub(super) trait YellowSysLoPr {
+    /// This parameter indicates that the pressure switch in the yellow hydraulic system has
+    /// detected low hydraulic pressure.
+    fn yellow_sys_lo_pr(&self) -> &DiscreteParameter;
+}
+
+pub(super) trait GreenSysLoPr {
+    /// This parameter indicates that the pressure switch in the green hydraulic system has detected
+    /// low hydraulic pressure.
+    fn green_sys_lo_pr(&self) -> &DiscreteParameter;
+}
+
+pub(super) trait TcasEngaged {
+    /// This parameter indicates that the TCAS mode (as used by AP TCAS) is engaged.
+    fn tcas_engaged(&self) -> &Arinc429Parameter<bool>;
+}
+
+pub(super) trait GsModeOn {
+    /// This parameter indicates that the respective autopilot is in GS mode.
+    /// The index is 1 or 2, for FMGC 1 or 2 respectively.
+    fn gs_mode_on(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
 
 /// This struct contains the parameters acquired directly by the FWC (in other words: not through an
