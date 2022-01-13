@@ -1274,6 +1274,59 @@ impl FlightPhasesAir for FlightPhasesAirActivation {
     }
 }
 
+pub(super) trait GeneralCancel {
+    fn mw_cancel_pulse_up(&self) -> bool;
+    fn mc_cancel_pulse_up(&self) -> bool;
+}
+
+pub(super) struct GeneralCancelActivation {
+    capt_mw_pulse: PulseNode,
+    fo_mw_pulse: PulseNode,
+    capt_mc_pulse: PulseNode,
+    fo_mc_pulse: PulseNode,
+    mw_cancel_pulse_up: bool,
+    mc_cancel_pulse_up: bool,
+}
+
+impl Default for GeneralCancelActivation {
+    fn default() -> Self {
+        Self {
+            capt_mw_pulse: PulseNode::new(true),
+            fo_mw_pulse: PulseNode::new(true),
+            capt_mc_pulse: PulseNode::new(true),
+            fo_mc_pulse: PulseNode::new(true),
+            mw_cancel_pulse_up: false,
+            mc_cancel_pulse_up: false,
+        }
+    }
+}
+
+impl GeneralCancelActivation {
+    pub fn update(
+        &mut self,
+        signals: &(impl CaptMwCancelOn + FoMwCancelOn + CaptMcCancelOn + FoMcCancelOn),
+    ) {
+        self.mw_cancel_pulse_up = self
+            .capt_mw_pulse
+            .update(signals.capt_mw_cancel_on().value())
+            || self.fo_mw_pulse.update(signals.fo_mw_cancel_on().value());
+        self.mc_cancel_pulse_up = self
+            .capt_mc_pulse
+            .update(signals.capt_mc_cancel_on().value())
+            || self.fo_mc_pulse.update(signals.fo_mc_cancel_on().value());
+    }
+}
+
+impl GeneralCancel for GeneralCancelActivation {
+    fn mw_cancel_pulse_up(&self) -> bool {
+        self.mw_cancel_pulse_up
+    }
+
+    fn mc_cancel_pulse_up(&self) -> bool {
+        self.mc_cancel_pulse_up
+    }
+}
+
 pub(super) trait AudioAttenuation {
     fn audio_attenuation(&self) -> bool;
 }
@@ -2177,24 +2230,22 @@ pub(super) trait AltitudeAlertCChord {
 
 /// This is the final sheet to decide that the C Chord should be played. It currently contains some
 /// rudimentary cancel logic, which will be replaced with a generalized system in future.
-#[derive(Default)]
 pub(super) struct AltitudeAlertCChordActivation {
     c_chord: bool,
-    canceled: bool,
+    confirmation: ConfirmationNode, // TODO remove and replace by proper warning node
+    canceled: bool,                 // TODO remove and replace by proper warning monitor
 }
 
 impl AltitudeAlertCChordActivation {
     pub fn update(
         &mut self,
-        signals: &(impl CaptMwCancelOn + FoMwCancelOn),
+        delta: Duration,
         altitude_alert: &impl AltitudeAlert,
+        general_cancel: &impl GeneralCancel,
     ) {
         let c_chord = altitude_alert.c_chord();
-        self.c_chord = c_chord;
-        self.canceled = c_chord
-            && (self.canceled
-                || signals.capt_mw_cancel_on().value()
-                || signals.fo_mw_cancel_on().value());
+        self.c_chord = self.confirmation.update(c_chord, delta);
+        self.canceled = c_chord && (self.canceled || general_cancel.mw_cancel_pulse_up());
     }
 }
 

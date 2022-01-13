@@ -193,6 +193,18 @@ pub(super) trait FoMwCancelOn {
     fn fo_mw_cancel_on(&self) -> &DiscreteParameter;
 }
 
+pub(super) trait CaptMcCancelOn {
+    /// This parameter indicates that the master caution cancel button on the Captain's side
+    /// has been pressed.
+    fn capt_mc_cancel_on(&self) -> &DiscreteParameter;
+}
+
+pub(super) trait FoMcCancelOn {
+    /// This parameter indicates that the master caution cancel button on the First Officer's side
+    /// has been pressed.
+    fn fo_mc_cancel_on(&self) -> &DiscreteParameter;
+}
+
 pub(super) trait BlueSysLoPr {
     /// This parameter indicates that the pressure switch in the blue hydraulic system has detected
     /// low hydraulic pressure.
@@ -312,6 +324,8 @@ pub struct A320FWCParameterTable {
     instinc_discnct_2ap_engd: DiscreteParameter,
     capt_mw_cancel_on: DiscreteParameter,
     fo_mw_cancel_on: DiscreteParameter,
+    capt_mc_cancel_on: DiscreteParameter,
+    fo_mc_cancel_on: DiscreteParameter,
     blue_sys_lo_pr: DiscreteParameter,
     yellow_sys_lo_pr: DiscreteParameter,
     green_sys_lo_pr: DiscreteParameter,
@@ -390,6 +404,8 @@ impl A320FWCParameterTable {
             instinc_discnct_2ap_engd: DiscreteParameter::new_inv(false),
             capt_mw_cancel_on: DiscreteParameter::new_inv(false),
             fo_mw_cancel_on: DiscreteParameter::new_inv(false),
+            capt_mc_cancel_on: DiscreteParameter::new_inv(false),
+            fo_mc_cancel_on: DiscreteParameter::new_inv(false),
             blue_sys_lo_pr: DiscreteParameter::new_inv(false),
             yellow_sys_lo_pr: DiscreteParameter::new_inv(false),
             green_sys_lo_pr: DiscreteParameter::new_inv(false),
@@ -582,6 +598,14 @@ impl A320FWCParameterTable {
 
     pub(super) fn set_fo_mw_cancel_on(&mut self, fo_mw_cancel_on: DiscreteParameter) {
         self.fo_mw_cancel_on = fo_mw_cancel_on;
+    }
+
+    pub(super) fn set_capt_mc_cancel_on(&mut self, capt_mc_cancel_on: DiscreteParameter) {
+        self.capt_mc_cancel_on = capt_mc_cancel_on;
+    }
+
+    pub(super) fn set_fo_mc_cancel_on(&mut self, fo_mc_cancel_on: DiscreteParameter) {
+        self.fo_mc_cancel_on = fo_mc_cancel_on;
     }
 
     pub(super) fn set_blue_sys_lo_pr(&mut self, blue_sys_lo_pr: DiscreteParameter) {
@@ -905,14 +929,28 @@ impl InstincDiscnct2ApEngd for A320FWCParameterTable {
         &self.instinc_discnct_2ap_engd
     }
 }
+
 impl CaptMwCancelOn for A320FWCParameterTable {
     fn capt_mw_cancel_on(&self) -> &DiscreteParameter {
         &self.capt_mw_cancel_on
     }
 }
+
 impl FoMwCancelOn for A320FWCParameterTable {
     fn fo_mw_cancel_on(&self) -> &DiscreteParameter {
         &self.fo_mw_cancel_on
+    }
+}
+
+impl CaptMcCancelOn for A320FWCParameterTable {
+    fn capt_mc_cancel_on(&self) -> &DiscreteParameter {
+        &self.capt_mc_cancel_on
+    }
+}
+
+impl FoMcCancelOn for A320FWCParameterTable {
+    fn fo_mc_cancel_on(&self) -> &DiscreteParameter {
+        &self.fo_mc_cancel_on
     }
 }
 

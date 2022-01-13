@@ -44,6 +44,7 @@ struct A320FlightWarningComputerRuntime {
     cfm_flight_phases: CfmFlightPhasesDefActivation,
     flight_phases_ground: FlightPhasesGroundActivation,
     flight_phases_air: FlightPhasesAirActivation,
+    general_cancel: GeneralCancelActivation,
     lg_downlocked: LgDownlockedActivation,
     audio_attenuation: AudioAttenuationActivation,
     ap_off_voluntarily: AutoFlightAutopilotOffVoluntaryActivation,
@@ -58,6 +59,43 @@ struct A320FlightWarningComputerRuntime {
     altitude_alert_ap_tcas: AltitudeAlertApTcasInhibitActivation,
     to_memo: ToMemoActivation,
     ldg_memo: LdgMemoActivation,
+}
+
+impl Default for A320FlightWarningComputerRuntime {
+    fn default() -> Self {
+        Self {
+            ready: false,
+            new_ground_def: NewGroundActivation::new(),
+            ground_detection: GroundDetectionActivation::new(),
+            speed_detection: SpeedDetectionActivation::new(),
+            engines_not_running: EnginesNotRunning::new(),
+            both_engine_running: EngRunningActivation::new(),
+            altitude_def: AltitudeDefActivation::new(),
+            eng_take_off_cfm: EngTakeOffCfmActivation::new(),
+            tla_pwr_reverse: TlaPwrReverseActivation::new(),
+            tla_at_mct_or_flex_to_cfm: TlaAtMctOrFlexToCfmActivation::new(),
+            tla_at_cl_cfm: TlaAtClCfmActivation::new(),
+            neo_ecu: NeoEcuActivation::new(),
+            cfm_flight_phases: CfmFlightPhasesDefActivation::new(),
+            flight_phases_ground: FlightPhasesGroundActivation::new(),
+            flight_phases_air: FlightPhasesAirActivation::new(),
+            general_cancel: Default::default(),
+            audio_attenuation: Default::default(),
+            ap_off_voluntarily: Default::default(),
+            ap_off_unvoluntarily: Default::default(),
+            auto_flight_baro_altitude: Default::default(),
+            altitude_alert: Default::default(),
+            altitude_alert_c_chord: Default::default(),
+            altitude_alert_thresholds: Default::default(),
+            altitude_alert_inhibit: Default::default(),
+            altitude_alert_slats: Default::default(),
+            altitude_alert_fmgc: Default::default(),
+            lg_downlocked: Default::default(),
+            to_memo: Default::default(),
+            ldg_memo: Default::default(),
+            altitude_alert_ap_tcas: Default::default(),
+        }
+    }
 }
 
 impl A320FlightWarningComputerRuntime {
@@ -119,6 +157,10 @@ impl A320FlightWarningComputerRuntime {
             &self.flight_phases_ground,
         );
 
+        // Misc
+
+        self.general_cancel.update(parameters);
+
         // Callouts
 
         self.lg_downlocked.update(parameters);
@@ -169,7 +211,7 @@ impl A320FlightWarningComputerRuntime {
         );
 
         self.altitude_alert_c_chord
-            .update(parameters, &self.altitude_alert);
+            .update(&self.altitude_alert, &self.general_cancel);
 
         self.audio_attenuation
             .update(&self.ground_detection, &self.engines_not_running);
@@ -258,42 +300,6 @@ impl A320FlightWarningComputerRuntime {
 
     pub fn ap_off_warning(&self) -> bool {
         self.ap_off_unvoluntarily.ap_off_warning()
-    }
-}
-
-impl Default for A320FlightWarningComputerRuntime {
-    fn default() -> Self {
-        Self {
-            ready: false,
-            new_ground_def: NewGroundActivation::new(),
-            ground_detection: GroundDetectionActivation::new(),
-            speed_detection: SpeedDetectionActivation::new(),
-            engines_not_running: EnginesNotRunning::new(),
-            both_engine_running: EngRunningActivation::new(),
-            altitude_def: AltitudeDefActivation::new(),
-            eng_take_off_cfm: EngTakeOffCfmActivation::new(),
-            tla_pwr_reverse: TlaPwrReverseActivation::new(),
-            tla_at_mct_or_flex_to_cfm: TlaAtMctOrFlexToCfmActivation::new(),
-            tla_at_cl_cfm: TlaAtClCfmActivation::new(),
-            neo_ecu: NeoEcuActivation::new(),
-            cfm_flight_phases: CfmFlightPhasesDefActivation::new(),
-            flight_phases_ground: FlightPhasesGroundActivation::new(),
-            flight_phases_air: FlightPhasesAirActivation::new(),
-            audio_attenuation: Default::default(),
-            ap_off_voluntarily: Default::default(),
-            ap_off_unvoluntarily: Default::default(),
-            auto_flight_baro_altitude: Default::default(),
-            altitude_alert: Default::default(),
-            altitude_alert_c_chord: Default::default(),
-            altitude_alert_thresholds: Default::default(),
-            altitude_alert_inhibit: Default::default(),
-            altitude_alert_slats: Default::default(),
-            altitude_alert_fmgc: Default::default(),
-            lg_downlocked: Default::default(),
-            to_memo: Default::default(),
-            ldg_memo: Default::default(),
-            altitude_alert_ap_tcas: Default::default(),
-        }
     }
 }
 
