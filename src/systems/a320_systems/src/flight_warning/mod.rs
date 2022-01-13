@@ -357,12 +357,11 @@ impl A320FlightWarningComputer {
 }
 
 impl SimulationElement for A320FlightWarningComputer {
-    /*fn write(&self, writer: &mut SimulatorWriter) {
-        match self.runtime() {
-            Some(runtime) => writer.write(&self.fwc_flight_phase_id, runtime.flight_phase()),
-            None => writer.write(&self.fwc_flight_phase_id, 0),
-        }
-    }*/
+    fn accept<T: SimulationElementVisitor>(&mut self, visitor: &mut T) {
+        self.failure.accept(visitor);
+
+        visitor.visit(self);
+    }
 
     fn receive_power(&mut self, buses: &impl ElectricalBuses) {
         self.is_powered = buses.is_powered(self.powered_by);
