@@ -50,6 +50,7 @@ struct A320FlightWarningComputerRuntime {
     ap_off_unvoluntarily: AutoFlightAutopilotOffUnvoluntaryActivation,
     auto_flight_baro_altitude: AutoFlightBaroAltitudeActivation,
     altitude_alert: AltitudeAlertActivation,
+    altitude_alert_c_chord: AltitudeAlertCChordActivation,
     altitude_alert_thresholds: AltitudeAlertThresholdsActivation,
     altitude_alert_inhibit: AltitudeAlertGeneralInhibitActivation,
     altitude_alert_slats: AltitudeAlertSlatInhibitActivation,
@@ -167,6 +168,9 @@ impl A320FlightWarningComputerRuntime {
             &self.lg_downlocked,
         );
 
+        self.altitude_alert_c_chord
+            .update(parameters, &self.altitude_alert);
+
         self.audio_attenuation
             .update(&self.ground_detection, &self.engines_not_running);
 
@@ -231,14 +235,16 @@ impl A320FlightWarningComputerRuntime {
     }
 
     pub fn c_chord(&self) -> bool {
-        self.altitude_alert.c_chord()
+        self.altitude_alert_c_chord.c_chord()
     }
 
     pub fn alt_alert_light_on(&self) -> bool {
+        // TODO this should be happening in a new sheet in the runtime
         self.altitude_alert.steady_light() || self.altitude_alert.flashing_light()
     }
 
     pub fn alt_alert_flashing_light(&self) -> bool {
+        // TODO this should be happening in a new sheet in the runtime
         self.altitude_alert.flashing_light() && !self.altitude_alert.steady_light()
     }
 
@@ -278,6 +284,7 @@ impl Default for A320FlightWarningComputerRuntime {
             ap_off_unvoluntarily: Default::default(),
             auto_flight_baro_altitude: Default::default(),
             altitude_alert: Default::default(),
+            altitude_alert_c_chord: Default::default(),
             altitude_alert_thresholds: Default::default(),
             altitude_alert_inhibit: Default::default(),
             altitude_alert_slats: Default::default(),
@@ -384,6 +391,7 @@ pub(super) struct A320FlightWarningSystem {
     ap1_active: bool,
     ap2_active: bool,
     ap_altitude_lock: Length,
+    ap_altitude_lock_changed: bool,
     active_vertical_mode: u8,
     mw_cancel_on_capt: bool,
     mw_cancel_on_fo: bool,
@@ -431,6 +439,7 @@ impl A320FlightWarningSystem {
             ap1_active: false,
             ap2_active: false,
             ap_altitude_lock: Length::new::<foot>(0.),
+            ap_altitude_lock_changed: false,
             active_vertical_mode: 0,
             mw_cancel_on_capt: false,
             mw_cancel_on_fo: false,
@@ -607,8 +616,8 @@ impl A320FlightWarningSystem {
             DiscreteParameter::new(self.ap2_active),
         );
 
-        parameters.set_alti_select(Arinc429Parameter::new(self.ap_altitude_lock)); // TODO get directly from AP so managed altitude works
-                                                                                   // TODO alti change event
+        parameters.set_alti_select(Arinc429Parameter::new(self.ap_altitude_lock));
+        parameters.set_alti_select_chg(Arinc429Parameter::new(self.ap_altitude_lock_changed));
 
         let gs_mode_on = self.active_vertical_mode >= 30 && self.active_vertical_mode <= 34;
         parameters.set_gs_mode_on_1(Arinc429Parameter::new(gs_mode_on));
@@ -647,7 +656,11 @@ impl SimulationElement for A320FlightWarningSystem {
         self.eng2_tla = Angle::new::<degree>(reader.read(&self.eng2_tla_id));
         self.ap1_active = reader.read(&self.ap1_active_id);
         self.ap2_active = reader.read(&self.ap2_active_id);
-        self.ap_altitude_lock = Length::new::<foot>(reader.read(&self.ap_altitude_lock_id));
+        let ap_altitude_lock = Length::new::<foot>(reader.read(&self.ap_altitude_lock_id));
+        self.ap_altitude_lock_changed =
+            (ap_altitude_lock.get::<foot>() - self.ap_altitude_lock.get::<foot>()).abs()
+                > f64::EPSILON;
+        self.ap_altitude_lock = ap_altitude_lock;
         self.active_vertical_mode = reader.read(&self.fma_active_vertical_mode_id);
         self.mw_cancel_on_capt = reader.read(&self.mw_cancel_on_capt_id);
         self.mw_cancel_on_fo = reader.read(&self.mw_cancel_on_fo_id);

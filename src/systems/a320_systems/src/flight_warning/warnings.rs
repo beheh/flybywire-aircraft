@@ -2130,18 +2130,18 @@ impl AltitudeAlertActivation {
         let within_750 = !alt_200 && alt_750 && !general_inhibit;
         let not_750 = !alt_200 && !alt_750 && !general_inhibit;
 
-        let mem200_out = self
+        let mem_was_within_200 = self
             .mem_within_200
             .update(within_200, not_750 || reset_mems);
 
-        let mem750_out = self.mem_within_750.update(within_750, reset_mems);
+        let mem_was_within_750 = self.mem_within_750.update(within_750, reset_mems);
 
-        let flashing_light_cond1 = not_750 && mem750_out;
-        let flashing_light_cond2 = within_750 && mem200_out;
-        let flashing_light_cond = flashing_light_cond1 || flashing_light_cond2;
+        let left_200 = within_750 && mem_was_within_200;
+        let left_750 = not_750 && mem_was_within_750;
+        let flashing_light_cond = left_200 || left_750;
 
         self.flashing_light = !ground_or_ap_tcas && flashing_light_cond;
-        self.steady_light = !ground_or_ap_tcas && within_750 && !flashing_light_cond1;
+        self.steady_light = !ground_or_ap_tcas && within_750 && !left_200;
 
         let one_ap_engd = ap_sheet.one_ap_engd();
         let mtrig3_out = self.mtrig3.update(!one_ap_engd && within_750, delta);
@@ -2167,6 +2167,40 @@ impl AltitudeAlert for AltitudeAlertActivation {
 
     fn flashing_light(&self) -> bool {
         self.flashing_light
+    }
+}
+
+pub(super) trait AltitudeAlertCChord {
+    /// This signal indicates that the C. Chord (Altitude Alert) should be playing.
+    fn c_chord(&self) -> bool;
+}
+
+/// This is the final sheet to decide that the C Chord should be played. It currently contains some
+/// rudimentary cancel logic, which will be replaced with a generalized system in future.
+#[derive(Default)]
+pub(super) struct AltitudeAlertCChordActivation {
+    c_chord: bool,
+    canceled: bool,
+}
+
+impl AltitudeAlertCChordActivation {
+    pub fn update(
+        &mut self,
+        signals: &(impl CaptMwCancelOn + FoMwCancelOn),
+        altitude_alert: &impl AltitudeAlert,
+    ) {
+        let c_chord = altitude_alert.c_chord();
+        self.c_chord = c_chord;
+        self.canceled = c_chord
+            && (self.canceled
+                || signals.capt_mw_cancel_on().value()
+                || signals.fo_mw_cancel_on().value());
+    }
+}
+
+impl AltitudeAlertCChord for AltitudeAlertCChordActivation {
+    fn c_chord(&self) -> bool {
+        self.c_chord && !self.canceled
     }
 }
 
