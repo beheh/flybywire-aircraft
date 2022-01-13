@@ -1,3 +1,5 @@
+use crate::navigation::adirs::AdirsData;
+use crate::shared::arinc429::SignStatus;
 use uom::si::angle::degree;
 
 pub trait Value<T> {
@@ -142,6 +144,7 @@ impl Value<degree> for SynchroParameter {
     }
 }
 
+#[derive(Clone)]
 pub struct Arinc429Parameter<T> {
     value: T,
     ssm1: bool,

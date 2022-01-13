@@ -16,7 +16,7 @@ use electrical::{
     APU_START_MOTOR_BUS_TYPE,
 };
 
-use crate::flight_warning::A320FlightWarningSystem;
+use flight_warning::A320FlightWarningSystem;
 use hydraulic::{A320Hydraulic, A320HydraulicOverheadPanel};
 use power_consumption::A320PowerConsumption;
 use systems::simulation::InitContext;
@@ -186,7 +186,16 @@ impl Aircraft for A320 {
         self.adirs.update(context, &self.adirs_overhead);
         self.adirs_overhead.update(context, &self.adirs);
 
-        self.flight_warning_system.update(context, &self.hydraulic);
+        self.flight_warning_system.update(
+            context,
+            &self.lgciu1,
+            &self.lgciu2,
+            &self.adirs,
+            &self.engine_1,
+            &self.engine_2,
+            &self.engine_fire_overhead,
+            &self.hydraulic,
+        );
 
         self.power_consumption.update(context);
 
@@ -225,6 +234,7 @@ impl SimulationElement for A320 {
         self.pressurization.accept(visitor);
         self.pressurization_overhead.accept(visitor);
         self.pneumatic.accept(visitor);
+        self.flight_warning_system.accept(visitor);
 
         visitor.visit(self);
     }

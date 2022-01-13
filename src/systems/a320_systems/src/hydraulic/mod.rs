@@ -45,7 +45,7 @@ use systems::{
         interpolation, DelayedFalseLogicGate, DelayedPulseTrueLogicGate, DelayedTrueLogicGate,
         ElectricalBusType, ElectricalBuses, EmergencyElectricalRatPushButton,
         EmergencyElectricalState, EmergencyGeneratorPower, EngineFirePushButtons, HydraulicColor,
-        HydraulicGeneratorControlUnit, LgciuSensors, ReservoirAirPressure,
+        HydraulicGeneratorControlUnit, HydraulicSysLowPressure, LgciuSensors, ReservoirAirPressure,
     },
     simulation::{
         InitContext, Read, Reader, SimulationElement, SimulationElementVisitor, SimulatorReader,
@@ -941,6 +941,26 @@ impl A320Hydraulic {
             (self.green_circuit.system_pressure() - self.yellow_circuit.system_pressure()).abs();
 
         absolute_delta_pressure > Pressure::new::<psi>(2700.) && is_ptu_rotating
+    }
+}
+impl HydraulicSysLowPressure for A320Hydraulic {
+    fn is_blue_sys_lo_pr(&self) -> bool {
+        !self
+            .blue_circuit
+            .pump_section(A320HydraulicCircuitFactory::BLUE_ELECTRIC_PUMP_INDEX)
+            .is_pressure_switch_pressurised()
+    }
+    fn is_yellow_sys_lo_pr(&self) -> bool {
+        !self
+            .yellow_circuit
+            .pump_section(A320HydraulicCircuitFactory::YELLOW_ENGINE_PUMP_INDEX)
+            .is_pressure_switch_pressurised()
+    }
+    fn is_green_sys_lo_pr(&self) -> bool {
+        !self
+            .green_circuit
+            .pump_section(A320HydraulicCircuitFactory::GREEN_ENGINE_PUMP_INDEX)
+            .is_pressure_switch_pressurised()
     }
 }
 impl SimulationElement for A320Hydraulic {

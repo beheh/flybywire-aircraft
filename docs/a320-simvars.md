@@ -1464,11 +1464,11 @@ In the variables below, {number} should be replaced with one item in the set: { 
     - Bool
     - Set to true in a non-cold and dark flight phase to skip the initial memorization step
 
-- A32NX_FWC_TOMEMO
+- A32NX_FWS_TOMEMO
     - Bool
     - True when the FWC responsible for the ECAM determines that the takeoff memo should be shown
 
-- A32NX_FWC_LDGMEMO
+- A32NX_FWS_LDGMEMO
     - Bool
     - True when the FWC responsible for the ECAM determines that the landing memo should be shown
 
@@ -1476,7 +1476,7 @@ In the variables below, {number} should be replaced with one item in the set: { 
     - Bool
     - True when the FWC responsible for the ECAM determines that flight phase inhibits should be overridden (and ignored)
 
-- A32NX_FWC_AUDIO_ATTENUATION
+- A32NX_FWS_AUDIO_ATTENUATION
     - Bool
     - True when the FWC responsible for the aural warnings has determined that aural warnings should be 6dB quieter.
 

@@ -10,6 +10,7 @@ use crate::{
     simulation::{InitContext, VariableIdentifier},
 };
 use nalgebra::{Rotation3, Vector3};
+use uom::typenum::Len;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Attitude {
@@ -87,6 +88,7 @@ pub struct UpdateContext {
     ambient_temperature_id: VariableIdentifier,
     indicated_airspeed_id: VariableIdentifier,
     indicated_altitude_id: VariableIdentifier,
+    height_above_ground_id: VariableIdentifier,
     is_on_ground_id: VariableIdentifier,
     ambient_pressure_id: VariableIdentifier,
     vertical_speed_id: VariableIdentifier,
@@ -100,6 +102,7 @@ pub struct UpdateContext {
     delta: Duration,
     indicated_airspeed: Velocity,
     indicated_altitude: Length,
+    height_above_ground: Length,
     ambient_temperature: ThermodynamicTemperature,
     ambient_pressure: Pressure,
     is_on_ground: bool,
@@ -112,6 +115,7 @@ impl UpdateContext {
     pub(crate) const AMBIENT_TEMPERATURE_KEY: &'static str = "AMBIENT TEMPERATURE";
     pub(crate) const INDICATED_AIRSPEED_KEY: &'static str = "AIRSPEED INDICATED";
     pub(crate) const INDICATED_ALTITUDE_KEY: &'static str = "INDICATED ALTITUDE";
+    pub(crate) const HEIGHT_ABOVE_GROUND_KEY: &'static str = "PLANE ALT ABOVE GROUND MINUS CG";
     pub(crate) const IS_ON_GROUND_KEY: &'static str = "SIM ON GROUND";
     pub(crate) const AMBIENT_PRESSURE_KEY: &'static str = "AMBIENT PRESSURE";
     pub(crate) const VERTICAL_SPEED_KEY: &'static str = "VELOCITY WORLD Y";
@@ -130,6 +134,7 @@ impl UpdateContext {
         delta: Duration,
         indicated_airspeed: Velocity,
         indicated_altitude: Length,
+        height_above_ground: Length,
         ambient_temperature: ThermodynamicTemperature,
         is_on_ground: bool,
         longitudinal_acceleration: Acceleration,
@@ -144,6 +149,8 @@ impl UpdateContext {
                 .get_identifier(Self::AMBIENT_TEMPERATURE_KEY.to_owned()),
             indicated_airspeed_id: context.get_identifier(Self::INDICATED_AIRSPEED_KEY.to_owned()),
             indicated_altitude_id: context.get_identifier(Self::INDICATED_ALTITUDE_KEY.to_owned()),
+            height_above_ground_id: context
+                .get_identifier(Self::HEIGHT_ABOVE_GROUND_KEY.to_owned()),
             is_on_ground_id: context.get_identifier(Self::IS_ON_GROUND_KEY.to_owned()),
             ambient_pressure_id: context.get_identifier(Self::AMBIENT_PRESSURE_KEY.to_owned()),
             vertical_speed_id: context.get_identifier(Self::VERTICAL_SPEED_KEY.to_owned()),
@@ -157,6 +164,7 @@ impl UpdateContext {
             delta,
             indicated_airspeed,
             indicated_altitude,
+            height_above_ground,
             ambient_temperature,
             ambient_pressure: Pressure::new::<inch_of_mercury>(29.92),
             is_on_ground,
@@ -176,6 +184,8 @@ impl UpdateContext {
             ambient_temperature_id: context.get_identifier("AMBIENT TEMPERATURE".to_owned()),
             indicated_airspeed_id: context.get_identifier("AIRSPEED INDICATED".to_owned()),
             indicated_altitude_id: context.get_identifier("INDICATED ALTITUDE".to_owned()),
+            height_above_ground_id: context
+                .get_identifier("PLANE ALT ABOVE GROUND MINUS CG".to_owned()),
             is_on_ground_id: context.get_identifier("SIM ON GROUND".to_owned()),
             ambient_pressure_id: context.get_identifier("AMBIENT PRESSURE".to_owned()),
             vertical_speed_id: context.get_identifier("VELOCITY WORLD Y".to_owned()),
@@ -189,6 +199,7 @@ impl UpdateContext {
             delta: Default::default(),
             indicated_airspeed: Default::default(),
             indicated_altitude: Default::default(),
+            height_above_ground: Default::default(),
             ambient_temperature: Default::default(),
             ambient_pressure: Default::default(),
             is_on_ground: Default::default(),
@@ -204,6 +215,7 @@ impl UpdateContext {
         self.ambient_temperature = reader.read(&self.ambient_temperature_id);
         self.indicated_airspeed = reader.read(&self.indicated_airspeed_id);
         self.indicated_altitude = reader.read(&self.indicated_altitude_id);
+        self.height_above_ground = reader.read(&self.height_above_ground_id);
         self.is_on_ground = reader.read(&self.is_on_ground_id);
         self.ambient_pressure =
             Pressure::new::<inch_of_mercury>(reader.read(&self.ambient_pressure_id));
@@ -246,6 +258,10 @@ impl UpdateContext {
 
     pub fn indicated_altitude(&self) -> Length {
         self.indicated_altitude
+    }
+
+    pub fn height_above_ground(&self) -> Length {
+        self.height_above_ground
     }
 
     pub fn ambient_temperature(&self) -> ThermodynamicTemperature {

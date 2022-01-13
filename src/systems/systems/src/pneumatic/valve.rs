@@ -464,6 +464,7 @@ mod tests {
             delta_time,
             Velocity::new::<knot>(0.),
             altitude,
+            Length::new::<foot>(0.),
             InternationalStandardAtmosphere::temperature_at_altitude(altitude),
             true,
             Acceleration::new::<foot_per_second_squared>(0.),

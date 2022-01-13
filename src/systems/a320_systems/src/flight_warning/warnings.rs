@@ -2090,8 +2090,8 @@ impl Default for AltitudeAlertActivation {
     fn default() -> Self {
         Self {
             pulse1: PulseNode::new(false),
-            mtrig1: MonostableTriggerNode::new(true, Duration::from_secs(1)),
-            mtrig2: MonostableTriggerNode::new(true, Duration::from_secs(1)),
+            mtrig1: MonostableTriggerNode::new(true, Duration::from_secs_f64(1.0)),
+            mtrig2: MonostableTriggerNode::new(true, Duration::from_secs_f64(1.0)),
             mtrig3: MonostableTriggerNode::new(true, Duration::from_secs_f64(1.5)),
             mtrig4: MonostableTriggerNode::new(true, Duration::from_secs_f64(1.5)),
             mem_within_200: MemoryNode::new(false),
@@ -2120,22 +2120,21 @@ impl AltitudeAlertActivation {
 
         let mtrig1_out = self.mtrig1.update(signals.alt_select_chg().value(), delta);
         let mtrig2_out = self.mtrig2.update(lg_sheet.lg_downlocked(), delta);
-        let mtrig12_out = mtrig1_out || mtrig2_out;
+        let reset_mems = mtrig1_out || mtrig2_out;
 
         let alt_200 = threshold_sheet.alt_200();
         let alt_750 = threshold_sheet.alt_750();
         let general_inhibit = inhibit_sheet.general_inhibit();
 
-        let within_750 = alt_750 && !alt_200 && !general_inhibit;
-
+        let within_200 = alt_200 && alt_750 && !general_inhibit;
+        let within_750 = !alt_200 && alt_750 && !general_inhibit;
         let not_750 = !alt_200 && !alt_750 && !general_inhibit;
 
-        let mem200_out = self.mem_within_200.update(
-            alt_750 && alt_200 && !general_inhibit,
-            not_750 || mtrig12_out,
-        );
+        let mem200_out = self
+            .mem_within_200
+            .update(within_200, not_750 || reset_mems);
 
-        let mem750_out = self.mem_within_750.update(within_750, mtrig12_out);
+        let mem750_out = self.mem_within_750.update(within_750, reset_mems);
 
         let flashing_light_cond1 = not_750 && mem750_out;
         let flashing_light_cond2 = within_750 && mem200_out;
@@ -2148,11 +2147,11 @@ impl AltitudeAlertActivation {
         let mtrig3_out = self.mtrig3.update(!one_ap_engd && within_750, delta);
 
         let mtrig4_in = !one_ap_engd && self.pulse1.update(ap_tcas_mode_eng) && !general_inhibit;
-        let mtrig4_out = self.mtrig4.update(mtrig4_in, delta);
+        let approaching_alt = self.mtrig4.update(mtrig4_in, delta);
 
         self.c_chord = !ground_or_ap_tcas
             && (mtrig3_out
-                || mtrig4_out
+                || approaching_alt
                 || (!ap_tcas_alt_inhibit_sheet.alt_alert_inib() && flashing_light_cond));
     }
 }
@@ -2994,6 +2993,67 @@ mod tests {
             assert!(!sheet.phase_5());
             assert!(!sheet.phase_6());
             assert!(!sheet.phase_7());
+        }
+    }
+
+    mod landing_gear_downlock {
+        use super::*;
+        use crate::flight_warning::test::test_bed;
+
+        #[test]
+        fn when_all_gears_are_downlocked_is_full_down_lock() {
+            let mut sheet = LgDownlockedActivation::default();
+            sheet.update(
+                test_bed_with()
+                    .rh_gear_downlocked(true)
+                    .lh_gear_downlocked(true)
+                    .nose_gear_downlocked(true)
+                    .parameters(),
+            );
+            assert_eq!(sheet.lg_downlocked(), true);
+            assert_eq!(sheet.main_lg_downlocked(), true);
+        }
+
+        #[test]
+        fn when_main_gears_are_downlocked_is_not_full_down_lock() {
+            let mut sheet = LgDownlockedActivation::default();
+            sheet.update(
+                test_bed_with()
+                    .rh_gear_downlocked(true)
+                    .lh_gear_downlocked(true)
+                    .nose_gear_downlocked(false)
+                    .parameters(),
+            );
+            assert_eq!(sheet.main_lg_downlocked(), true);
+            assert_eq!(sheet.lg_downlocked(), false);
+        }
+
+        #[test]
+        fn when_no_gear_is_downlocked_is_no_down_lock() {
+            let mut sheet = LgDownlockedActivation::default();
+            sheet.update(
+                test_bed_with()
+                    .rh_gear_downlocked(false)
+                    .lh_gear_downlocked(false)
+                    .nose_gear_downlocked(false)
+                    .parameters(),
+            );
+            assert_eq!(sheet.main_lg_downlocked(), false);
+            assert_eq!(sheet.lg_downlocked(), false);
+        }
+
+        #[test]
+        fn when_one_main_gear_is_downlocked_is_no_down_lock() {
+            let mut sheet = LgDownlockedActivation::default();
+            sheet.update(
+                test_bed_with()
+                    .rh_gear_downlocked(false)
+                    .lh_gear_downlocked(true)
+                    .nose_gear_downlocked(false)
+                    .parameters(),
+            );
+            assert_eq!(sheet.main_lg_downlocked(), false);
+            assert_eq!(sheet.lg_downlocked(), false);
         }
     }
 

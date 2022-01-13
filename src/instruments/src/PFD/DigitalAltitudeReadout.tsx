@@ -56,12 +56,15 @@ const TenThousandsDigit = (value: number, offset: number, color: string) => {
 interface DigitalAltitudeReadoutProps {
     altitude: Arinc429Word;
     MDA: number;
+    steady: boolean;
+    flashing: boolean;
 }
 
-export const DigitalAltitudeReadout = ({ altitude, MDA }: DigitalAltitudeReadoutProps) => {
+export const DigitalAltitudeReadout = ({ altitude, MDA, steady, flashing }: DigitalAltitudeReadoutProps) => {
     const isNegative = altitude.value < 0;
 
     const color = (MDA !== 0 && altitude.value < MDA) ? 'Amber' : 'Green';
+    const outlineClassName = flashing ? 'NormalStroke Amber BlinkInfinite' : (steady ? 'ThickStroke Yellow BlinkInfinite' : 'NormalStroke Yellow');
 
     const absAlt = Math.abs(Math.max(Math.min(altitude.value, 50000), -1500));
     const tensDigits = absAlt % 100;
@@ -117,7 +120,7 @@ export const DigitalAltitudeReadout = ({ altitude, MDA }: DigitalAltitudeReadout
                 </svg>
             </g>
             <path id="AltReadoutReducedAccurMarks" className="NormalStroke Amber" style={{ display: 'none' }} d="m132.61 81.669h4.7345m-4.7345-1.6933h4.7345" />
-            <path id="AltReadoutOutline" className="NormalStroke Yellow" d="m117.75 76.337h13.096v-2.671h8.8647v14.313h-8.8647v-2.671h-13.096" />
+            <path id="AltReadoutOutline" className={outlineClassName} d="m117.75 76.337h13.096v-2.671h8.8647v14.313h-8.8647v-2.671h-13.096" />
             {isNegative
                 && (
                     <g id="AltNegativeText" className="FontLarge EndAlign">

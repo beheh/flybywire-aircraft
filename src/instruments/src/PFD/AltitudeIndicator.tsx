@@ -98,9 +98,10 @@ interface AltitudeIndicatorOfftapeProps {
     altIsManaged: boolean;
     mode: '' | 'STD' | 'QFE' | 'QNH';
     radioAlt: number;
+    altitudeAlert: 'none' | 'flashing' | 'steady';
 }
 
-export const AltitudeIndicatorOfftape = ({ altitude, MDA, targetAlt, altIsManaged, mode, radioAlt }: AltitudeIndicatorOfftapeProps) => {
+export const AltitudeIndicatorOfftape = ({ altitude, MDA, targetAlt, altIsManaged, mode, radioAlt, altitudeAlert }: AltitudeIndicatorOfftapeProps) => {
     if (!altitude.isNormalOperation()) {
         return (
             <>
@@ -120,7 +121,7 @@ export const AltitudeIndicatorOfftape = ({ altitude, MDA, targetAlt, altIsManage
             <MetricAltIndicator altitude={altitude} MDA={MDA} targetAlt={targetAlt} altIsManaged={altIsManaged} />
             <path id="AltReadoutBackground" className="BlackFill" d="m130.85 85.308h-13.13v-8.9706h13.13v-2.671h8.8647v14.313h-8.8647z" />
             <RadioAltIndicator radioAlt={radioAlt} />
-            <DigitalAltitudeReadout altitude={altitude} MDA={MDA} />
+            <DigitalAltitudeReadout altitude={altitude} MDA={MDA} steady={altitudeAlert === 'steady'} flashing={altitudeAlert === 'flashing'} />
         </g>
     );
 };

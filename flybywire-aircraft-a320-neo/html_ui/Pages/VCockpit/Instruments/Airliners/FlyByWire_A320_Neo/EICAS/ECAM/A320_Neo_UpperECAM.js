@@ -608,7 +608,7 @@ var A320_Neo_UpperECAM;
                                 message: "AP OFF",
                                 level: 3,
                                 isActive: () => {
-                                    return this.getCachedSimVar("L:A32NX_FWC_AP_OFF_WARNING", "Bool");
+                                    return this.getCachedSimVar("L:A32NX_FWS_AP_OFF_WARNING", "Bool");
                                 },
                             }
                         ]
@@ -1204,14 +1204,14 @@ var A320_Neo_UpperECAM;
                         messages: [
                             {
                                 message: "FWC 1 FAULT",
-                                level: 1,
+                                level: 2,
                                 flightPhasesInhib: [3, 4, 5, 7, 8],
                                 isActive: () => !this.getCachedSimVar("L:A32NX_FWC_1_NORMAL", "Bool"),
                                 inopSystems: ["FWC 1"],
                             },
                             {
                                 message: "FWC 2 FAULT",
-                                level: 1,
+                                level: 2,
                                 flightPhasesInhib: [3, 4, 5, 7, 8],
                                 isActive: () => !this.getCachedSimVar("L:A32NX_FWC_2_NORMAL", "Bool"),
                                 inopSystems: ["FWC 2"],
@@ -1353,7 +1353,7 @@ var A320_Neo_UpperECAM;
                         message: "AP OFF",
                         style: "fail-3",
                         important: true,
-                        isActive: () => this.getCachedSimVar("L:A32NX_FWC_AP_OFF", "Bool")
+                        isActive: () => this.getCachedSimVar("L:A32NX_FWS_AP_OFF", "Bool")
                     },
 
                     //Secondary failures
@@ -1763,11 +1763,11 @@ var A320_Neo_UpperECAM;
             } else {
 
                 // dual FWC fault timer has elapsed?
-                if (fault) {
+                /*if (fault) {
                     // clear the entire screen
 
                     // render dual FWC fault
-                }
+                }*/
             }
 
             this.overflowArrow.setAttribute("opacity", (this.leftEcamMessagePanel.overflow || this.rightEcamMessagePanel.overflow) ? "1" : "0");
@@ -1776,12 +1776,12 @@ var A320_Neo_UpperECAM;
             this.updateIcing(_deltaTime);
 
             const memosInhibited = this.leftEcamMessagePanel.hasWarnings || this.leftEcamMessagePanel.hasCautions;
-            const showTOMemo = SimVar.GetSimVarValue("L:A32NX_FWC_TOMEMO", "Bool") && !memosInhibited;
+            const showTOMemo = SimVar.GetSimVarValue("L:A32NX_FWS_TOMEMO", "Bool") && !memosInhibited;
             if (this.takeoffMemo != null) {
                 this.takeoffMemo.divMain.style.display = showTOMemo ? "block" : "none";
             }
 
-            const showLdgMemo = SimVar.GetSimVarValue("L:A32NX_FWC_LDGMEMO", "Bool") && !memosInhibited;
+            const showLdgMemo = SimVar.GetSimVarValue("L:A32NX_FWS_LDGMEMO", "Bool") && !memosInhibited;
             if (this.landingMemo != null) {
                 this.landingMemo.divMain.style.display = showLdgMemo ? "block" : "none";
             }

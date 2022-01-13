@@ -269,6 +269,7 @@ pub struct A320FWCParameterTable {
     eng2_core_speed_at_or_above_idle_a: Arinc429Parameter<bool>,
     eng2_core_speed_at_or_above_idle_b: Arinc429Parameter<bool>,
     eng_1_fire_pb_out: DiscreteParameter,
+    eng_2_fire_pb_out: DiscreteParameter,
     to_config_test: Arinc429Parameter<bool>,
     eng1_tla_a: Arinc429Parameter<Angle>,
     eng1_tla_b: Arinc429Parameter<Angle>,
@@ -346,6 +347,7 @@ impl A320FWCParameterTable {
             eng2_core_speed_at_or_above_idle_a: Arinc429Parameter::new_inv(false),
             eng2_core_speed_at_or_above_idle_b: Arinc429Parameter::new_inv(false),
             eng_1_fire_pb_out: DiscreteParameter::new_inv(false),
+            eng_2_fire_pb_out: DiscreteParameter::new_inv(false),
             to_config_test: Arinc429Parameter::new_inv(false),
             eng1_tla_a: Arinc429Parameter::new_inv(Angle::new::<degree>(0.0)),
             eng1_tla_b: Arinc429Parameter::new_inv(Angle::new::<degree>(0.0)),
@@ -413,6 +415,18 @@ impl A320FWCParameterTable {
         self.computed_speed_3 = speed;
     }
 
+    pub(super) fn set_altitude_1(&mut self, altitude: Arinc429Parameter<Length>) {
+        self.altitude_1 = altitude;
+    }
+
+    pub(super) fn set_altitude_2(&mut self, altitude: Arinc429Parameter<Length>) {
+        self.altitude_2 = altitude;
+    }
+
+    pub(super) fn set_altitude_3(&mut self, altitude: Arinc429Parameter<Length>) {
+        self.altitude_3 = altitude;
+    }
+
     pub(super) fn set_lh_lg_compressed_1(&mut self, compressed: Arinc429Parameter<bool>) {
         self.lh_lg_compressed_1 = compressed;
     }
@@ -429,6 +443,30 @@ impl A320FWCParameterTable {
         self.norm_lh_lg_compressed = compressed;
     }
 
+    pub(super) fn set_lh_gear_down_lock_1(&mut self, compressed: Arinc429Parameter<bool>) {
+        self.lh_gear_down_lock_1 = compressed;
+    }
+
+    pub(super) fn set_lh_gear_down_lock_2(&mut self, compressed: Arinc429Parameter<bool>) {
+        self.lh_gear_down_lock_2 = compressed;
+    }
+
+    pub(super) fn set_rh_gear_down_lock_1(&mut self, compressed: Arinc429Parameter<bool>) {
+        self.rh_gear_down_lock_1 = compressed;
+    }
+
+    pub(super) fn set_rh_gear_down_lock_2(&mut self, compressed: Arinc429Parameter<bool>) {
+        self.rh_gear_down_lock_2 = compressed;
+    }
+
+    pub(super) fn set_nose_gear_down_lock_1(&mut self, compressed: Arinc429Parameter<bool>) {
+        self.nose_gear_down_lock_1 = compressed;
+    }
+
+    pub(super) fn set_nose_gear_down_lock_2(&mut self, compressed: Arinc429Parameter<bool>) {
+        self.nose_gear_down_lock_2 = compressed;
+    }
+
     pub(super) fn set_radio_height_1(&mut self, height: Arinc429Parameter<Length>) {
         self.radio_height_1 = height;
     }
@@ -439,6 +477,10 @@ impl A320FWCParameterTable {
 
     pub(super) fn set_eng_1_fire_pb_out(&mut self, fire_pb_out: DiscreteParameter) {
         self.eng_1_fire_pb_out = fire_pb_out;
+    }
+
+    pub(super) fn set_eng_2_fire_pb_out(&mut self, fire_pb_out: DiscreteParameter) {
+        self.eng_2_fire_pb_out = fire_pb_out;
     }
 
     pub(super) fn set_eng1_master_lever_select_on(&mut self, on: Arinc429Parameter<bool>) {
@@ -518,12 +560,52 @@ impl A320FWCParameterTable {
         self.ap2_engd_mon = mon;
     }
 
+    pub(super) fn set_alti_select(&mut self, alti_select: Arinc429Parameter<Length>) {
+        self.alti_select = alti_select;
+    }
+
+    pub(super) fn set_alti_select_chg(&mut self, alti_select_chg: Arinc429Parameter<bool>) {
+        self.alti_select_chg = alti_select_chg;
+    }
+
     pub(super) fn set_instinc_discnct_1ap_engd(&mut self, engd: DiscreteParameter) {
         self.instinc_discnct_1ap_engd = engd;
     }
 
     pub(super) fn set_instinc_discnct_2ap_engd(&mut self, engd: DiscreteParameter) {
         self.instinc_discnct_2ap_engd = engd;
+    }
+
+    pub(super) fn set_capt_mw_cancel_on(&mut self, capt_mw_cancel_on: DiscreteParameter) {
+        self.capt_mw_cancel_on = capt_mw_cancel_on;
+    }
+
+    pub(super) fn set_fo_mw_cancel_on(&mut self, fo_mw_cancel_on: DiscreteParameter) {
+        self.fo_mw_cancel_on = fo_mw_cancel_on;
+    }
+
+    pub(super) fn set_blue_sys_lo_pr(&mut self, blue_sys_lo_pr: DiscreteParameter) {
+        self.blue_sys_lo_pr = blue_sys_lo_pr;
+    }
+
+    pub(super) fn set_yellow_sys_lo_pr(&mut self, yellow_sys_lo_pr: DiscreteParameter) {
+        self.yellow_sys_lo_pr = yellow_sys_lo_pr;
+    }
+
+    pub(super) fn set_green_sys_lo_pr(&mut self, green_sys_lo_pr: DiscreteParameter) {
+        self.green_sys_lo_pr = green_sys_lo_pr;
+    }
+
+    pub(super) fn set_tcas_engaged(&mut self, tcas_engaged: Arinc429Parameter<bool>) {
+        self.tcas_engaged = tcas_engaged;
+    }
+
+    pub(super) fn set_gs_mode_on_1(&mut self, gs_mode_on_1: Arinc429Parameter<bool>) {
+        self.gs_mode_on_1 = gs_mode_on_1;
+    }
+
+    pub(super) fn set_gs_mode_on_2(&mut self, gs_mode_on_2: Arinc429Parameter<bool>) {
+        self.gs_mode_on_2 = gs_mode_on_2;
     }
 }
 impl FwcIdentSide1 for A320FWCParameterTable {

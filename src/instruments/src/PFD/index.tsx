@@ -153,6 +153,13 @@ export const PFD: React.FC = () => {
         ILSCourse = getSimVar('L:A32NX_FM_LS_COURSE', 'number');
     }
 
+    let altitudeAlert: 'none' | 'steady' | 'flashing' = 'none';
+    if (getSimVar('L:A32NX_FWS_ALT_ALERT_FLASHING_LIGHT', 'bool')) {
+        altitudeAlert = 'flashing';
+    } else if (getSimVar('L:A32NX_FWS_ALT_ALERT_STEADY_LIGHT', 'bool')) {
+        altitudeAlert = 'steady';
+    }
+
     return (
         <DisplayUnit
             electricitySimvar={isCaptainSide(displayIndex) ? 'L:A32NX_ELEC_AC_ESS_BUS_IS_POWERED' : 'L:A32NX_ELEC_AC_2_BUS_IS_POWERED'}
@@ -199,7 +206,7 @@ export const PFD: React.FC = () => {
                 <AttitudeIndicatorFixedCenter pitch={pitch} roll={roll} isOnGround={isOnGround} FDActive={FDActive} isAttExcessive={isAttExcessive} />
                 <VerticalSpeedIndicator radioAlt={radioAlt} verticalSpeed={verticalSpeed} />
                 <HeadingOfftape ILSCourse={ILSCourse} groundTrack={groundTrack} heading={heading} selectedHeading={selectedHeading} />
-                <AltitudeIndicatorOfftape altitude={altitude} radioAlt={radioAlt} MDA={mda} targetAlt={targetAlt} altIsManaged={isManaged} mode={pressureMode} />
+                <AltitudeIndicatorOfftape altitude={altitude} radioAlt={radioAlt} MDA={mda} targetAlt={targetAlt} altIsManaged={isManaged} mode={pressureMode} altitudeAlert={altitudeAlert} />
                 <AirspeedIndicatorOfftape airspeed={clampedAirspeed} targetSpeed={targetSpeed} speedIsManaged={!isSelected} />
                 <MachNumber mach={mach} />
                 <FMA isAttExcessive={isAttExcessive} />

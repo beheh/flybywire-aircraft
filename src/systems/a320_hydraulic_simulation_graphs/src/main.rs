@@ -410,6 +410,7 @@ fn context(context: &mut InitContext, delta_time: Duration) -> UpdateContext {
         delta_time,
         Velocity::new::<knot>(250.),
         Length::new::<foot>(5000.),
+        Length::new::<foot>(4500.),
         ThermodynamicTemperature::new::<degree_celsius>(25.0),
         true,
         Acceleration::new::<foot_per_second_squared>(0.),

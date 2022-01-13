@@ -226,6 +226,16 @@ impl LgciuWeightOnWheels for LandingGearControlInterfaceUnit {
     }
 }
 impl LgciuGearExtension for LandingGearControlInterfaceUnit {
+    fn left_gear_down_and_locked(&self) -> bool {
+        self.is_powered && self.left_gear_down_and_locked
+    }
+    fn right_gear_down_and_locked(&self) -> bool {
+        self.is_powered && self.right_gear_down_and_locked
+    }
+    fn nose_gear_down_and_locked(&self) -> bool {
+        self.is_powered && self.nose_gear_down_and_locked
+    }
+
     fn all_down_and_locked(&self) -> bool {
         self.is_powered
             && self.nose_gear_down_and_locked

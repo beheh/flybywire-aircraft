@@ -126,6 +126,30 @@ impl A320FWCParameterTestBed {
         self
     }
 
+    pub fn lh_gear_downlocked(mut self, downlocked: bool) -> Self {
+        self.parameters
+            .set_lh_gear_down_lock_1(Arinc429Parameter::new(downlocked));
+        self.parameters
+            .set_lh_gear_down_lock_2(Arinc429Parameter::new(downlocked));
+        self
+    }
+
+    pub fn rh_gear_downlocked(mut self, downlocked: bool) -> Self {
+        self.parameters
+            .set_rh_gear_down_lock_1(Arinc429Parameter::new(downlocked));
+        self.parameters
+            .set_rh_gear_down_lock_2(Arinc429Parameter::new(downlocked));
+        self
+    }
+
+    pub fn nose_gear_downlocked(mut self, downlocked: bool) -> Self {
+        self.parameters
+            .set_nose_gear_down_lock_1(Arinc429Parameter::new(downlocked));
+        self.parameters
+            .set_nose_gear_down_lock_2(Arinc429Parameter::new(downlocked));
+        self
+    }
+
     pub fn radio_heights(mut self, height1: Length, height2: Length) -> Self {
         self.parameters
             .set_radio_height_1(Arinc429Parameter::new(height1));

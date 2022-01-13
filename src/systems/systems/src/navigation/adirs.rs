@@ -364,6 +364,14 @@ impl AirDataInertialReferenceSystem {
     fn ir_has_fault(&self, number: usize) -> bool {
         self.adirus[number - 1].ir_has_fault()
     }
+
+    pub fn altitude(&self, number: usize) -> &AdirsData<Length> {
+        &self.adirus[number - 1].adr.altitude
+    }
+
+    pub fn computed_speed(&self, number: usize) -> &AdirsData<Velocity> {
+        &self.adirus[number - 1].adr.computed_airspeed
+    }
 }
 impl SimulationElement for AirDataInertialReferenceSystem {
     fn accept<T: SimulationElementVisitor>(&mut self, visitor: &mut T) {
@@ -459,7 +467,7 @@ impl SimulationElement for AirDataInertialReferenceUnit {
     }
 }
 
-struct AdirsData<T> {
+pub struct AdirsData<T> {
     id: VariableIdentifier,
     value: T,
     ssm: SignStatus,
@@ -486,11 +494,11 @@ impl<T: Copy + Default> AdirsData<T> {
         }
     }
 
-    fn value(&self) -> T {
+    pub fn value(&self) -> T {
         self.value
     }
 
-    fn ssm(&self) -> SignStatus {
+    pub fn ssm(&self) -> SignStatus {
         self.ssm
     }
 

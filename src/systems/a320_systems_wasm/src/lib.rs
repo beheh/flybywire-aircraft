@@ -96,6 +96,7 @@ async fn systems(mut gauge: msfs::Gauge) -> Result<(), Box<dyn Error>> {
             .provides_aircraft_variable("PLANE HEADING DEGREES MAGNETIC", "Degrees", 0)?
             .provides_aircraft_variable("PLANE LATITUDE", "degree latitude", 0)?
             .provides_aircraft_variable("PLANE LONGITUDE", "degree longitude", 0)?
+            .provides_aircraft_variable("PLANE ALT ABOVE GROUND MINUS CG", "Feet", 0)?
             .provides_aircraft_variable("PUSHBACK STATE", "Enum", 0)?
             .provides_aircraft_variable("PUSHBACK ANGLE", "Radians", 0)?
             .provides_aircraft_variable("SEA LEVEL PRESSURE", "Millibars", 0)?
@@ -107,6 +108,9 @@ async fn systems(mut gauge: msfs::Gauge) -> Result<(), Box<dyn Error>> {
             .provides_aircraft_variable("TURB ENG CORRECTED N1", "Percent", 2)?
             .provides_aircraft_variable("TURB ENG CORRECTED N2", "Percent", 1)?
             .provides_aircraft_variable("TURB ENG CORRECTED N2", "Percent", 2)?
+            .provides_aircraft_variable("TURB ENG IGNITION SWITCH", "Enum", 1)?
+            .provides_aircraft_variable("TURB ENG IGNITION SWITCH", "Enum", 2)?
+            .provides_aircraft_variable("AUTOPILOT ALTITUDE LOCK VAR", "Feet", 3)?
             .provides_aircraft_variable("UNLIMITED FUEL", "Bool", 0)?
             .provides_aircraft_variable("VELOCITY WORLD Y", "feet per minute", 0)?
             .with_aspect(|builder| {
