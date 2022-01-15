@@ -44,7 +44,7 @@
 
 .BlinkInfinite {
   animation-name: blinking;
-  animation-duration: 1s;
+  animation-duration: 1100ms;
   animation-iteration-count: infinite;
 }
 
@@ -68,4 +68,11 @@
   animation-name: blinking;
   animation-duration: 200ms;
   animation-iteration-count: infinite;
+}
+
+.YellowPulse {
+  @include GenericPulsingStroke($display-yellow, YellowPulse);
+  animation-duration: 1100ms;
+  animation-iteration-count: infinite;
+  fill: none;
 }

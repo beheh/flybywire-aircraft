@@ -64,7 +64,7 @@ export const DigitalAltitudeReadout = ({ altitude, MDA, steady, flashing }: Digi
     const isNegative = altitude.value < 0;
 
     const color = (MDA !== 0 && altitude.value < MDA) ? 'Amber' : 'Green';
-    const outlineClassName = flashing ? 'NormalStroke Amber BlinkInfinite' : (steady ? 'ThickStroke Yellow BlinkInfinite' : 'NormalStroke Yellow');
+    const outlineClassName = flashing ? 'NormalStroke Amber BlinkInfinite' : (steady ? 'NormalStroke YellowPulse' : 'NormalStroke Yellow');
 
     const absAlt = Math.abs(Math.max(Math.min(altitude.value, 50000), -1500));
     const tensDigits = absAlt % 100;
@@ -100,7 +100,7 @@ export const DigitalAltitudeReadout = ({ altitude, MDA, steady, flashing }: Digi
                         showZero={false}
                         elementFunction={TenThousandsDigit}
                         valueSpacing={1}
-                        distanceSpacing={7}
+                        distanceSpacing={8}
                         displayRange={1}
                     />
                     <Drum
@@ -110,10 +110,10 @@ export const DigitalAltitudeReadout = ({ altitude, MDA, steady, flashing }: Digi
                         showZero={showThousandsZero}
                         elementFunction={ThousandsDigit}
                         valueSpacing={1}
-                        distanceSpacing={7}
+                        distanceSpacing={8}
                         displayRange={1}
                     />
-                    <Drum position={HundredsPosition} value={HundredsValue} color={color} elementFunction={HundredsDigit} valueSpacing={1} distanceSpacing={7} displayRange={1} />
+                    <Drum position={HundredsPosition} value={HundredsValue} color={color} elementFunction={HundredsDigit} valueSpacing={1} distanceSpacing={8} displayRange={1} />
                 </svg>
                 <svg x="130.85" y="73.6664" width="8.8647" height="14.313" viewBox="0 0 8.8647 14.313">
                     <Drum position={tensDigits} value={tensDigits} color={color} elementFunction={TensDigits} valueSpacing={20} distanceSpacing={4.7} displayRange={40} />
