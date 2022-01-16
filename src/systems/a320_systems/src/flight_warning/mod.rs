@@ -44,8 +44,11 @@ struct A320FlightWarningComputerRuntime {
     cfm_flight_phases: CfmFlightPhasesDefActivation,
     flight_phases_ground: FlightPhasesGroundActivation,
     flight_phases_air: FlightPhasesAirActivation,
+    dh_dt_positive: GeneralDhDtPositiveActivation,
     general_cancel: GeneralCancelActivation,
     lg_downlocked: LgDownlockedActivation,
+    eng_1_start_sequence: Eng1StartSequenceActivation,
+    eng_2_start_sequence: Eng2StartSequenceActivation,
     audio_attenuation: AudioAttenuationActivation,
     ap_off_voluntarily: AutoFlightAutopilotOffVoluntaryActivation,
     ap_off_unvoluntarily: AutoFlightAutopilotOffUnvoluntaryActivation,
@@ -57,6 +60,21 @@ struct A320FlightWarningComputerRuntime {
     altitude_alert_slats: AltitudeAlertSlatInhibitActivation,
     altitude_alert_fmgc: AltitudeAlertFmgcInhibitActivation,
     altitude_alert_ap_tcas: AltitudeAlertApTcasInhibitActivation,
+    altitude_callout_threshold1: AltitudeThreshold1Activation,
+    altitude_callout_threshold2: AltitudeThreshold2Activation,
+    altitude_callout_threshold3: AltitudeThreshold3Activation,
+    altitude_callout_inhibit: AutomaticCallOutInhibitionActivation,
+    altitude_callout_triggers1: AltitudeThresholdTriggers1Activation,
+    altitude_callout_triggers2: AltitudeThresholdTriggers2Activation,
+    altitude_callout_triggers3: AltitudeThresholdTriggers3Activation,
+    altitude_callout_2500_ft: AltitudeCallout2500FtAnnounceActivation,
+    altitude_callout_2000_ft: AltitudeCallout2000FtAnnounceActivation,
+    altitude_callout_1000_ft: AltitudeCallout1000FtAnnounceActivation,
+    altitude_callout_500_ft: AltitudeCallout500FtAnnounceActivation,
+    altitude_callout_400_ft: AltitudeCallout400FtAnnounceActivation,
+    altitude_callout_300_ft: AltitudeCallout300FtAnnounceActivation,
+    altitude_callout_200_ft: AltitudeCallout200FtAnnounceActivation,
+    altitude_callout_100_ft: AltitudeCallout100FtAnnounceActivation,
     to_memo: ToMemoActivation,
     ldg_memo: LdgMemoActivation,
 }
@@ -79,6 +97,7 @@ impl Default for A320FlightWarningComputerRuntime {
             cfm_flight_phases: CfmFlightPhasesDefActivation::new(),
             flight_phases_ground: FlightPhasesGroundActivation::new(),
             flight_phases_air: FlightPhasesAirActivation::new(),
+            dh_dt_positive: Default::default(),
             general_cancel: Default::default(),
             audio_attenuation: Default::default(),
             ap_off_voluntarily: Default::default(),
@@ -91,9 +110,26 @@ impl Default for A320FlightWarningComputerRuntime {
             altitude_alert_slats: Default::default(),
             altitude_alert_fmgc: Default::default(),
             lg_downlocked: Default::default(),
+            eng_1_start_sequence: Default::default(),
+            eng_2_start_sequence: Default::default(),
             to_memo: Default::default(),
             ldg_memo: Default::default(),
             altitude_alert_ap_tcas: Default::default(),
+            altitude_callout_threshold1: Default::default(),
+            altitude_callout_threshold2: Default::default(),
+            altitude_callout_threshold3: Default::default(),
+            altitude_callout_inhibit: Default::default(),
+            altitude_callout_triggers1: Default::default(),
+            altitude_callout_triggers2: Default::default(),
+            altitude_callout_triggers3: Default::default(),
+            altitude_callout_2500_ft: Default::default(),
+            altitude_callout_2000_ft: Default::default(),
+            altitude_callout_1000_ft: Default::default(),
+            altitude_callout_500_ft: Default::default(),
+            altitude_callout_400_ft: Default::default(),
+            altitude_callout_300_ft: Default::default(),
+            altitude_callout_200_ft: Default::default(),
+            altitude_callout_100_ft: Default::default(),
         }
     }
 }
@@ -159,13 +195,24 @@ impl A320FlightWarningComputerRuntime {
 
         // Misc
 
+        self.dh_dt_positive.update(parameters);
         self.general_cancel.update(parameters);
 
-        // Callouts
+        // Audio Setup
 
         self.lg_downlocked.update(parameters);
 
+        self.eng_1_start_sequence.update(delta, parameters);
+        self.eng_2_start_sequence.update(
+            delta,
+            parameters,
+            &self.flight_phases_ground,
+            &self.flight_phases_air,
+        );
+
         let cavalry_charge_emitted = self.cavalry_charge(); // TODO feedback from monitor
+
+        // Audio Autopilot
 
         self.ap_off_voluntarily
             .update(delta, parameters, cavalry_charge_emitted);
@@ -177,6 +224,8 @@ impl A320FlightWarningComputerRuntime {
             &self.flight_phases_ground,
             cavalry_charge_emitted,
         );
+
+        // Audio Altitude Alert
 
         self.auto_flight_baro_altitude.update(parameters);
 
@@ -211,7 +260,92 @@ impl A320FlightWarningComputerRuntime {
         );
 
         self.altitude_alert_c_chord
-            .update(&self.altitude_alert, &self.general_cancel);
+            .update(delta, &self.altitude_alert, &self.general_cancel);
+
+        // Audio Altitude Callout
+
+        self.altitude_callout_threshold1.update(parameters);
+        self.altitude_callout_threshold2
+            .update(delta, &self.altitude_callout_threshold1);
+        self.altitude_callout_threshold3.update(
+            delta,
+            parameters,
+            &self.dh_dt_positive,
+            &self.altitude_callout_threshold1,
+            &self.altitude_callout_threshold2,
+        );
+
+        self.altitude_callout_inhibit.update(
+            parameters,
+            &self.altitude_callout_threshold1,
+            &self.ground_detection,
+            &self.cfm_flight_phases,
+            &self.flight_phases_ground,
+            &self.eng_1_start_sequence,
+            &self.eng_2_start_sequence,
+        );
+
+        self.altitude_callout_triggers1.update(
+            delta,
+            parameters,
+            &self.altitude_callout_threshold1,
+            &self.altitude_callout_threshold3,
+        );
+        self.altitude_callout_triggers2.update(
+            parameters,
+            &self.altitude_callout_threshold1,
+            &self.altitude_callout_threshold3,
+        );
+        self.altitude_callout_triggers3.update(
+            parameters,
+            &self.altitude_callout_threshold1,
+            &self.altitude_callout_threshold2,
+            &self.altitude_callout_threshold3,
+        );
+
+        self.altitude_callout_2500_ft.update(
+            &self.altitude_callout_threshold1,
+            &self.altitude_callout_inhibit,
+            &self.altitude_callout_triggers1,
+        );
+        self.altitude_callout_2000_ft.update(
+            &self.altitude_callout_threshold1,
+            &self.altitude_callout_inhibit,
+            &self.altitude_callout_triggers1,
+        );
+        self.altitude_callout_1000_ft.update(
+            &self.altitude_callout_threshold1,
+            &self.altitude_callout_inhibit,
+            &self.altitude_callout_triggers1,
+        );
+        self.altitude_callout_500_ft.update(
+            delta,
+            parameters,
+            &self.altitude_callout_inhibit,
+            &self.altitude_callout_triggers1,
+        );
+        self.altitude_callout_400_ft.update(
+            delta,
+            &self.altitude_callout_inhibit,
+            &self.altitude_callout_triggers2,
+        );
+        self.altitude_callout_300_ft.update(
+            delta,
+            &self.altitude_callout_inhibit,
+            &self.altitude_callout_triggers2,
+        );
+        self.altitude_callout_200_ft.update(
+            delta,
+            &self.altitude_callout_inhibit,
+            &self.altitude_callout_triggers2,
+        );
+        self.altitude_callout_100_ft.update(
+            delta,
+            &self.altitude_callout_inhibit,
+            &self.altitude_callout_triggers2,
+        );
+
+        // Audio Attenuation
 
         self.audio_attenuation
             .update(&self.ground_detection, &self.engines_not_running);
@@ -301,6 +435,38 @@ impl A320FlightWarningComputerRuntime {
     pub fn ap_off_warning(&self) -> bool {
         self.ap_off_unvoluntarily.ap_off_warning()
     }
+
+    pub fn two_thd_five_hd(&self) -> bool {
+        self.altitude_callout_2500_ft.two_thd_five_hd()
+    }
+
+    pub fn two_thousand(&self) -> bool {
+        self.altitude_callout_2000_ft.two_thousand()
+    }
+
+    pub fn one_thousand(&self) -> bool {
+        self.altitude_callout_1000_ft.one_thousand()
+    }
+
+    pub fn five_hundred(&self) -> bool {
+        self.altitude_callout_500_ft.five_hundred()
+    }
+
+    pub fn four_hundred(&self) -> bool {
+        self.altitude_callout_400_ft.four_hundred()
+    }
+
+    pub fn three_hundred(&self) -> bool {
+        self.altitude_callout_300_ft.three_hundred()
+    }
+
+    pub fn two_hundred(&self) -> bool {
+        self.altitude_callout_200_ft.two_hundred()
+    }
+
+    pub fn one_hundred(&self) -> bool {
+        self.altitude_callout_100_ft.one_hundred()
+    }
 }
 
 /// This struct represents a physical flight warning computer, as installed on an A320.
@@ -385,6 +551,8 @@ pub(super) struct A320FlightWarningSystem {
     fma_active_vertical_mode_id: VariableIdentifier,
     mw_cancel_on_capt_id: VariableIdentifier,
     mw_cancel_on_fo_id: VariableIdentifier,
+    mc_cancel_on_capt_id: VariableIdentifier,
+    mc_cancel_on_fo_id: VariableIdentifier,
 
     fwc1: A320FlightWarningComputer,
     fwc2: A320FlightWarningComputer,
@@ -400,6 +568,8 @@ pub(super) struct A320FlightWarningSystem {
     active_vertical_mode: u8,
     mw_cancel_on_capt: bool,
     mw_cancel_on_fo: bool,
+    mc_cancel_on_capt: bool,
+    mc_cancel_on_fo: bool,
 
     fwc1_normal_id: VariableIdentifier,
     fwc2_normal_id: VariableIdentifier,
@@ -412,6 +582,14 @@ pub(super) struct A320FlightWarningSystem {
     alt_deviation_id: VariableIdentifier,
     alt_alert_steady_light_id: VariableIdentifier,
     alt_alert_flashing_light_id: VariableIdentifier,
+    alt_callout_2500_id: VariableIdentifier,
+    alt_callout_2000_id: VariableIdentifier,
+    alt_callout_1000_id: VariableIdentifier,
+    alt_callout_500_id: VariableIdentifier,
+    alt_callout_400_id: VariableIdentifier,
+    alt_callout_300_id: VariableIdentifier,
+    alt_callout_200_id: VariableIdentifier,
+    alt_callout_100_id: VariableIdentifier,
 }
 
 impl A320FlightWarningSystem {
@@ -427,6 +605,8 @@ impl A320FlightWarningSystem {
             fma_active_vertical_mode_id: context.get_identifier("FMA_VERTICAL_MODE".to_owned()),
             mw_cancel_on_capt_id: context.get_identifier("FWS_MW_CANCEL_ON_CAPT".to_owned()),
             mw_cancel_on_fo_id: context.get_identifier("FWS_MW_CANCEL_ON_FO".to_owned()),
+            mc_cancel_on_capt_id: context.get_identifier("FWS_MC_CANCEL_ON_CAPT".to_owned()),
+            mc_cancel_on_fo_id: context.get_identifier("FWS_MC_CANCEL_ON_FO".to_owned()),
             fwc1: A320FlightWarningComputer::new(
                 context,
                 1,
@@ -448,6 +628,8 @@ impl A320FlightWarningSystem {
             active_vertical_mode: 0,
             mw_cancel_on_capt: false,
             mw_cancel_on_fo: false,
+            mc_cancel_on_capt: false,
+            mc_cancel_on_fo: false,
             fwc1_normal_id: context.get_identifier("FWC_1_NORMAL".to_owned()),
             fwc2_normal_id: context.get_identifier("FWC_2_NORMAL".to_owned()),
             flight_phase_id: context.get_identifier("FWC_FLIGHT_PHASE".to_owned()),
@@ -461,6 +643,14 @@ impl A320FlightWarningSystem {
                 .get_identifier("FWS_ALT_ALERT_STEADY_LIGHT".to_owned()),
             alt_alert_flashing_light_id: context
                 .get_identifier("FWS_ALT_ALERT_FLASHING_LIGHT".to_owned()),
+            alt_callout_2500_id: context.get_identifier("FWS_SOUND_2500".to_owned()),
+            alt_callout_2000_id: context.get_identifier("FWS_SOUND_2000".to_owned()),
+            alt_callout_1000_id: context.get_identifier("FWS_SOUND_1000".to_owned()),
+            alt_callout_500_id: context.get_identifier("FWS_SOUND_500".to_owned()),
+            alt_callout_400_id: context.get_identifier("FWS_SOUND_400".to_owned()),
+            alt_callout_300_id: context.get_identifier("FWS_SOUND_300".to_owned()),
+            alt_callout_200_id: context.get_identifier("FWS_SOUND_200".to_owned()),
+            alt_callout_100_id: context.get_identifier("FWS_SOUND_100".to_owned()),
         }
     }
 
@@ -572,8 +762,10 @@ impl A320FlightWarningSystem {
 
         // Radio Altimeters
         let height_above_ground = context.height_above_ground();
-        let radio_altitude = if height_above_ground <= Length::new::<foot>(3000.0) {
-            Arinc429Parameter::new(height_above_ground)
+        let radio_altitude = if height_above_ground <= Length::new::<foot>(3500.0) {
+            Arinc429Parameter::new(Length::new::<foot>(
+                (height_above_ground.get::<foot>() * 8.0).round() / 8.0, // encoded as multiple of 1/8
+            ))
         } else {
             Arinc429Parameter::new_ncd(Length::new::<foot>(0.0))
         };
@@ -592,6 +784,9 @@ impl A320FlightWarningSystem {
         parameters.set_eng1_core_speed_at_or_above_idle_b(Arinc429Parameter::new(
             engine1.corrected_n1() > Ratio::new::<percent>(15.),
         ));
+        // TODO engine in exactly FLEX thrust mode
+        //parameters.set_eng1_tla_fto_a(engine1.corrected_n1() > Ratio::new::<percent>(15.));
+        //parameters.set_eng1_tla_fto_b(engine1.corrected_n1() > Ratio::new::<percent>(15.));
 
         parameters.set_eng2_channel_a_in_control(Arinc429Parameter::new(true));
         parameters
@@ -662,13 +857,16 @@ impl SimulationElement for A320FlightWarningSystem {
         self.ap1_active = reader.read(&self.ap1_active_id);
         self.ap2_active = reader.read(&self.ap2_active_id);
         let ap_altitude_lock = Length::new::<foot>(reader.read(&self.ap_altitude_lock_id));
-        self.ap_altitude_lock_changed =
-            (ap_altitude_lock.get::<foot>() - self.ap_altitude_lock.get::<foot>()).abs()
-                > f64::EPSILON;
+        self.ap_altitude_lock_changed = (ap_altitude_lock - self.ap_altitude_lock)
+            .abs()
+            .get::<foot>()
+            > f64::EPSILON;
         self.ap_altitude_lock = ap_altitude_lock;
         self.active_vertical_mode = reader.read(&self.fma_active_vertical_mode_id);
         self.mw_cancel_on_capt = reader.read(&self.mw_cancel_on_capt_id);
         self.mw_cancel_on_fo = reader.read(&self.mw_cancel_on_fo_id);
+        self.mc_cancel_on_capt = reader.read(&self.mc_cancel_on_capt_id);
+        self.mc_cancel_on_fo = reader.read(&self.mc_cancel_on_fo_id);
     }
 
     fn write(&self, writer: &mut SimulatorWriter) {
@@ -688,6 +886,14 @@ impl SimulationElement for A320FlightWarningSystem {
         let mut cchord = false;
         let mut alt_alert_steady_light = false;
         let mut alt_alert_flashing_light = false;
+        let mut alt_callout_2500 = false;
+        let mut alt_callout_2000 = false;
+        let mut alt_callout_1000 = false;
+        let mut alt_callout_500 = false;
+        let mut alt_callout_400 = false;
+        let mut alt_callout_300 = false;
+        let mut alt_callout_200 = false;
+        let mut alt_callout_100 = false;
 
         match runtime {
             Some(runtime) => {
@@ -700,6 +906,14 @@ impl SimulationElement for A320FlightWarningSystem {
                 cchord = runtime.c_chord();
                 alt_alert_steady_light = runtime.alt_alert_light_on();
                 alt_alert_flashing_light = runtime.alt_alert_flashing_light();
+                alt_callout_2500 = runtime.two_thd_five_hd();
+                alt_callout_2000 = runtime.two_thousand();
+                alt_callout_1000 = runtime.one_thousand();
+                alt_callout_500 = runtime.five_hundred();
+                alt_callout_400 = runtime.four_hundred();
+                alt_callout_300 = runtime.three_hundred();
+                alt_callout_200 = runtime.two_hundred();
+                alt_callout_100 = runtime.one_hundred();
             }
             None => {}
         };
@@ -715,6 +929,14 @@ impl SimulationElement for A320FlightWarningSystem {
         writer.write(&self.alt_deviation_id, cchord);
         writer.write(&self.alt_alert_steady_light_id, alt_alert_steady_light);
         writer.write(&self.alt_alert_flashing_light_id, alt_alert_flashing_light);
+        writer.write(&self.alt_callout_2500_id, alt_callout_2500);
+        writer.write(&self.alt_callout_2000_id, alt_callout_2000);
+        writer.write(&self.alt_callout_1000_id, alt_callout_1000);
+        writer.write(&self.alt_callout_500_id, alt_callout_500);
+        writer.write(&self.alt_callout_400_id, alt_callout_400);
+        writer.write(&self.alt_callout_300_id, alt_callout_300);
+        writer.write(&self.alt_callout_200_id, alt_callout_200);
+        writer.write(&self.alt_callout_100_id, alt_callout_100);
     }
 }
 

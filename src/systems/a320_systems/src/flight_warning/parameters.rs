@@ -2,7 +2,7 @@ use systems::flight_warning::parameters::*;
 use uom::si::angle::degree;
 use uom::si::f64::*;
 use uom::si::length::foot;
-use uom::si::ratio::percent;
+use uom::si::ratio::{percent, ratio};
 use uom::si::velocity::knot;
 
 pub(super) trait FwcIdentSide1 {
@@ -93,10 +93,14 @@ pub(super) trait Eng2Tla {
     fn eng2_tla(&self, index: u8) -> &Arinc429Parameter<Angle>;
 }
 
+/// This parameter indicates that the engine 1 CFM ECU has determined that the TLA is in the
+/// Flex Take Off (FTO) position.
 pub(super) trait Eng1TlaFto {
     fn eng1_tla_fto(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
 
+/// This parameter indicates that the engine 2 CFM ECU has determined that the TLA is in the
+/// Flex Take Off (FTO) position.
 pub(super) trait Eng2TlaFto {
     fn eng2_tla_fto(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
@@ -234,6 +238,45 @@ pub(super) trait GsModeOn {
     fn gs_mode_on(&self, index: u8) -> &Arinc429Parameter<bool>;
 }
 
+pub(super) trait GpwsModesOn {
+    /// This parameter indicates that one of the main GPWS alerts is active.
+    fn gpws_modes_on(&self) -> &DiscreteParameter;
+}
+
+pub(super) trait GsVisualAlertOn {
+    /// This parameter indicates that the GPWS glideslope alert is active.
+    fn gs_visual_alert_on(&self) -> &DiscreteParameter;
+}
+
+pub(super) trait TcasAuralAdvisaryOutput {
+    /// This parameter indicates that the TCAS is issuing an aural alert.
+    fn tcas_aural_advisory_output(&self) -> &DiscreteParameter;
+}
+
+/// This trait represents the pins for the pin programmed auto callouts.
+pub(super) trait AutoCalloutPins {
+    fn auto_call_out_2500_ft(&self) -> &DiscreteParameter;
+    fn auto_call_out_2500b(&self) -> &DiscreteParameter;
+    fn auto_call_out_2000_ft(&self) -> &DiscreteParameter;
+    fn auto_call_out_1000_ft(&self) -> &DiscreteParameter;
+    fn auto_call_out_500_ft(&self) -> &DiscreteParameter;
+    fn auto_call_out_500_ft_glide_deviation(&self) -> &DiscreteParameter;
+    fn auto_call_out_400_ft(&self) -> &DiscreteParameter;
+    fn auto_call_out_300_ft(&self) -> &DiscreteParameter;
+    fn auto_call_out_200_ft(&self) -> &DiscreteParameter;
+    fn auto_call_out_100_ft(&self) -> &DiscreteParameter;
+    fn auto_call_out_50_ft(&self) -> &DiscreteParameter;
+    fn auto_call_out_40_ft(&self) -> &DiscreteParameter;
+    fn auto_call_out_30_ft(&self) -> &DiscreteParameter;
+    fn auto_call_out_20_ft(&self) -> &DiscreteParameter;
+    fn auto_call_out_10_ft(&self) -> &DiscreteParameter;
+    fn auto_call_out_5_ft(&self) -> &DiscreteParameter;
+}
+
+pub(super) trait GlideDeviation {
+    fn glide_deviation(&self, index: u8) -> &Arinc429Parameter<Ratio>;
+}
+
 /// This struct contains the parameters acquired directly by the FWC (in other words: not through an
 /// SDAC). They can be received via ARINC or as discretes.
 pub struct A320FwcDirectParameterTable {
@@ -332,6 +375,27 @@ pub struct A320FWCParameterTable {
     tcas_engaged: Arinc429Parameter<bool>,
     gs_mode_on_1: Arinc429Parameter<bool>,
     gs_mode_on_2: Arinc429Parameter<bool>,
+    gpws_modes_on: DiscreteParameter,
+    gs_visual_alert_on: DiscreteParameter,
+    tcas_aural_advisory_output: DiscreteParameter,
+    auto_call_out_2500_ft: DiscreteParameter,
+    auto_call_out_2500b: DiscreteParameter,
+    auto_call_out_2000_ft: DiscreteParameter,
+    auto_call_out_1000_ft: DiscreteParameter,
+    auto_call_out_500_ft: DiscreteParameter,
+    auto_call_out_500_ft_glide_deviation: DiscreteParameter,
+    auto_call_out_400_ft: DiscreteParameter,
+    auto_call_out_300_ft: DiscreteParameter,
+    auto_call_out_200_ft: DiscreteParameter,
+    auto_call_out_100_ft: DiscreteParameter,
+    auto_call_out_50_ft: DiscreteParameter,
+    auto_call_out_40_ft: DiscreteParameter,
+    auto_call_out_30_ft: DiscreteParameter,
+    auto_call_out_20_ft: DiscreteParameter,
+    auto_call_out_10_ft: DiscreteParameter,
+    auto_call_out_5_ft: DiscreteParameter,
+    glide_deviation_1: Arinc429Parameter<Ratio>,
+    glide_deviation_2: Arinc429Parameter<Ratio>,
 }
 
 impl A320FWCParameterTable {
@@ -412,6 +476,27 @@ impl A320FWCParameterTable {
             tcas_engaged: Arinc429Parameter::new_inv(false),
             gs_mode_on_1: Arinc429Parameter::new_inv(false),
             gs_mode_on_2: Arinc429Parameter::new_inv(false),
+            gpws_modes_on: DiscreteParameter::new_inv(false),
+            gs_visual_alert_on: DiscreteParameter::new_inv(false),
+            tcas_aural_advisory_output: DiscreteParameter::new_inv(false),
+            auto_call_out_2500_ft: DiscreteParameter::new(true), // TODO
+            auto_call_out_2500b: DiscreteParameter::new(false),  // TODO
+            auto_call_out_2000_ft: DiscreteParameter::new(true), // TODO
+            auto_call_out_1000_ft: DiscreteParameter::new(true), // TODO
+            auto_call_out_500_ft: DiscreteParameter::new(true),  // TODO
+            auto_call_out_500_ft_glide_deviation: DiscreteParameter::new(false), // TODO
+            auto_call_out_400_ft: DiscreteParameter::new(true),  // TODO
+            auto_call_out_300_ft: DiscreteParameter::new(true),  // TODO
+            auto_call_out_200_ft: DiscreteParameter::new(true),  // TODO
+            auto_call_out_100_ft: DiscreteParameter::new(true),  // TODO
+            auto_call_out_50_ft: DiscreteParameter::new(true),   // TODO
+            auto_call_out_40_ft: DiscreteParameter::new(true),   // TODO
+            auto_call_out_30_ft: DiscreteParameter::new(true),   // TODO
+            auto_call_out_20_ft: DiscreteParameter::new(true),   // TODO
+            auto_call_out_10_ft: DiscreteParameter::new(true),   // TODO
+            auto_call_out_5_ft: DiscreteParameter::new(true),    // TODO
+            glide_deviation_1: Arinc429Parameter::new_inv(Ratio::new::<ratio>(0.0)),
+            glide_deviation_2: Arinc429Parameter::new_inv(Ratio::new::<ratio>(0.0)),
         }
     }
 
@@ -549,6 +634,22 @@ impl A320FWCParameterTable {
 
     pub(super) fn set_eng2_tla_b(&mut self, tla: Arinc429Parameter<Angle>) {
         self.eng2_tla_b = tla
+    }
+
+    pub(super) fn set_eng1_tla_fto_a(&mut self, fto: Arinc429Parameter<bool>) {
+        self.eng1_tla_fto_a = fto
+    }
+
+    pub(super) fn set_eng1_tla_fto_b(&mut self, fto: Arinc429Parameter<bool>) {
+        self.eng1_tla_fto_b = fto
+    }
+
+    pub(super) fn set_eng2_tla_fto_a(&mut self, fto: Arinc429Parameter<bool>) {
+        self.eng2_tla_fto_a = fto
+    }
+
+    pub(super) fn set_eng2_tla_fto_b(&mut self, fto: Arinc429Parameter<bool>) {
+        self.eng2_tla_fto_b = fto
     }
 
     pub(super) fn set_eng1_channel_a_in_control(&mut self, in_control: Arinc429Parameter<bool>) {
@@ -983,6 +1084,102 @@ impl GsModeOn for A320FWCParameterTable {
         match index {
             1 => &self.gs_mode_on_1,
             2 => &self.gs_mode_on_2,
+            _ => panic!(),
+        }
+    }
+}
+
+impl GpwsModesOn for A320FWCParameterTable {
+    fn gpws_modes_on(&self) -> &DiscreteParameter {
+        &self.gpws_modes_on
+    }
+}
+
+impl GsVisualAlertOn for A320FWCParameterTable {
+    fn gs_visual_alert_on(&self) -> &DiscreteParameter {
+        &self.gs_visual_alert_on
+    }
+}
+
+impl TcasAuralAdvisaryOutput for A320FWCParameterTable {
+    fn tcas_aural_advisory_output(&self) -> &DiscreteParameter {
+        &self.tcas_aural_advisory_output
+    }
+}
+
+impl AutoCalloutPins for A320FWCParameterTable {
+    /// TODO move to vars
+
+    fn auto_call_out_2500_ft(&self) -> &DiscreteParameter {
+        &self.auto_call_out_2500_ft
+    }
+
+    fn auto_call_out_2500b(&self) -> &DiscreteParameter {
+        &self.auto_call_out_2500b
+    }
+
+    fn auto_call_out_2000_ft(&self) -> &DiscreteParameter {
+        &self.auto_call_out_2000_ft
+    }
+
+    fn auto_call_out_1000_ft(&self) -> &DiscreteParameter {
+        &self.auto_call_out_1000_ft
+    }
+
+    fn auto_call_out_500_ft(&self) -> &DiscreteParameter {
+        &self.auto_call_out_500_ft
+    }
+
+    fn auto_call_out_500_ft_glide_deviation(&self) -> &DiscreteParameter {
+        &self.auto_call_out_500_ft_glide_deviation
+    }
+
+    fn auto_call_out_400_ft(&self) -> &DiscreteParameter {
+        &self.auto_call_out_400_ft
+    }
+
+    fn auto_call_out_300_ft(&self) -> &DiscreteParameter {
+        &self.auto_call_out_300_ft
+    }
+
+    fn auto_call_out_200_ft(&self) -> &DiscreteParameter {
+        &self.auto_call_out_200_ft
+    }
+
+    fn auto_call_out_100_ft(&self) -> &DiscreteParameter {
+        &self.auto_call_out_100_ft
+    }
+
+    fn auto_call_out_50_ft(&self) -> &DiscreteParameter {
+        &self.auto_call_out_50_ft
+    }
+
+    fn auto_call_out_40_ft(&self) -> &DiscreteParameter {
+        &self.auto_call_out_40_ft
+    }
+
+    fn auto_call_out_30_ft(&self) -> &DiscreteParameter {
+        &self.auto_call_out_30_ft
+    }
+
+    fn auto_call_out_20_ft(&self) -> &DiscreteParameter {
+        &self.auto_call_out_20_ft
+    }
+
+    fn auto_call_out_10_ft(&self) -> &DiscreteParameter {
+        &self.auto_call_out_10_ft
+    }
+
+    fn auto_call_out_5_ft(&self) -> &DiscreteParameter {
+        &self.auto_call_out_5_ft
+    }
+}
+
+impl GlideDeviation for A320FWCParameterTable {
+    fn glide_deviation(&self, index: u8) -> &Arinc429Parameter<Ratio> {
+        match index {
+            1 => &self.glide_deviation_1,
+            2 => &self.glide_deviation_2,
             _ => panic!(),
         }
     }

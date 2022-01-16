@@ -74,11 +74,6 @@ class A32NX_GPWS {
         ];
 
         this.PrevShouldPullUpPlay = 0;
-
-        this.AltCallState = A32NX_Util.createMachine(AltCallStateMachine);
-        this.AltCallState.setState("ground");
-        this.RetardState = A32NX_Util.createMachine(RetardStateMachine);
-        this.RetardState.setState("landed");
     }
 
     init() {
@@ -97,11 +92,8 @@ class A32NX_GPWS {
         const radioAlt = SimVar.GetSimVarValue("PLANE ALT ABOVE GROUND MINUS CG", "Feet");
         const onGround = SimVar.GetSimVarValue("SIM ON GROUND", "Bool");
 
-        this.UpdateAltState(radioAlt);
         this.differentiate_radioalt(radioAlt, deltaTime);
 
-        const mda = SimVar.GetSimVarValue("L:AIRLINER_MINIMUM_DESCENT_ALTITUDE", "feet");
-        const dh = SimVar.GetSimVarValue("L:AIRLINER_DECISION_HEIGHT", "feet");
         const phase = SimVar.GetSimVarValue("L:A32NX_FMGC_FLIGHT_PHASE", "Enum");
 
         if (radioAlt >= 10 && radioAlt <= 2450 && !SimVar.GetSimVarValue("L:A32NX_GPWS_SYS_OFF", "Bool")) { //Activate between 10 - 2450 radio alt unless SYS is off
@@ -137,6 +129,9 @@ class A32NX_GPWS {
 
         this.GPWSComputeLightsAndCallouts();
 
+        /*
+        const mda = SimVar.GetSimVarValue("L:AIRLINER_MINIMUM_DESCENT_ALTITUDE", "feet");
+        const dh = SimVar.GetSimVarValue("L:AIRLINER_DECISION_HEIGHT", "feet");
         if ((mda !== 0 || dh !== -1) && phase === FmgcFlightPhases.APPROACH) {
             let minimumsDA; //MDA or DH
             let minimumsIA; //radio or baro altitude
@@ -149,7 +144,7 @@ class A32NX_GPWS {
                 minimumsIA = baroAlt;
             }
             this.gpws_minimums(minimumsDA, minimumsIA);
-        }
+        }*/
     }
 
     /**
@@ -422,7 +417,7 @@ class A32NX_GPWS {
         }
     }
 
-    UpdateAltState(radioAlt) {
+    /*UpdateAltState(radioAlt) {
         switch (this.AltCallState.value) {
             case "ground":
                 if (radioAlt > 5) {
@@ -564,170 +559,5 @@ class A32NX_GPWS {
                 }
                 break;
         }
-    }
+    }*/
 }
-
-const RetardStateMachine = {
-    overRetard: {
-        transitions: {
-            play: {
-                target: "retardPlaying"
-            }
-        }
-    },
-    retardPlaying: {
-        transitions: {
-            land: {
-                target: "landed"
-            },
-            go_around: {
-                target: "overRetard"
-            }
-        }
-    },
-    landed: {
-        transitions: {
-            up: {
-                target: "overRetard"
-            }
-        }
-    }
-};
-
-const AltCallStateMachine = {
-    init: "ground",
-    over2500: {
-        transitions: {
-            down: {
-                target: "over1000"
-            }
-        }
-    },
-    over1000: {
-        transitions: {
-            down: {
-                target: "over500"
-            },
-            up: {
-                target: "over2500"
-            }
-        }
-    },
-    over500: {
-        transitions: {
-            down: {
-                target: "over400"
-            },
-            up: {
-                target: "over1000"
-            }
-        }
-    },
-    over400: {
-        transitions: {
-            down: {
-                target: "over300"
-            },
-            up: {
-                target: "over500"
-            }
-        }
-    },
-    over300: {
-        transitions: {
-            down: {
-                target: "over200"
-            },
-            up: {
-                target: "over400"
-            }
-        }
-    },
-    over200: {
-        transitions: {
-            down: {
-                target: "over100"
-            },
-            up: {
-                target: "over300"
-            }
-        }
-    },
-    over100: {
-        transitions: {
-            down: {
-                target: "over50"
-            },
-            up: {
-                target: "over200"
-            }
-        }
-    },
-    over50: {
-        transitions: {
-            down: {
-                target: "over40"
-            },
-            up: {
-                target: "over100"
-            }
-        }
-    },
-    over40: {
-        transitions: {
-            down: {
-                target: "over30"
-            },
-            up: {
-                target: "over50"
-            }
-        }
-    },
-    over30: {
-        transitions: {
-            down: {
-                target: "over20"
-            },
-            up: {
-                target: "over40"
-            }
-        }
-    },
-    over20: {
-        transitions: {
-            down: {
-                target: "over10"
-            },
-            up: {
-                target: "over30"
-            }
-        }
-    },
-    over10: {
-        transitions: {
-            down: {
-                target: "over5"
-            },
-            up: {
-                target: "over20"
-            }
-        }
-    },
-    over5: {
-        transitions: {
-            down: {
-                target: "ground"
-            },
-            up: {
-                target: "over10"
-            }
-        }
-    },
-    ground: {
-        transitions: {
-            up: {
-                target: "over5"
-            }
-        }
-    }
-};

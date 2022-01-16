@@ -7,7 +7,7 @@ use systems::flight_warning::utils::FwcSsm;
 use uom::si::angle::degree;
 use uom::si::f64::*;
 use uom::si::length::foot;
-use uom::si::ratio::percent;
+use uom::si::ratio::{percent, ratio};
 use uom::si::velocity::knot;
 
 pub(super) trait NewGround {
@@ -1274,6 +1274,36 @@ impl FlightPhasesAir for FlightPhasesAirActivation {
     }
 }
 
+pub(super) trait GeneralDhDtPositive {
+    fn dh_positive(&self) -> bool;
+}
+
+#[derive(Default)]
+pub(super) struct GeneralDhDtPositiveActivation {
+    last_rh: Length,
+    dh_positive: bool,
+}
+
+impl GeneralDhDtPositiveActivation {
+    pub fn update(&mut self, signals: &impl RadioHeight) {
+        let rh1 = signals.radio_height(1);
+        let rh1_inv_or_ncd = rh1.is_inv() || rh1.is_ncd();
+        let rh2 = signals.radio_height(2);
+        let rh = if rh1_inv_or_ncd { rh2 } else { rh1 };
+        let rh_value = rh.value();
+
+        let derivative = rh_value - self.last_rh;
+        self.last_rh = rh_value;
+        self.dh_positive = derivative > Length::new::<foot>(0.0);
+    }
+}
+
+impl GeneralDhDtPositive for GeneralDhDtPositiveActivation {
+    fn dh_positive(&self) -> bool {
+        self.dh_positive
+    }
+}
+
 pub(super) trait GeneralCancel {
     fn mw_cancel_pulse_up(&self) -> bool;
     fn mc_cancel_pulse_up(&self) -> bool;
@@ -2252,6 +2282,1174 @@ impl AltitudeAlertCChordActivation {
 impl AltitudeAlertCChord for AltitudeAlertCChordActivation {
     fn c_chord(&self) -> bool {
         self.c_chord && !self.canceled
+    }
+}
+
+impl Default for AltitudeAlertCChordActivation {
+    fn default() -> Self {
+        Self {
+            c_chord: false,
+            confirmation: ConfirmationNode::new_leading(Duration::from_secs_f64(0.3)),
+            canceled: false,
+        }
+    }
+}
+
+pub(super) trait Eng1StartSequence {
+    fn eng_1_tempo_master_lever_1_on(&self) -> bool;
+}
+
+pub(super) struct Eng1StartSequenceActivation {
+    conf: ConfirmationNode,
+    eng_1_tempo_master_lever_1_on: bool,
+}
+
+impl Default for Eng1StartSequenceActivation {
+    fn default() -> Self {
+        Self {
+            conf: ConfirmationNode::new(true, Duration::from_secs(30)),
+            eng_1_tempo_master_lever_1_on: false,
+        }
+    }
+}
+
+impl Eng1StartSequenceActivation {
+    pub fn update(&mut self, delta: Duration, signals: &impl Eng1MasterLeverSelectOn) {
+        self.eng_1_tempo_master_lever_1_on = self
+            .conf
+            .update(signals.eng1_master_lever_select_on().value(), delta);
+    }
+}
+
+impl Eng1StartSequence for Eng1StartSequenceActivation {
+    fn eng_1_tempo_master_lever_1_on(&self) -> bool {
+        self.eng_1_tempo_master_lever_1_on
+    }
+}
+
+pub(super) trait Eng2StartSequence {
+    fn eng_2_tempo_master_lever_1_on(&self) -> bool;
+    fn phase_5_to_30s(&self) -> bool;
+}
+
+pub(super) struct Eng2StartSequenceActivation {
+    conf: ConfirmationNode,
+    pulse: PulseNode,
+    mtrig: MonostableTriggerNode,
+    eng_2_tempo_master_lever_1_on: bool,
+    phase_5_to_30s: bool,
+}
+
+impl Default for Eng2StartSequenceActivation {
+    fn default() -> Self {
+        Self {
+            conf: ConfirmationNode::new(true, Duration::from_secs(30)),
+            pulse: PulseNode::new(false),
+            mtrig: MonostableTriggerNode::new(true, Duration::from_secs(30)),
+            eng_2_tempo_master_lever_1_on: false,
+            phase_5_to_30s: false,
+        }
+    }
+}
+
+impl Eng2StartSequenceActivation {
+    pub fn update(
+        &mut self,
+        delta: Duration,
+        signals: &impl Eng2MasterLeverSelectOn,
+        flight_phases_ground_sheet: &impl FlightPhasesGround,
+        flight_phases_air_sheet: &impl FlightPhasesAir,
+    ) {
+        self.eng_2_tempo_master_lever_1_on = self
+            .conf
+            .update(signals.eng2_master_lever_select_on().value(), delta);
+        let phase4 = flight_phases_ground_sheet.phase_4();
+        let phase5 = flight_phases_air_sheet.phase_5();
+        self.phase_5_to_30s = self
+            .mtrig
+            .update(self.pulse.update(phase4) && phase5, delta);
+    }
+}
+
+impl Eng2StartSequence for Eng2StartSequenceActivation {
+    fn eng_2_tempo_master_lever_1_on(&self) -> bool {
+        self.eng_2_tempo_master_lever_1_on
+    }
+
+    fn phase_5_to_30s(&self) -> bool {
+        self.phase_5_to_30s
+    }
+}
+
+pub(super) trait AltitudeThreshold1 {
+    fn ra_1_inv(&self) -> bool;
+    fn alt_sup_50_ft(&self) -> bool;
+    fn alt_sup_410_ft(&self) -> bool;
+    fn alt_400_ft(&self) -> bool;
+    fn alt_300_ft(&self) -> bool;
+    fn alt_200_ft(&self) -> bool;
+    fn alt_100_ft(&self) -> bool;
+    fn alt_50_ft(&self) -> bool;
+    fn radio_height(&self) -> Length;
+    fn ra_invalid(&self) -> bool;
+    fn ra_fonctionnal_test(&self) -> bool;
+    fn ra_no_computed_data(&self) -> bool;
+}
+
+pub(super) struct AltitudeThreshold1Activation {
+    ra_1_inv: bool,
+    alt_sup_50_ft: bool,
+    alt_sup_410_ft: bool,
+    alt_400_ft: bool,
+    alt_300_ft: bool,
+    alt_200_ft: bool,
+    alt_100_ft: bool,
+    alt_50_ft: bool,
+    radio_height: Length,
+    ra_invalid: bool,
+    ra_fonctionnal_test: bool,
+    ra_no_computed_data: bool,
+}
+
+impl Default for AltitudeThreshold1Activation {
+    fn default() -> Self {
+        Self {
+            ra_1_inv: false,
+            alt_sup_50_ft: false,
+            alt_sup_410_ft: false,
+            alt_400_ft: false,
+            alt_300_ft: false,
+            alt_200_ft: false,
+            alt_100_ft: false,
+            alt_50_ft: false,
+            radio_height: Length::new::<foot>(0.),
+            ra_invalid: false,
+            ra_fonctionnal_test: false,
+            ra_no_computed_data: false,
+        }
+    }
+}
+
+impl AltitudeThreshold1Activation {
+    pub fn update(&mut self, signals: &impl RadioHeight) {
+        let rh1 = signals.radio_height(1);
+        let rh2 = signals.radio_height(2);
+        let rh1_ncd_or_inv = rh1.is_ncd() || rh1.is_inv();
+        let rh_param = if rh1_ncd_or_inv { rh2 } else { rh1 };
+        let rh = rh_param.value();
+
+        self.ra_1_inv = rh1_ncd_or_inv;
+        self.alt_sup_50_ft = rh > Length::new::<foot>(50.);
+        self.alt_sup_410_ft = rh >= Length::new::<foot>(410.);
+        self.alt_400_ft = Length::new::<foot>(400.) <= rh && rh < Length::new::<foot>(410.);
+        self.alt_300_ft = Length::new::<foot>(300.) <= rh && rh < Length::new::<foot>(310.);
+        self.alt_200_ft = Length::new::<foot>(200.) <= rh && rh < Length::new::<foot>(210.);
+        self.alt_100_ft = Length::new::<foot>(100.) <= rh && rh < Length::new::<foot>(110.);
+        self.alt_50_ft = Length::new::<foot>(50.) <= rh && rh < Length::new::<foot>(53.);
+        self.radio_height = rh;
+        self.ra_invalid = rh1_ncd_or_inv && rh2.is_inv();
+        self.ra_fonctionnal_test = if rh1_ncd_or_inv {
+            rh2.is_ft()
+        } else {
+            rh1.is_ft()
+        };
+        self.ra_no_computed_data = if rh1_ncd_or_inv {
+            rh2.is_ncd()
+        } else {
+            rh1.is_ncd()
+        };
+    }
+}
+
+impl AltitudeThreshold1 for AltitudeThreshold1Activation {
+    fn ra_1_inv(&self) -> bool {
+        self.ra_1_inv
+    }
+
+    fn alt_sup_50_ft(&self) -> bool {
+        self.alt_sup_50_ft
+    }
+
+    fn alt_sup_410_ft(&self) -> bool {
+        self.alt_sup_410_ft
+    }
+
+    fn alt_400_ft(&self) -> bool {
+        self.alt_400_ft
+    }
+
+    fn alt_300_ft(&self) -> bool {
+        self.alt_300_ft
+    }
+
+    fn alt_200_ft(&self) -> bool {
+        self.alt_200_ft
+    }
+
+    fn alt_100_ft(&self) -> bool {
+        self.alt_100_ft
+    }
+
+    fn alt_50_ft(&self) -> bool {
+        self.alt_50_ft
+    }
+
+    fn radio_height(&self) -> Length {
+        self.radio_height
+    }
+
+    fn ra_invalid(&self) -> bool {
+        self.ra_invalid
+    }
+
+    fn ra_fonctionnal_test(&self) -> bool {
+        self.ra_fonctionnal_test
+    }
+
+    fn ra_no_computed_data(&self) -> bool {
+        self.ra_no_computed_data
+    }
+}
+
+pub(super) trait AltitudeThreshold2 {
+    fn alt_40_ft(&self) -> bool;
+    fn alt_30_ft(&self) -> bool;
+    fn alt_20_ft(&self) -> bool;
+    fn alt_10_ft(&self) -> bool;
+    fn alt_5_ft(&self) -> bool;
+    fn alt_inf_3_ft(&self) -> bool;
+    fn dh_inhibition(&self) -> bool;
+}
+
+pub(super) struct AltitudeThreshold2Activation {
+    last_rh: Length,
+    conf_node: ConfirmationNode,
+    alt_40_ft: bool,
+    alt_30_ft: bool,
+    alt_20_ft: bool,
+    alt_inf_20_ft: bool,
+    alt_10_ft: bool,
+    alt_inf_10_ft: bool,
+    alt_5_ft: bool,
+    alt_inf_3_ft: bool,
+    dh_inhibition: bool,
+}
+
+impl Default for AltitudeThreshold2Activation {
+    fn default() -> Self {
+        Self {
+            last_rh: Length::new::<foot>(0.0),
+            conf_node: ConfirmationNode::new(false, Duration::from_secs_f64(0.3)),
+            alt_40_ft: false,
+            alt_30_ft: false,
+            alt_20_ft: false,
+            alt_inf_20_ft: false,
+            alt_10_ft: false,
+            alt_inf_10_ft: false,
+            alt_5_ft: false,
+            alt_inf_3_ft: false,
+            dh_inhibition: false,
+        }
+    }
+}
+
+impl AltitudeThreshold2Activation {
+    pub fn update(&mut self, delta: Duration, threshold_sheet: &impl AltitudeThreshold1) {
+        let rh = threshold_sheet.radio_height();
+        let ra_invalid = threshold_sheet.ra_invalid();
+        self.alt_40_ft = Length::new::<foot>(40.) <= rh && rh < Length::new::<foot>(42.);
+        self.alt_30_ft = Length::new::<foot>(30.) <= rh && rh < Length::new::<foot>(32.);
+        self.alt_20_ft = Length::new::<foot>(20.) <= rh && rh < Length::new::<foot>(22.);
+        self.alt_inf_20_ft =
+            !ra_invalid && Length::new::<foot>(-5.) <= rh && rh < Length::new::<foot>(22.);
+        self.alt_10_ft = Length::new::<foot>(10.) <= rh && rh < Length::new::<foot>(12.);
+        self.alt_inf_10_ft =
+            !ra_invalid && Length::new::<foot>(-5.) <= rh && rh < Length::new::<foot>(12.);
+        self.alt_5_ft = Length::new::<foot>(5.) <= rh && rh < Length::new::<foot>(6.);
+        self.alt_inf_3_ft = !ra_invalid && rh <= Length::new::<foot>(3.0);
+        let derivative = rh - self.last_rh;
+        self.last_rh = rh;
+        self.dh_inhibition = self
+            .conf_node
+            .update(derivative > Length::new::<foot>(0.0), delta);
+    }
+}
+
+impl AltitudeThreshold2 for AltitudeThreshold2Activation {
+    fn alt_40_ft(&self) -> bool {
+        self.alt_40_ft
+    }
+
+    fn alt_30_ft(&self) -> bool {
+        self.alt_30_ft
+    }
+
+    fn alt_20_ft(&self) -> bool {
+        self.alt_20_ft
+    }
+
+    fn alt_10_ft(&self) -> bool {
+        self.alt_10_ft
+    }
+
+    fn alt_5_ft(&self) -> bool {
+        self.alt_5_ft
+    }
+
+    fn alt_inf_3_ft(&self) -> bool {
+        self.alt_inf_3_ft
+    }
+
+    fn dh_inhibition(&self) -> bool {
+        self.dh_inhibition
+    }
+}
+
+pub(super) trait AltitudeThreshold3 {
+    fn threshold_detection(&self) -> bool;
+    fn gpws_inhibition(&self) -> bool;
+    fn to_and_ground_detection(&self) -> bool;
+    fn renvoi1(&self) -> bool;
+    fn renvoi2(&self) -> bool;
+    fn renvoi3(&self) -> bool;
+    fn dh_inhibition(&self) -> bool;
+}
+
+pub(super) struct AltitudeThreshold3Activation {
+    mtrig: MonostableTriggerNode,
+    threshold_detection: bool,
+    gpws_inhibition: bool,
+    to_and_ground_detection: bool,
+    renvoi1: bool,
+    renvoi2: bool,
+    renvoi3: bool,
+}
+
+impl Default for AltitudeThreshold3Activation {
+    fn default() -> Self {
+        Self {
+            mtrig: MonostableTriggerNode::new(true, Duration::from_secs(2)),
+            threshold_detection: false,
+            gpws_inhibition: false,
+            to_and_ground_detection: false,
+            renvoi1: false,
+            renvoi2: false,
+            renvoi3: false,
+        }
+    }
+}
+
+impl AltitudeThreshold3Activation {
+    pub fn update(
+        &mut self,
+        delta: Duration,
+        signals: &(impl GpwsModesOn + GsVisualAlertOn),
+        dh_dt_positive: &impl GeneralDhDtPositive,
+        altitude_threshold1_sheet: &impl AltitudeThreshold1,
+        altitude_threshold2_sheet: &impl AltitudeThreshold2,
+    ) {
+        let alt_400_ft = altitude_threshold1_sheet.alt_400_ft();
+        let alt_300_ft = altitude_threshold1_sheet.alt_300_ft();
+        let alt_200_ft = altitude_threshold1_sheet.alt_200_ft();
+        let alt_100_ft = altitude_threshold1_sheet.alt_100_ft();
+        let alt_50_ft = altitude_threshold1_sheet.alt_50_ft();
+        let alt_40_ft = altitude_threshold2_sheet.alt_40_ft();
+        let alt_30_ft = altitude_threshold2_sheet.alt_30_ft();
+        let alt_20_ft = altitude_threshold2_sheet.alt_20_ft();
+        let alt_10_ft = altitude_threshold2_sheet.alt_10_ft();
+        let alt_5_ft = altitude_threshold2_sheet.alt_5_ft();
+        let alt_inf_3_ft = altitude_threshold2_sheet.alt_inf_3_ft();
+        let dh_positive = dh_dt_positive.dh_positive();
+        let dh_generated = false; // TODO
+        let dh_inhibition = altitude_threshold2_sheet.dh_inhibition();
+
+        let any_gpws = signals.gpws_modes_on().value() || signals.gpws_modes_on().value();
+        let gpws_mtrig_out = self.mtrig.update(any_gpws, delta);
+
+        self.threshold_detection = (alt_400_ft
+            || alt_300_ft
+            || alt_200_ft
+            || alt_100_ft
+            || alt_50_ft
+            || alt_40_ft
+            || alt_30_ft
+            || alt_20_ft
+            || alt_10_ft
+            || alt_5_ft);
+        self.gpws_inhibition = gpws_mtrig_out || any_gpws;
+        self.to_and_ground_detection = alt_inf_3_ft || dh_positive;
+        self.renvoi1 = self.to_and_ground_detection || self.gpws_inhibition || dh_generated;
+        self.renvoi2 = self.to_and_ground_detection || dh_generated;
+        self.renvoi3 = self.to_and_ground_detection || alt_inf_3_ft || dh_inhibition;
+    }
+}
+
+impl AltitudeThreshold3 for AltitudeThreshold3Activation {
+    fn threshold_detection(&self) -> bool {
+        self.threshold_detection
+    }
+
+    fn gpws_inhibition(&self) -> bool {
+        self.gpws_inhibition
+    }
+
+    fn to_and_ground_detection(&self) -> bool {
+        self.to_and_ground_detection
+    }
+
+    fn renvoi1(&self) -> bool {
+        self.renvoi1
+    }
+
+    fn renvoi2(&self) -> bool {
+        self.renvoi2
+    }
+
+    fn renvoi3(&self) -> bool {
+        self.renvoi3
+    }
+
+    fn dh_inhibition(&self) -> bool {
+        todo!()
+    }
+}
+
+pub(super) trait AutomaticCallOutInhibition {
+    fn auto_call_out_inhib(&self) -> bool;
+    fn retard_inhib(&self) -> bool;
+}
+
+#[derive(Default)]
+pub(super) struct AutomaticCallOutInhibitionActivation {
+    auto_call_out_inhib: bool,
+    retard_inhib: bool,
+}
+
+impl AutomaticCallOutInhibitionActivation {
+    pub fn update(
+        &mut self,
+        signals: &(impl EssLhLgCompressed + NormLhLgCompressed),
+        threshold1_sheet: &impl AltitudeThreshold1,
+        ground_sheet: &impl GroundDetection,
+        cfm_flex_sheet: &impl CfmFlightPhasesDef,
+        flight_phases_ground_sheet: &impl FlightPhasesGround,
+        eng1_start_sheet: &impl Eng1StartSequence,
+        eng2_start_sheet: &impl Eng2StartSequence,
+    ) {
+        let ground_test = threshold1_sheet.ra_fonctionnal_test()
+            && (signals.ess_lh_lg_compressed().value() || signals.norm_lh_lg_compressed().value());
+
+        let stall_on = false; // TODO
+        let ra_invalid = threshold1_sheet.ra_invalid();
+        let ra_ncd = threshold1_sheet.ra_no_computed_data();
+        let cfm_flex = cfm_flex_sheet.cfm_flex();
+        let iae_flex = false; // TODO
+        let speed_on = false; // TODO
+
+        let main_inhibit = stall_on || ra_invalid || ra_ncd || cfm_flex || iae_flex || speed_on;
+
+        let eng_1_master_lever_on = eng1_start_sheet.eng_1_tempo_master_lever_1_on();
+        let eng_2_master_lever_on = eng2_start_sheet.eng_2_tempo_master_lever_1_on();
+        let ground = ground_sheet.ground();
+        let phase8 = flight_phases_ground_sheet.phase_8();
+
+        let auto_call_inhib_ground = (eng_1_master_lever_on && eng_2_master_lever_on && ground);
+        let retard_inhib_ground =
+            (eng_1_master_lever_on && eng_2_master_lever_on && (ground && !phase8));
+
+        self.auto_call_out_inhib = (main_inhibit || auto_call_inhib_ground) && !ground_test;
+        self.retard_inhib = (main_inhibit || retard_inhib_ground) && !ground_test;
+    }
+}
+
+impl AutomaticCallOutInhibition for AutomaticCallOutInhibitionActivation {
+    fn auto_call_out_inhib(&self) -> bool {
+        self.auto_call_out_inhib
+    }
+
+    fn retard_inhib(&self) -> bool {
+        self.retard_inhib
+    }
+}
+
+pub(super) trait AltitudeThresholdTriggers1 {
+    fn seuil_2500_ft(&self) -> bool;
+    fn seuil_2500b_ft(&self) -> bool;
+    fn seuil_2000_ft(&self) -> bool;
+    fn seuil_1000_ft(&self) -> bool;
+    fn seuil_500_ft(&self) -> bool;
+}
+
+pub(super) struct AltitudeThresholdTriggers1Activation {
+    seuil_2500_ft: bool,
+    seuil_2500b_ft: bool,
+    seuil_2000_ft: bool,
+    seuil_1000_ft: bool,
+    seuil_500_ft: bool,
+    conf1: ConfirmationNode,
+    conf2: ConfirmationNode,
+    conf3: ConfirmationNode,
+    conf4: ConfirmationNode,
+    tcas_mtrig: MonostableTriggerNode,
+}
+
+impl Default for AltitudeThresholdTriggers1Activation {
+    fn default() -> Self {
+        Self {
+            conf1: ConfirmationNode::new(true, Duration::from_secs_f64(0.2)),
+            conf2: ConfirmationNode::new(true, Duration::from_secs_f64(0.2)),
+            conf3: ConfirmationNode::new(true, Duration::from_secs_f64(0.2)),
+            conf4: ConfirmationNode::new(true, Duration::from_secs_f64(0.2)),
+            tcas_mtrig: MonostableTriggerNode::new(true, Duration::from_secs(5)),
+            seuil_2500_ft: false,
+            seuil_2500b_ft: false,
+            seuil_2000_ft: false,
+            seuil_1000_ft: false,
+            seuil_500_ft: false,
+        }
+    }
+}
+
+impl AltitudeThresholdTriggers1Activation {
+    pub fn update(
+        &mut self,
+        delta: Duration,
+        signals: &(impl AutoCalloutPins + TcasAuralAdvisaryOutput),
+        altitude_callout_threshold_1_sheet: &impl AltitudeThreshold1,
+        altitude_callout_threshold_3_sheet: &impl AltitudeThreshold3,
+    ) {
+        let rh = altitude_callout_threshold_1_sheet.radio_height();
+        let gpws_inhibiton = altitude_callout_threshold_3_sheet.gpws_inhibition();
+        let tcas_inhibit = self
+            .tcas_mtrig
+            .update(signals.tcas_aural_advisory_output().value(), delta);
+        let gpws_or_tcas_inhibit = gpws_inhibiton || tcas_inhibit;
+        let renvoi1 = altitude_callout_threshold_3_sheet.renvoi1();
+        let lower_inhibit = renvoi1 || tcas_inhibit;
+
+        let pin_2500_ft = signals.auto_call_out_2500_ft().value();
+        let pin_2500b = signals.auto_call_out_2500b().value();
+        let pin_2000_ft = signals.auto_call_out_2000_ft().value();
+        let pin_1000_ft = signals.auto_call_out_1000_ft().value();
+
+        let cond_2500_ft = self.conf1.update(
+            Length::new::<foot>(2500.) <= rh && rh < Length::new::<foot>(2530.),
+            delta,
+        );
+        let cond_2000_ft = self.conf2.update(
+            Length::new::<foot>(2000.) <= rh && rh < Length::new::<foot>(2020.),
+            delta,
+        );
+        let cond_1000_ft = self.conf3.update(
+            Length::new::<foot>(1000.) <= rh && rh < Length::new::<foot>(1020.),
+            delta,
+        );
+        let cond_500_ft = self.conf4.update(
+            Length::new::<foot>(500.) <= rh && rh < Length::new::<foot>(513.),
+            delta,
+        );
+
+        self.seuil_2500_ft = pin_2500_ft && cond_2500_ft && !gpws_or_tcas_inhibit;
+        self.seuil_2500b_ft = pin_2500b && cond_2500_ft && !gpws_or_tcas_inhibit;
+        self.seuil_2000_ft = pin_2000_ft && cond_2000_ft && !gpws_or_tcas_inhibit;
+        self.seuil_1000_ft = pin_1000_ft && cond_1000_ft && !lower_inhibit;
+        self.seuil_500_ft = cond_500_ft && !lower_inhibit;
+    }
+}
+
+impl AltitudeThresholdTriggers1 for AltitudeThresholdTriggers1Activation {
+    fn seuil_2500_ft(&self) -> bool {
+        self.seuil_2500_ft
+    }
+
+    fn seuil_2500b_ft(&self) -> bool {
+        self.seuil_2500b_ft
+    }
+
+    fn seuil_2000_ft(&self) -> bool {
+        self.seuil_2000_ft
+    }
+
+    fn seuil_1000_ft(&self) -> bool {
+        self.seuil_1000_ft
+    }
+
+    fn seuil_500_ft(&self) -> bool {
+        self.seuil_500_ft
+    }
+}
+
+pub(super) trait AltitudeThresholdTriggers2 {
+    fn seuil_400_ft(&self) -> bool;
+    fn seuil_300_ft(&self) -> bool;
+    fn seuil_200_ft(&self) -> bool;
+    fn seuil_100_ft(&self) -> bool;
+    fn seuil_50_ft(&self) -> bool;
+}
+
+#[derive(Default)]
+pub(super) struct AltitudeThresholdTriggers2Activation {
+    seuil_400_ft: bool,
+    seuil_300_ft: bool,
+    seuil_200_ft: bool,
+    seuil_100_ft: bool,
+    seuil_50_ft: bool,
+}
+
+impl AltitudeThresholdTriggers2Activation {
+    pub fn update(
+        &mut self,
+        signals: &impl AutoCalloutPins,
+        altitude_callout_threshold_1_sheet: &impl AltitudeThreshold1,
+        altitude_callout_threshold_3_sheet: &impl AltitudeThreshold3,
+    ) {
+        let renvoi1 = altitude_callout_threshold_3_sheet.renvoi1();
+        let pin_400_ft = signals.auto_call_out_400_ft().value();
+        let pin_300_ft = signals.auto_call_out_300_ft().value();
+        let pin_200_ft = signals.auto_call_out_200_ft().value();
+        let pin_100_ft = signals.auto_call_out_100_ft().value();
+        let pin_50_ft = signals.auto_call_out_50_ft().value();
+
+        let cond_400_ft = altitude_callout_threshold_1_sheet.alt_400_ft();
+        let cond_300_ft = altitude_callout_threshold_1_sheet.alt_300_ft();
+        let cond_200_ft = altitude_callout_threshold_1_sheet.alt_200_ft();
+        let cond_100_ft = altitude_callout_threshold_1_sheet.alt_100_ft();
+        let cond_50_ft = altitude_callout_threshold_1_sheet.alt_50_ft();
+
+        self.seuil_400_ft = pin_400_ft && cond_400_ft && !renvoi1;
+        self.seuil_300_ft = pin_300_ft && cond_300_ft && !renvoi1;
+        self.seuil_200_ft = pin_200_ft && cond_200_ft && !renvoi1;
+        self.seuil_100_ft = pin_100_ft && cond_100_ft && !renvoi1;
+        self.seuil_50_ft = pin_50_ft && cond_50_ft && !renvoi1;
+    }
+}
+
+impl AltitudeThresholdTriggers2 for AltitudeThresholdTriggers2Activation {
+    fn seuil_400_ft(&self) -> bool {
+        self.seuil_400_ft
+    }
+
+    fn seuil_300_ft(&self) -> bool {
+        self.seuil_300_ft
+    }
+
+    fn seuil_200_ft(&self) -> bool {
+        self.seuil_200_ft
+    }
+
+    fn seuil_100_ft(&self) -> bool {
+        self.seuil_100_ft
+    }
+
+    fn seuil_50_ft(&self) -> bool {
+        self.seuil_50_ft
+    }
+}
+
+pub(super) trait AltitudeThresholdTriggers3 {
+    fn seuil_40_ft(&self) -> bool;
+    fn seuil_30_ft(&self) -> bool;
+    fn seuil_20_ft(&self) -> bool;
+    fn seuil_10_ft(&self) -> bool;
+    fn seuil_5_ft(&self) -> bool;
+}
+
+#[derive(Default)]
+pub(super) struct AltitudeThresholdTriggers3Activation {
+    seuil_40_ft: bool,
+    seuil_30_ft: bool,
+    seuil_20_ft: bool,
+    seuil_10_ft: bool,
+    seuil_5_ft: bool,
+}
+
+impl AltitudeThresholdTriggers3Activation {
+    pub fn update(
+        &mut self,
+        signals: &impl AutoCalloutPins,
+        altitude_callout_threshold_1_sheet: &impl AltitudeThreshold1,
+        altitude_callout_threshold_2_sheet: &impl AltitudeThreshold2,
+        altitude_callout_threshold_3_sheet: &impl AltitudeThreshold3,
+    ) {
+        let ra_ft = altitude_callout_threshold_1_sheet.ra_fonctionnal_test();
+        let renvoi2 = altitude_callout_threshold_3_sheet.renvoi2();
+        let renvoi3 = altitude_callout_threshold_3_sheet.renvoi3();
+
+        let pin_40_ft = signals.auto_call_out_40_ft().value();
+        let pin_30_ft = signals.auto_call_out_30_ft().value();
+        let pin_20_ft = signals.auto_call_out_20_ft().value();
+        let pin_10_ft = signals.auto_call_out_10_ft().value();
+        let pin_5_ft = signals.auto_call_out_5_ft().value();
+
+        let cond_40_ft = altitude_callout_threshold_2_sheet.alt_40_ft();
+        let cond_30_ft = altitude_callout_threshold_2_sheet.alt_30_ft();
+        let cond_20_ft = altitude_callout_threshold_2_sheet.alt_20_ft();
+        let cond_10_ft = altitude_callout_threshold_2_sheet.alt_10_ft();
+        let cond_5_ft = altitude_callout_threshold_2_sheet.alt_5_ft();
+
+        self.seuil_40_ft = cond_40_ft && (ra_ft || (!renvoi2 && pin_40_ft));
+        self.seuil_30_ft = cond_30_ft && pin_30_ft && !renvoi2;
+        self.seuil_20_ft = cond_20_ft && pin_20_ft && !renvoi2;
+        self.seuil_10_ft = cond_10_ft && pin_10_ft && !renvoi3;
+        self.seuil_5_ft = cond_5_ft && pin_5_ft && !renvoi3;
+    }
+}
+
+impl AltitudeThresholdTriggers3 for AltitudeThresholdTriggers3Activation {
+    fn seuil_40_ft(&self) -> bool {
+        self.seuil_40_ft
+    }
+
+    fn seuil_30_ft(&self) -> bool {
+        self.seuil_30_ft
+    }
+
+    fn seuil_20_ft(&self) -> bool {
+        self.seuil_20_ft
+    }
+
+    fn seuil_10_ft(&self) -> bool {
+        self.seuil_10_ft
+    }
+
+    fn seuil_5_ft(&self) -> bool {
+        self.seuil_5_ft
+    }
+}
+
+pub(super) trait AltitudeCallout2500FtAnnounce {
+    fn two_thd_five_hd(&self) -> bool;
+}
+
+pub(super) struct AltitudeCallout2500FtAnnounceActivation {
+    hysteresis: HysteresisNode<Length>,
+    mem: MemoryNode,
+    active_pulse: PulseNode,
+    prec_node: PreceedingValueNode,
+    reset_pulse: PulseNode,
+    two_thd_five_hd: bool,
+}
+
+impl Default for AltitudeCallout2500FtAnnounceActivation {
+    fn default() -> Self {
+        Self {
+            hysteresis: HysteresisNode::new(Length::new::<foot>(2500.), Length::new::<foot>(3000.)),
+            mem: MemoryNode::new(false),
+            prec_node: Default::default(),
+            reset_pulse: PulseNode::new(false),
+            active_pulse: PulseNode::new(true),
+            two_thd_five_hd: false,
+        }
+    }
+}
+
+impl AltitudeCallout2500FtAnnounceActivation {
+    pub fn update(
+        &mut self,
+        altitude_callout_threshold_1_sheet: &impl AltitudeThreshold1,
+        altitude_callout_inhib_sheet: &impl AutomaticCallOutInhibition,
+        altitude_trigger_sheet: &impl AltitudeThresholdTriggers1,
+    ) {
+        let rh = altitude_callout_threshold_1_sheet.radio_height();
+        let seuil_2500_ft = altitude_trigger_sheet.seuil_2500_ft();
+        let auto_call_out_inhib = altitude_callout_inhib_sheet.auto_call_out_inhib();
+
+        let hysteresis_out = self.hysteresis.update(rh);
+        let reset_pulse_out = self.reset_pulse.update(hysteresis_out);
+
+        let mem_out = self.mem.update(self.prec_node.value(), reset_pulse_out);
+
+        let active = hysteresis_out && seuil_2500_ft && !auto_call_out_inhib && !mem_out;
+
+        let active_pulse_out = self.active_pulse.update(active);
+        self.prec_node.update(active_pulse_out);
+
+        self.two_thd_five_hd = active;
+    }
+}
+
+impl AltitudeCallout2500FtAnnounce for AltitudeCallout2500FtAnnounceActivation {
+    fn two_thd_five_hd(&self) -> bool {
+        self.two_thd_five_hd
+    }
+}
+
+pub(super) trait AltitudeCallout2000FtAnnounce {
+    fn two_thousand(&self) -> bool;
+}
+
+pub(super) struct AltitudeCallout2000FtAnnounceActivation {
+    hysteresis: HysteresisNode<Length>,
+    mem: MemoryNode,
+    active_pulse: PulseNode,
+    prec_node: PreceedingValueNode,
+    reset_pulse: PulseNode,
+    two_thousand: bool,
+}
+
+impl Default for AltitudeCallout2000FtAnnounceActivation {
+    fn default() -> Self {
+        Self {
+            hysteresis: HysteresisNode::new(Length::new::<foot>(2000.), Length::new::<foot>(2400.)),
+            mem: MemoryNode::new(false),
+            prec_node: Default::default(),
+            reset_pulse: PulseNode::new(false),
+            active_pulse: PulseNode::new(true),
+            two_thousand: false,
+        }
+    }
+}
+
+impl AltitudeCallout2000FtAnnounceActivation {
+    pub fn update(
+        &mut self,
+        altitude_callout_threshold_1_sheet: &impl AltitudeThreshold1,
+        altitude_callout_inhib_sheet: &impl AutomaticCallOutInhibition,
+        altitude_trigger_sheet: &impl AltitudeThresholdTriggers1,
+    ) {
+        let rh = altitude_callout_threshold_1_sheet.radio_height();
+        let seuil_2000_ft = altitude_trigger_sheet.seuil_2000_ft();
+        let auto_call_out_inhib = altitude_callout_inhib_sheet.auto_call_out_inhib();
+
+        let hysteresis_out = self.hysteresis.update(rh);
+        let reset_pulse_out = self.reset_pulse.update(hysteresis_out);
+
+        let mem_out = self.mem.update(self.prec_node.value(), reset_pulse_out);
+
+        let active = hysteresis_out && seuil_2000_ft && !auto_call_out_inhib && !mem_out;
+
+        let active_pulse_out = self.active_pulse.update(active);
+        self.prec_node.update(active_pulse_out);
+
+        self.two_thousand = active;
+    }
+}
+
+impl AltitudeCallout2000FtAnnounce for AltitudeCallout2000FtAnnounceActivation {
+    fn two_thousand(&self) -> bool {
+        self.two_thousand
+    }
+}
+
+pub(super) trait AltitudeCallout1000FtAnnounce {
+    fn one_thousand(&self) -> bool;
+}
+
+pub(super) struct AltitudeCallout1000FtAnnounceActivation {
+    hysteresis: HysteresisNode<Length>,
+    mem: MemoryNode,
+    active_pulse: PulseNode,
+    prec_node: PreceedingValueNode,
+    reset_pulse: PulseNode,
+    one_thousand: bool,
+}
+
+impl Default for AltitudeCallout1000FtAnnounceActivation {
+    fn default() -> Self {
+        Self {
+            hysteresis: HysteresisNode::new(Length::new::<foot>(1000.), Length::new::<foot>(1100.)),
+            mem: MemoryNode::new(false),
+            prec_node: Default::default(),
+            reset_pulse: PulseNode::new(false),
+            active_pulse: PulseNode::new(true),
+            one_thousand: false,
+        }
+    }
+}
+
+impl AltitudeCallout1000FtAnnounceActivation {
+    pub fn update(
+        &mut self,
+        altitude_callout_threshold_1_sheet: &impl AltitudeThreshold1,
+        altitude_callout_inhib_sheet: &impl AutomaticCallOutInhibition,
+        altitude_trigger_sheet: &impl AltitudeThresholdTriggers1,
+    ) {
+        let rh = altitude_callout_threshold_1_sheet.radio_height();
+        let seuil_1000_ft = altitude_trigger_sheet.seuil_1000_ft();
+        let auto_call_out_inhib = altitude_callout_inhib_sheet.auto_call_out_inhib();
+
+        let hysteresis_out = self.hysteresis.update(rh);
+        let reset_pulse_out = self.reset_pulse.update(hysteresis_out);
+
+        let mem_out = self.mem.update(self.prec_node.value(), reset_pulse_out);
+
+        let active = hysteresis_out && seuil_1000_ft && !auto_call_out_inhib && !mem_out;
+
+        let active_pulse_out = self.active_pulse.update(active);
+        self.prec_node.update(active_pulse_out);
+
+        self.one_thousand = active;
+    }
+}
+
+impl AltitudeCallout1000FtAnnounce for AltitudeCallout1000FtAnnounceActivation {
+    fn one_thousand(&self) -> bool {
+        self.one_thousand
+    }
+}
+
+pub(super) trait AltitudeCallout500FtAnnounce {
+    fn five_hundred(&self) -> bool;
+}
+
+pub(super) struct AltitudeCallout500FtAnnounceActivation {
+    conf1: ConfirmationNode,
+    conf2: ConfirmationNode,
+    mtrig1: MonostableTriggerNode,
+    mtrig2: MonostableTriggerNode,
+    prec1: PreceedingValueNode,
+    prec2: PreceedingValueNode,
+    five_hundred: bool,
+}
+
+impl Default for AltitudeCallout500FtAnnounceActivation {
+    fn default() -> Self {
+        Self {
+            conf1: ConfirmationNode::new(false, Duration::from_secs_f64(0.5)),
+            conf2: ConfirmationNode::new(false, Duration::from_secs_f64(0.5)),
+            mtrig1: MonostableTriggerNode::new(true, Duration::from_secs(11)),
+            mtrig2: MonostableTriggerNode::new(true, Duration::from_secs(11)),
+            prec1: PreceedingValueNode::new(),
+            prec2: PreceedingValueNode::new(),
+            five_hundred: false,
+        }
+    }
+}
+
+impl AltitudeCallout500FtAnnounceActivation {
+    pub fn update(
+        &mut self,
+        delta: Duration,
+        signals: &(impl AutoCalloutPins + GlideDeviation),
+        altitude_callout_inhib_sheet: &impl AutomaticCallOutInhibition,
+        altitude_trigger_sheet: &impl AltitudeThresholdTriggers1,
+    ) {
+        let glide_deviation_1 = signals.glide_deviation(1);
+        let glide_deviation_2 = signals.glide_deviation(2);
+
+        let pin_500_ft_glide_deviation = signals.auto_call_out_500_ft_glide_deviation().value();
+        let pin_500_ft = signals.auto_call_out_500_ft().value();
+
+        let auto_call_out_inhib = altitude_callout_inhib_sheet.auto_call_out_inhib();
+        let seuil_500_ft = altitude_trigger_sheet.seuil_500_ft();
+
+        let glide_deviation_1_inv_or_ncd = glide_deviation_1.is_inv() || glide_deviation_1.is_ncd();
+        let glide_deviation_2_inv_or_ncd = glide_deviation_2.is_inv() || glide_deviation_2.is_ncd();
+
+        let conf1_out = self.conf1.update(
+            glide_deviation_1.value() < Ratio::new::<ratio>(0.175),
+            delta,
+        );
+        let conf2_out = self.conf2.update(
+            glide_deviation_2.value() < Ratio::new::<ratio>(0.175),
+            delta,
+        );
+
+        let on_gs_1 = glide_deviation_1_inv_or_ncd || conf1_out;
+        let on_gs_2 = glide_deviation_2_inv_or_ncd || conf2_out;
+        let dual_inv_gs = glide_deviation_1_inv_or_ncd && glide_deviation_2_inv_or_ncd;
+
+        let glide_deviation = !on_gs_1 || !on_gs_2 || dual_inv_gs;
+
+        let callout_glide_deviation = glide_deviation
+            && pin_500_ft_glide_deviation
+            && seuil_500_ft
+            && !auto_call_out_inhib
+            && !self.prec1.value();
+        self.prec1
+            .update(self.mtrig1.update(callout_glide_deviation, delta));
+
+        let callout_500_ft =
+            pin_500_ft && seuil_500_ft && !auto_call_out_inhib && !self.prec2.value();
+        self.prec2.update(self.mtrig2.update(callout_500_ft, delta));
+
+        self.five_hundred = callout_glide_deviation || callout_500_ft;
+    }
+}
+
+impl AltitudeCallout500FtAnnounce for AltitudeCallout500FtAnnounceActivation {
+    fn five_hundred(&self) -> bool {
+        self.five_hundred
+    }
+}
+
+pub(super) trait AltitudeCallout400FtAnnounce {
+    fn four_hundred(&self) -> bool;
+}
+
+pub(super) struct AltitudeCallout400FtAnnounceActivation {
+    pulse: PulseNode,
+    mtrig: MonostableTriggerNode,
+    prec: PreceedingValueNode,
+    four_hundred: bool,
+}
+
+impl Default for AltitudeCallout400FtAnnounceActivation {
+    fn default() -> Self {
+        Self {
+            pulse: PulseNode::new(true),
+            mtrig: MonostableTriggerNode::new(true, Duration::from_secs(5)),
+            prec: Default::default(),
+            four_hundred: false,
+        }
+    }
+}
+
+impl AltitudeCallout400FtAnnounceActivation {
+    pub fn update(
+        &mut self,
+        delta: Duration,
+        altitude_callout_inhib_sheet: &impl AutomaticCallOutInhibition,
+        altitude_trigger_sheet: &impl AltitudeThresholdTriggers2,
+    ) {
+        let active = self.pulse.update(altitude_trigger_sheet.seuil_400_ft())
+            && !altitude_callout_inhib_sheet.auto_call_out_inhib()
+            && !self.prec.value();
+
+        self.prec.update(self.mtrig.update(active, delta));
+
+        self.four_hundred = active;
+    }
+}
+
+impl AltitudeCallout400FtAnnounce for AltitudeCallout400FtAnnounceActivation {
+    fn four_hundred(&self) -> bool {
+        self.four_hundred
+    }
+}
+
+pub(super) trait AltitudeCallout300FtAnnounce {
+    fn three_hundred(&self) -> bool;
+}
+
+pub(super) struct AltitudeCallout300FtAnnounceActivation {
+    pulse: PulseNode,
+    mtrig: MonostableTriggerNode,
+    prec: PreceedingValueNode,
+    three_hundred: bool,
+}
+
+impl Default for AltitudeCallout300FtAnnounceActivation {
+    fn default() -> Self {
+        Self {
+            pulse: PulseNode::new(true),
+            mtrig: MonostableTriggerNode::new(true, Duration::from_secs(5)),
+            prec: Default::default(),
+            three_hundred: false,
+        }
+    }
+}
+
+impl AltitudeCallout300FtAnnounceActivation {
+    pub fn update(
+        &mut self,
+        delta: Duration,
+        altitude_callout_inhib_sheet: &impl AutomaticCallOutInhibition,
+        altitude_trigger_sheet: &impl AltitudeThresholdTriggers2,
+    ) {
+        let active = self.pulse.update(altitude_trigger_sheet.seuil_300_ft())
+            && !altitude_callout_inhib_sheet.auto_call_out_inhib()
+            && !self.prec.value();
+
+        self.prec.update(self.mtrig.update(active, delta));
+
+        self.three_hundred = active;
+    }
+}
+
+impl AltitudeCallout300FtAnnounce for AltitudeCallout300FtAnnounceActivation {
+    fn three_hundred(&self) -> bool {
+        self.three_hundred
+    }
+}
+
+pub(super) trait AltitudeCallout200FtAnnounce {
+    fn two_hundred(&self) -> bool;
+}
+
+pub(super) struct AltitudeCallout200FtAnnounceActivation {
+    pulse: PulseNode,
+    mtrig: MonostableTriggerNode,
+    prec: PreceedingValueNode,
+    two_hundred: bool,
+}
+
+impl Default for AltitudeCallout200FtAnnounceActivation {
+    fn default() -> Self {
+        Self {
+            pulse: PulseNode::new(true),
+            mtrig: MonostableTriggerNode::new(true, Duration::from_secs(5)),
+            prec: Default::default(),
+            two_hundred: false,
+        }
+    }
+}
+
+impl AltitudeCallout200FtAnnounceActivation {
+    pub fn update(
+        &mut self,
+        delta: Duration,
+        altitude_callout_inhib_sheet: &impl AutomaticCallOutInhibition,
+        altitude_trigger_sheet: &impl AltitudeThresholdTriggers2,
+    ) {
+        let active = self.pulse.update(altitude_trigger_sheet.seuil_200_ft())
+            && !altitude_callout_inhib_sheet.auto_call_out_inhib()
+            && !self.prec.value();
+
+        self.prec.update(self.mtrig.update(active, delta));
+
+        self.two_hundred = active;
+    }
+}
+
+impl AltitudeCallout200FtAnnounce for AltitudeCallout200FtAnnounceActivation {
+    fn two_hundred(&self) -> bool {
+        self.two_hundred
+    }
+}
+
+pub(super) trait AltitudeCallout100FtAnnounce {
+    fn one_hundred(&self) -> bool;
+}
+
+pub(super) struct AltitudeCallout100FtAnnounceActivation {
+    pulse: PulseNode,
+    mtrig: MonostableTriggerNode,
+    prec: PreceedingValueNode,
+    one_hundred: bool,
+}
+
+impl Default for AltitudeCallout100FtAnnounceActivation {
+    fn default() -> Self {
+        Self {
+            pulse: PulseNode::new(true),
+            mtrig: MonostableTriggerNode::new(true, Duration::from_secs(5)),
+            prec: Default::default(),
+            one_hundred: false,
+        }
+    }
+}
+
+impl AltitudeCallout100FtAnnounceActivation {
+    pub fn update(
+        &mut self,
+        delta: Duration,
+        altitude_callout_inhib_sheet: &impl AutomaticCallOutInhibition,
+        altitude_trigger_sheet: &impl AltitudeThresholdTriggers2,
+    ) {
+        let active = self.pulse.update(altitude_trigger_sheet.seuil_100_ft())
+            && !altitude_callout_inhib_sheet.auto_call_out_inhib()
+            && !self.prec.value();
+
+        self.prec.update(self.mtrig.update(active, delta));
+
+        self.one_hundred = active;
+    }
+}
+
+impl AltitudeCallout100FtAnnounce for AltitudeCallout100FtAnnounceActivation {
+    fn one_hundred(&self) -> bool {
+        self.one_hundred
     }
 }
 

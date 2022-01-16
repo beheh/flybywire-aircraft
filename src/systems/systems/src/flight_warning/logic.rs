@@ -208,6 +208,9 @@ where
     T: PartialOrd,
 {
     pub fn new(dn: T, up: T) -> Self {
+        if up <= dn {
+            panic!("Up must be strictly greater than Dn");
+        }
         Self {
             up,
             dn,
@@ -234,6 +237,7 @@ where
 }
 
 /// A node that memorizes the value from the preceding call.
+#[derive(Default)]
 pub struct PreceedingValueNode {
     predecessor: bool,
 }
