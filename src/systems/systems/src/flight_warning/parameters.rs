@@ -1,5 +1,3 @@
-use crate::navigation::adirs::AdirsData;
-use crate::shared::arinc429::SignStatus;
 use uom::si::angle::degree;
 
 pub trait Value<T> {

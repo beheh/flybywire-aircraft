@@ -1,4 +1,4 @@
-use crate::flight_warning::parameters::A320FWCParameterTable;
+use super::parameters::A320FWCParameterTable;
 use systems::flight_warning::parameters::*;
 use uom::si::angle::degree;
 use uom::si::f64::*;

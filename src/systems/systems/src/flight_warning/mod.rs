@@ -3,6 +3,7 @@ use crate::flight_warning::parameters::SignStatusMatrix;
 pub mod logic;
 pub mod parameters;
 pub mod utils;
+pub mod warnings;
 
 pub trait FwcReaderWriter {
     fn read(&mut self, name: &str) -> f64;
