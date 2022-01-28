@@ -119,6 +119,8 @@ pub(super) struct A320FlightWarningSystem {
     mw_cancel_on_fo_id: VariableIdentifier,
     mc_cancel_on_capt_id: VariableIdentifier,
     mc_cancel_on_fo_id: VariableIdentifier,
+    decision_height_id: VariableIdentifier,
+    minimum_descent_altitude_id: VariableIdentifier,
 
     fwc1: A320FlightWarningComputer,
     fwc2: A320FlightWarningComputer,
@@ -136,6 +138,8 @@ pub(super) struct A320FlightWarningSystem {
     mw_cancel_on_fo: bool,
     mc_cancel_on_capt: bool,
     mc_cancel_on_fo: bool,
+    decision_height: Option<Length>,
+    minimum_descent_altitude: Option<Length>,
 
     fwc1_normal_id: VariableIdentifier,
     fwc2_normal_id: VariableIdentifier,
@@ -166,6 +170,9 @@ impl A320FlightWarningSystem {
             mw_cancel_on_fo_id: context.get_identifier("FWS_MW_CANCEL_ON_FO".to_owned()),
             mc_cancel_on_capt_id: context.get_identifier("FWS_MC_CANCEL_ON_CAPT".to_owned()),
             mc_cancel_on_fo_id: context.get_identifier("FWS_MC_CANCEL_ON_FO".to_owned()),
+            decision_height_id: context.get_identifier("DECISION_HEIGHT".to_owned()),
+            minimum_descent_altitude_id: context
+                .get_identifier("MINIMUM_DESCENT_ALTITUDE".to_owned()),
             fwc1: A320FlightWarningComputer::new(
                 context,
                 1,
@@ -189,6 +196,8 @@ impl A320FlightWarningSystem {
             mw_cancel_on_fo: false,
             mc_cancel_on_capt: false,
             mc_cancel_on_fo: false,
+            decision_height: None,
+            minimum_descent_altitude: None,
             fwc1_normal_id: context.get_identifier("FWC_1_NORMAL".to_owned()),
             fwc2_normal_id: context.get_identifier("FWC_2_NORMAL".to_owned()),
             flight_phase_id: context.get_identifier("FWC_FLIGHT_PHASE".to_owned()),
@@ -314,7 +323,7 @@ impl A320FlightWarningSystem {
 
         // Radio Altimeters
         let height_above_ground = context.height_above_ground();
-        let radio_altitude = if height_above_ground <= Length::new::<foot>(3500.0) {
+        let radio_altitude = if height_above_ground <= Length::new::<foot>(5000.0) {
             Arinc429Parameter::new(Length::new::<foot>(
                 (height_above_ground.get::<foot>() * 8.0).round() / 8.0, // encoded as multiple of 1/8
             ))
@@ -386,6 +395,51 @@ impl A320FlightWarningSystem {
         parameters.set_capt_mw_cancel_on(DiscreteParameter::new(self.mw_cancel_on_capt));
         parameters.set_fo_mw_cancel_on(DiscreteParameter::new(self.mw_cancel_on_fo));
 
+        // DMC data
+
+        parameters.set_decision_height_1(if let Some(dh) = self.decision_height {
+            Arinc429Parameter::new(dh)
+        } else {
+            Arinc429Parameter::new_ncd(Length::new::<foot>(0.))
+        });
+        parameters.set_decision_height_2(if let Some(dh) = self.decision_height {
+            Arinc429Parameter::new(dh)
+        } else {
+            Arinc429Parameter::new_ncd(Length::new::<foot>(0.))
+        });
+
+        parameters.set_hundred_above_for_mda_mdh_request_1(DiscreteParameter::new(
+            if let Some(mda) = self.minimum_descent_altitude {
+                altitude_1.ssm() == SignStatus::NormalOperation
+                    && altitude_1.value() <= mda + Length::new::<foot>(100.0)
+            } else {
+                false
+            },
+        ));
+        parameters.set_hundred_above_for_mda_mdh_request_2(DiscreteParameter::new(
+            if let Some(mda) = self.minimum_descent_altitude {
+                altitude_2.ssm() == SignStatus::NormalOperation
+                    && altitude_2.value() <= mda + Length::new::<foot>(100.0)
+            } else {
+                false
+            },
+        ));
+
+        parameters.set_minimum_for_mda_mdh_request_1(DiscreteParameter::new(
+            if let Some(mda) = self.minimum_descent_altitude {
+                altitude_1.ssm() == SignStatus::NormalOperation && altitude_1.value() <= mda
+            } else {
+                false
+            },
+        ));
+        parameters.set_minimum_for_mda_mdh_request_2(DiscreteParameter::new(
+            if let Some(mda) = self.minimum_descent_altitude {
+                altitude_2.ssm() == SignStatus::NormalOperation && altitude_2.value() <= mda
+            } else {
+                false
+            },
+        ));
+
         parameters
     }
 }
@@ -419,6 +473,20 @@ impl SimulationElement for A320FlightWarningSystem {
         self.mw_cancel_on_fo = reader.read(&self.mw_cancel_on_fo_id);
         self.mc_cancel_on_capt = reader.read(&self.mc_cancel_on_capt_id);
         self.mc_cancel_on_fo = reader.read(&self.mc_cancel_on_fo_id);
+
+        let dh: i32 = reader.read(&self.decision_height_id);
+        self.decision_height = if dh > 0 {
+            Some(Length::new::<foot>(f64::from(dh)))
+        } else {
+            None
+        };
+
+        let mda: i32 = reader.read(&self.minimum_descent_altitude_id);
+        self.minimum_descent_altitude = if mda > 0 {
+            Some(Length::new::<foot>(f64::from(dh)))
+        } else {
+            None
+        };
     }
 
     fn write(&self, writer: &mut SimulatorWriter) {

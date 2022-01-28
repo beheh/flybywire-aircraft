@@ -128,23 +128,6 @@ class A32NX_GPWS {
         }
 
         this.GPWSComputeLightsAndCallouts();
-
-        /*
-        const mda = SimVar.GetSimVarValue("L:AIRLINER_MINIMUM_DESCENT_ALTITUDE", "feet");
-        const dh = SimVar.GetSimVarValue("L:AIRLINER_DECISION_HEIGHT", "feet");
-        if ((mda !== 0 || dh !== -1) && phase === FmgcFlightPhases.APPROACH) {
-            let minimumsDA; //MDA or DH
-            let minimumsIA; //radio or baro altitude
-            const baroAlt = SimVar.GetSimVarValue("INDICATED ALTITUDE", "feet");
-            if (dh >= 0) {
-                minimumsDA = dh;
-                minimumsIA = radioAlt;
-            } else {
-                minimumsDA = mda;
-                minimumsIA = baroAlt;
-            }
-            this.gpws_minimums(minimumsDA, minimumsIA);
-        }*/
     }
 
     /**

@@ -677,7 +677,7 @@ const D1D2Cell = () => {
 };
 
 const D3Cell = () => {
-    const MDA = getSimVar('L:AIRLINER_MINIMUM_DESCENT_ALTITUDE', 'feet');
+    const MDA = getSimVar('L:A32NX_MINIMUM_DESCENT_ALTITUDE', 'feet');
     let text: JSX.Element | string | null = null;
     let fontSize = 'FontSmallest';
     if (MDA !== 0) {
@@ -689,7 +689,7 @@ const D3Cell = () => {
             </>
         );
     } else {
-        const DH = getSimVar('L:AIRLINER_DECISION_HEIGHT', 'feet');
+        const DH = getSimVar('L:A32NX_DECISION_HEIGHT', 'feet');
         if (DH !== -1 && DH !== -2) {
             const DHText = Math.round(DH).toString().padStart(4, ' ');
             text = (

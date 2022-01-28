@@ -97,7 +97,7 @@ export const PFD: React.FC = () => {
     const groundTrack = useArinc429Var(`L:A32NX_ADIRS_IR_${inertialReferenceSource}_TRACK`);
 
     const radioAlt = getSimVar('PLANE ALT ABOVE GROUND MINUS CG', 'feet');
-    const decisionHeight = getSimVar('L:AIRLINER_DECISION_HEIGHT', 'feet');
+    const decisionHeight = getSimVar('L:A32NX_DECISION_HEIGHT', 'feet');
 
     const altitude = useArinc429Var(`L:A32NX_ADIRS_ADR_${airDataReferenceSource}_ALTITUDE`);
 
@@ -106,7 +106,7 @@ export const PFD: React.FC = () => {
     const barometricVerticalSpeed = useArinc429Var(`L:A32NX_ADIRS_ADR_${airDataReferenceSource}_BAROMETRIC_VERTICAL_SPEED`);
     const verticalSpeed = inertialVerticalSpeed.isNormalOperation() ? inertialVerticalSpeed : barometricVerticalSpeed;
 
-    const mda = getSimVar('L:AIRLINER_MINIMUM_DESCENT_ALTITUDE', 'feet');
+    const mda = getSimVar('L:A32NX_MINIMUM_DESCENT_ALTITUDE', 'feet');
 
     const FlightPhase = getSimVar('L:A32NX_FWC_FLIGHT_PHASE', 'Enum');
 

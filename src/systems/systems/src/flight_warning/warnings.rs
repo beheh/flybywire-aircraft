@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::time::Duration;
 
-#[derive(Eq, PartialEq, Hash)]
+#[derive(Eq, PartialEq, Hash, Copy, Clone)]
 pub struct WarningCode {
     ata: u8,
     sub_ata: u8,

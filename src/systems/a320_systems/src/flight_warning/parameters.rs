@@ -253,8 +253,24 @@ pub(super) trait TcasAuralAdvisaryOutput {
     fn tcas_aural_advisory_output(&self) -> &DiscreteParameter;
 }
 
+pub(super) trait DecisionHeight {
+    fn decision_height(&self, index: u8) -> &Arinc429Parameter<Length>;
+}
+
+pub(super) trait HundredAboveForMdaMdhRequest {
+    fn hundred_above_for_mda_mdh_request(&self, index: u8) -> &DiscreteParameter;
+}
+
+pub(super) trait MinimumForMdaMdhRequest {
+    fn minimum_for_mda_mdh_request(&self, index: u8) -> &DiscreteParameter;
+}
+
 /// This trait represents the pins for the pin programmed auto callouts.
 pub(super) trait AutoCalloutPins {
+    fn decision_height_code_a(&self) -> &DiscreteParameter;
+    fn decision_height_code_b(&self) -> &DiscreteParameter;
+    fn decision_height_plus_100_ft_code_a(&self) -> &DiscreteParameter;
+    fn decision_height_plus_100_ft_code_b(&self) -> &DiscreteParameter;
     fn auto_call_out_2500_ft(&self) -> &DiscreteParameter;
     fn auto_call_out_2500b(&self) -> &DiscreteParameter;
     fn auto_call_out_2000_ft(&self) -> &DiscreteParameter;
@@ -378,6 +394,16 @@ pub struct A320FWCParameterTable {
     gpws_modes_on: DiscreteParameter,
     gs_visual_alert_on: DiscreteParameter,
     tcas_aural_advisory_output: DiscreteParameter,
+    decision_height_1: Arinc429Parameter<Length>,
+    decision_height_2: Arinc429Parameter<Length>,
+    hundred_above_for_mda_mdh_request_1: DiscreteParameter,
+    hundred_above_for_mda_mdh_request_2: DiscreteParameter,
+    minimum_for_mda_mdh_request_1: DiscreteParameter,
+    minimum_for_mda_mdh_request_2: DiscreteParameter,
+    decision_height_code_a: DiscreteParameter,
+    decision_height_code_b: DiscreteParameter,
+    decision_height_plus_100_ft_code_a: DiscreteParameter,
+    decision_height_plus_100_ft_code_b: DiscreteParameter,
     auto_call_out_2500_ft: DiscreteParameter,
     auto_call_out_2500b: DiscreteParameter,
     auto_call_out_2000_ft: DiscreteParameter,
@@ -479,22 +505,32 @@ impl A320FWCParameterTable {
             gpws_modes_on: DiscreteParameter::new_inv(false),
             gs_visual_alert_on: DiscreteParameter::new_inv(false),
             tcas_aural_advisory_output: DiscreteParameter::new_inv(false),
-            auto_call_out_2500_ft: DiscreteParameter::new(true), // TODO
-            auto_call_out_2500b: DiscreteParameter::new(false),  // TODO
-            auto_call_out_2000_ft: DiscreteParameter::new(true), // TODO
-            auto_call_out_1000_ft: DiscreteParameter::new(true), // TODO
-            auto_call_out_500_ft: DiscreteParameter::new(true),  // TODO
+            decision_height_1: Arinc429Parameter::new_inv(Length::new::<foot>(0.0)),
+            decision_height_2: Arinc429Parameter::new_inv(Length::new::<foot>(0.0)),
+            hundred_above_for_mda_mdh_request_1: DiscreteParameter::new_inv(false),
+            hundred_above_for_mda_mdh_request_2: DiscreteParameter::new_inv(false),
+            minimum_for_mda_mdh_request_1: DiscreteParameter::new_inv(false),
+            minimum_for_mda_mdh_request_2: DiscreteParameter::new_inv(false),
+            decision_height_code_a: DiscreteParameter::new(true), // TODO
+            decision_height_code_b: DiscreteParameter::new(true), // TODO
+            decision_height_plus_100_ft_code_a: DiscreteParameter::new(true), // TODO
+            decision_height_plus_100_ft_code_b: DiscreteParameter::new(true), // TODO
+            auto_call_out_2500_ft: DiscreteParameter::new(true),  // TODO
+            auto_call_out_2500b: DiscreteParameter::new(false),   // TODO
+            auto_call_out_2000_ft: DiscreteParameter::new(true),  // TODO
+            auto_call_out_1000_ft: DiscreteParameter::new(true),  // TODO
+            auto_call_out_500_ft: DiscreteParameter::new(true),   // TODO
             auto_call_out_500_ft_glide_deviation: DiscreteParameter::new(false), // TODO
-            auto_call_out_400_ft: DiscreteParameter::new(true),  // TODO
-            auto_call_out_300_ft: DiscreteParameter::new(true),  // TODO
-            auto_call_out_200_ft: DiscreteParameter::new(true),  // TODO
-            auto_call_out_100_ft: DiscreteParameter::new(true),  // TODO
-            auto_call_out_50_ft: DiscreteParameter::new(true),   // TODO
-            auto_call_out_40_ft: DiscreteParameter::new(true),   // TODO
-            auto_call_out_30_ft: DiscreteParameter::new(true),   // TODO
-            auto_call_out_20_ft: DiscreteParameter::new(true),   // TODO
-            auto_call_out_10_ft: DiscreteParameter::new(true),   // TODO
-            auto_call_out_5_ft: DiscreteParameter::new(true),    // TODO
+            auto_call_out_400_ft: DiscreteParameter::new(true),   // TODO
+            auto_call_out_300_ft: DiscreteParameter::new(true),   // TODO
+            auto_call_out_200_ft: DiscreteParameter::new(true),   // TODO
+            auto_call_out_100_ft: DiscreteParameter::new(true),   // TODO
+            auto_call_out_50_ft: DiscreteParameter::new(true),    // TODO
+            auto_call_out_40_ft: DiscreteParameter::new(true),    // TODO
+            auto_call_out_30_ft: DiscreteParameter::new(true),    // TODO
+            auto_call_out_20_ft: DiscreteParameter::new(true),    // TODO
+            auto_call_out_10_ft: DiscreteParameter::new(true),    // TODO
+            auto_call_out_5_ft: DiscreteParameter::new(true),     // TODO
             glide_deviation_1: Arinc429Parameter::new_inv(Ratio::new::<ratio>(0.0)),
             glide_deviation_2: Arinc429Parameter::new_inv(Ratio::new::<ratio>(0.0)),
         }
@@ -731,6 +767,37 @@ impl A320FWCParameterTable {
 
     pub(super) fn set_gs_mode_on_2(&mut self, gs_mode_on_2: Arinc429Parameter<bool>) {
         self.gs_mode_on_2 = gs_mode_on_2;
+    }
+
+    pub(super) fn set_decision_height_1(&mut self, decision_height_1: Arinc429Parameter<Length>) {
+        self.decision_height_1 = decision_height_1;
+    }
+    pub(super) fn set_decision_height_2(&mut self, decision_height_2: Arinc429Parameter<Length>) {
+        self.decision_height_2 = decision_height_2;
+    }
+    pub(super) fn set_hundred_above_for_mda_mdh_request_1(
+        &mut self,
+        hundred_above_for_mda_mdh_request_1: DiscreteParameter,
+    ) {
+        self.hundred_above_for_mda_mdh_request_1 = hundred_above_for_mda_mdh_request_1;
+    }
+    pub(super) fn set_hundred_above_for_mda_mdh_request_2(
+        &mut self,
+        hundred_above_for_mda_mdh_request_2: DiscreteParameter,
+    ) {
+        self.hundred_above_for_mda_mdh_request_2 = hundred_above_for_mda_mdh_request_2;
+    }
+    pub(super) fn set_minimum_for_mda_mdh_request_1(
+        &mut self,
+        minimum_for_mda_mdh_request_1: DiscreteParameter,
+    ) {
+        self.minimum_for_mda_mdh_request_1 = minimum_for_mda_mdh_request_1;
+    }
+    pub(super) fn set_minimum_for_mda_mdh_request_2(
+        &mut self,
+        minimum_for_mda_mdh_request_2: DiscreteParameter,
+    ) {
+        self.minimum_for_mda_mdh_request_2 = minimum_for_mda_mdh_request_2;
     }
 }
 impl FwcIdentSide1 for A320FWCParameterTable {
@@ -1107,8 +1174,54 @@ impl TcasAuralAdvisaryOutput for A320FWCParameterTable {
     }
 }
 
+impl DecisionHeight for A320FWCParameterTable {
+    fn decision_height(&self, index: u8) -> &Arinc429Parameter<Length> {
+        match index {
+            1 => &self.decision_height_1,
+            2 => &self.decision_height_2,
+            _ => panic!(),
+        }
+    }
+}
+
+impl HundredAboveForMdaMdhRequest for A320FWCParameterTable {
+    fn hundred_above_for_mda_mdh_request(&self, index: u8) -> &DiscreteParameter {
+        match index {
+            1 => &self.hundred_above_for_mda_mdh_request_1,
+            2 => &self.hundred_above_for_mda_mdh_request_2,
+            _ => panic!(),
+        }
+    }
+}
+
+impl MinimumForMdaMdhRequest for A320FWCParameterTable {
+    fn minimum_for_mda_mdh_request(&self, index: u8) -> &DiscreteParameter {
+        match index {
+            1 => &self.minimum_for_mda_mdh_request_1,
+            2 => &self.minimum_for_mda_mdh_request_2,
+            _ => panic!(),
+        }
+    }
+}
+
 impl AutoCalloutPins for A320FWCParameterTable {
     /// TODO move to vars
+
+    fn decision_height_code_a(&self) -> &DiscreteParameter {
+        &self.decision_height_code_a
+    }
+
+    fn decision_height_code_b(&self) -> &DiscreteParameter {
+        &self.decision_height_code_b
+    }
+
+    fn decision_height_plus_100_ft_code_a(&self) -> &DiscreteParameter {
+        &self.decision_height_plus_100_ft_code_a
+    }
+
+    fn decision_height_plus_100_ft_code_b(&self) -> &DiscreteParameter {
+        &self.decision_height_plus_100_ft_code_b
+    }
 
     fn auto_call_out_2500_ft(&self) -> &DiscreteParameter {
         &self.auto_call_out_2500_ft

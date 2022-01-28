@@ -46,6 +46,12 @@ pub(super) struct A320FlightWarningComputerRuntime {
     altitude_alert_slats: AltitudeAlertSlatInhibitActivation,
     altitude_alert_fmgc: AltitudeAlertFmgcInhibitActivation,
     altitude_alert_ap_tcas: AltitudeAlertApTcasInhibitActivation,
+    hoisted_gpws_inhibition: HoistedGpwsInhibitionActivation,
+    audio_generated: AudioGeneratedActivation,
+    decision_height_val: DecisionHeightValActivation,
+    mda_mdh_inhib: MdaMdhInbitionActivation,
+    hundred_above: HundredAboveActivation,
+    minimum: MinimumActivation,
     altitude_callout_threshold1: AltitudeThreshold1Activation,
     altitude_callout_threshold2: AltitudeThreshold2Activation,
     altitude_callout_threshold3: AltitudeThreshold3Activation,
@@ -107,6 +113,12 @@ impl Default for A320FlightWarningComputerRuntime {
             to_memo: Default::default(),
             ldg_memo: Default::default(),
             altitude_alert_ap_tcas: Default::default(),
+            hoisted_gpws_inhibition: Default::default(),
+            audio_generated: Default::default(),
+            decision_height_val: Default::default(),
+            mda_mdh_inhib: Default::default(),
+            hundred_above: Default::default(),
+            minimum: Default::default(),
             altitude_callout_threshold1: Default::default(),
             altitude_callout_threshold2: Default::default(),
             altitude_callout_threshold3: Default::default(),
@@ -258,21 +270,16 @@ impl A320FlightWarningComputerRuntime {
         );
 
         self.altitude_alert_c_chord
-            .update(delta, &self.altitude_alert, &self.general_cancel);
+            .update(delta, &self.altitude_alert);
 
-        // Audio Altitude Callout
-
-        self.altitude_callout_threshold1.update(parameters);
-        self.altitude_callout_threshold2
-            .update(delta, &self.altitude_callout_threshold1);
-        self.altitude_callout_threshold3.update(
-            delta,
-            parameters,
-            &self.dh_dt_positive,
-            &self.altitude_callout_threshold1,
-            &self.altitude_callout_threshold2,
+        // Auto Call Out Setup
+        self.hoisted_gpws_inhibition.update(delta, parameters);
+        self.audio_generated.update(
+            self.monitor.minimum_generated(),
+            self.monitor.hundred_above_generated(),
         );
 
+        self.altitude_callout_threshold1.update(parameters);
         self.altitude_callout_inhibit.update(
             parameters,
             &self.altitude_callout_threshold1,
@@ -281,6 +288,44 @@ impl A320FlightWarningComputerRuntime {
             &self.flight_phases_ground,
             &self.eng_1_start_sequence,
             &self.eng_2_start_sequence,
+        );
+
+        // Hundred Above & Minimum Callout
+
+        self.decision_height_val.update(parameters);
+        self.mda_mdh_inhib.update(
+            delta,
+            parameters,
+            &self.hoisted_gpws_inhibition,
+            &self.decision_height_val,
+            &self.altitude_callout_inhibit,
+        );
+        self.hundred_above.update(
+            delta,
+            parameters,
+            &self.audio_generated,
+            &self.decision_height_val,
+            &self.mda_mdh_inhib,
+        );
+        self.minimum.update(
+            delta,
+            parameters,
+            &self.hundred_above,
+            &self.audio_generated,
+            &self.decision_height_val,
+            &self.mda_mdh_inhib,
+        );
+
+        // Audio Altitude Callout
+
+        self.altitude_callout_threshold2
+            .update(delta, &self.altitude_callout_threshold1);
+        self.altitude_callout_threshold3.update(
+            &self.hoisted_gpws_inhibition,
+            &self.dh_dt_positive,
+            &self.altitude_callout_threshold1,
+            &self.altitude_callout_threshold2,
+            &self.minimum,
         );
 
         self.altitude_callout_triggers1.update(
@@ -368,6 +413,7 @@ impl A320FlightWarningComputerRuntime {
             &self.altitude_callout_threshold1,
             &self.altitude_callout_threshold3,
             &self.altitude_callout_threshold_detection,
+            &self.minimum,
             self.monitor.auto_call_out_generated(),
             self.monitor.inter_audio(),
         );
@@ -399,43 +445,55 @@ impl A320FlightWarningComputerRuntime {
     fn update_monitor(&mut self, delta: Duration) {
         let mut warnings: Vec<WarningCode> = Default::default();
 
-        if self.altitude_callout_30_ft.audio_30() {
+        if self.hundred_above.audio() {
+            warnings.push(WarningCode::new(22, 00, 060));
+        }
+        if self.minimum.audio() {
+            warnings.push(WarningCode::new(22, 00, 070));
+        }
+        if self.altitude_callout_30_ft.audio() {
             warnings.push(WarningCode::new(34, 00, 310));
         }
-        if self.altitude_callout_40_ft.audio_40() {
+        if self.altitude_callout_40_ft.audio() {
             warnings.push(WarningCode::new(34, 00, 300));
         }
-        if self.altitude_callout_50_ft.audio_50() {
+        if self.altitude_callout_50_ft.audio() {
             warnings.push(WarningCode::new(34, 00, 290));
         }
-        if self.altitude_callout_100_ft.audio_100() {
+        if self.altitude_callout_100_ft.audio() {
             warnings.push(WarningCode::new(34, 00, 280));
         }
-        if self.altitude_callout_200_ft.audio_200() {
+        if self.altitude_callout_200_ft.audio() {
             warnings.push(WarningCode::new(34, 00, 270));
         }
-        if self.altitude_callout_300_ft.audio_300() {
+        if self.altitude_callout_300_ft.audio() {
             warnings.push(WarningCode::new(34, 00, 260));
         }
-        if self.altitude_callout_400_ft.four_hundred() {
+        if self.altitude_callout_400_ft.audio() {
             warnings.push(WarningCode::new(34, 00, 255));
         }
-        if self.altitude_callout_500_ft.five_hundred() {
+        if self.altitude_callout_500_ft.audio() {
             warnings.push(WarningCode::new(34, 00, 380));
         }
-        if self.altitude_callout_1000_ft.one_thousand() {
+        if self.altitude_callout_1000_ft.audio() {
             warnings.push(WarningCode::new(34, 00, 390));
         }
-        if self.altitude_callout_2000_ft.two_thousand() {
+        if self.altitude_callout_2000_ft.audio() {
             warnings.push(WarningCode::new(34, 00, 410));
         }
-        if self.altitude_callout_2500_ft.two_thd_five_hd() {
+        if self.altitude_callout_2500_ft.audio() {
             warnings.push(WarningCode::new(34, 00, 420));
+        }
+
+        if self.altitude_alert_c_chord.audio() {
+            warnings.push(WarningCode::new(22, 00, 050))
         }
 
         self.monitor.update(
             delta,
             A320MonitorParameters {
+                mw_cancel_pulse_up: self.general_cancel.mw_cancel_pulse_up(),
+                mc_cancel_pulse_up: self.general_cancel.mc_cancel_pulse_up(),
                 radio_height: self.altitude_callout_threshold1.radio_height(),
                 retard_inhibition: false,
                 auto_call_out_inhib: self.altitude_callout_inhibit.auto_call_out_inhib(),
@@ -489,7 +547,7 @@ impl A320FlightWarningComputerRuntime {
     }
 
     pub fn c_chord(&self) -> bool {
-        self.altitude_alert_c_chord.c_chord()
+        self.monitor.c_chord()
     }
 
     pub fn alt_alert_light_on(&self) -> bool {
@@ -751,24 +809,27 @@ mod tests {
             #[test]
             fn when_both_engines_off_and_on_ground_audio_is_attenuated() {
                 let mut runtime = A320FlightWarningComputerRuntime::new();
-                let mut test_bed = test_bed().on_ground();
-                runtime.update(Duration::from_secs(30), &test_bed.parameters());
+                runtime.update(
+                    Duration::from_secs(30),
+                    &test_bed().on_ground().parameters(),
+                );
                 assert!(runtime.audio_attenuation());
             }
 
             #[test]
             fn when_both_engines_off_and_in_air_audio_is_not_attenuated() {
                 let mut runtime = A320FlightWarningComputerRuntime::new();
-                let mut test_bed = test_bed();
-                runtime.update(Duration::from_secs(30), &test_bed.parameters());
+                runtime.update(Duration::from_secs(30), &test_bed().parameters());
                 assert!(!runtime.audio_attenuation());
             }
 
             #[test]
             fn when_both_engines_running_and_on_ground_audio_is_not_attenuated() {
                 let mut runtime = A320FlightWarningComputerRuntime::new();
-                let mut test_bed = test_bed().on_ground().with().engines_running();
-                runtime.update(Duration::from_secs(30), &test_bed.parameters());
+                runtime.update(
+                    Duration::from_secs(30),
+                    &test_bed().on_ground().with().engines_running().parameters(),
+                );
                 assert!(!runtime.audio_attenuation());
             }
         }

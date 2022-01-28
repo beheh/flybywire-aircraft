@@ -6,6 +6,8 @@ use uom::si::length::foot;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub(super) enum SyntheticVoice {
+    Minimum,
+    HundredAbove,
     One,
     Two,
     Three,
@@ -64,6 +66,7 @@ pub(super) struct SyntheticVoiceFile {
 }
 
 /// ID space:
+/// 80: HundredAbove, Minimum
 /// 100s: 1, 2, ..9
 /// 110s: 10, 11, 12, ..19
 /// 120s: 20, 30, 40, ..90
@@ -75,6 +78,14 @@ pub(super) struct SyntheticVoiceFile {
 impl SyntheticVoice {
     fn get_voice_file(&self) -> SyntheticVoiceFile {
         return match self {
+            SyntheticVoice::Minimum => SyntheticVoiceFile {
+                id: 80,
+                duration: Duration::from_millis(670),
+            },
+            SyntheticVoice::HundredAbove => SyntheticVoiceFile {
+                id: 81,
+                duration: Duration::from_millis(720),
+            },
             SyntheticVoice::One => SyntheticVoiceFile {
                 id: 101,
                 duration: Duration::from_millis(339),
@@ -305,23 +316,17 @@ pub(super) struct VoiceSynthesizer {
 
 impl VoiceSynthesizer {
     pub fn update(&mut self, delta: Duration, requested_sound: Option<SyntheticVoice>) {
-        if let Some(ref mut playing) = self.playing {
+        if let Some(sound) = requested_sound {
+            // play something new
+            self.playing = Some(PlayingSound {
+                file: sound.get_voice_file(),
+                elapsed: Duration::ZERO,
+            });
+        } else if let Some(ref mut playing) = self.playing {
+            // continue playing
             playing.elapse(delta);
             if playing.complete() {
-                self.playing = None
-            }
-        }
-
-        if self.playing.is_none() {
-            // rechecking here because it might have just completed
-            if let Some(sound) = requested_sound {
-                if self.playing.is_some() {
-                    return;
-                }
-                self.playing = Some(PlayingSound {
-                    file: sound.get_voice_file(),
-                    elapsed: Duration::ZERO,
-                });
+                self.playing = None;
             }
         }
     }
@@ -358,10 +363,15 @@ pub struct SyntheticVoiceManager {
 }
 
 impl SyntheticVoiceManager {
-    pub(super) fn update(&mut self, delta: Duration, parts: Option<Vec<SyntheticVoice>>) {
+    pub(super) fn update(
+        &mut self,
+        delta: Duration,
+        parts: Option<Vec<SyntheticVoice>>,
+        cancel: bool,
+    ) {
         let mut requested_sound: Option<SyntheticVoice> = None;
-        if self.synthesizer.ready_in(delta) {
-            if self.next_index < self.sequence.len() {
+        if self.synthesizer.ready_in(delta) || cancel {
+            if self.next_index < self.sequence.len() && !cancel {
                 // we have parts still to play
                 requested_sound = Some(self.sequence[self.next_index].clone());
                 self.next_index = self.next_index + 1;
@@ -385,6 +395,10 @@ impl SyntheticVoiceManager {
 
     pub fn ready(&self) -> bool {
         self.synthesizer.ready()
+    }
+
+    pub fn ready_in(&self, delta: Duration) -> bool {
+        self.synthesizer.ready_in(delta)
     }
 }
 
