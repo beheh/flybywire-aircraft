@@ -1,6 +1,5 @@
 use std::fmt::Debug;
 use std::time::Duration;
-use systems::flight_warning::logic::PulseNode;
 use uom::si::f64::*;
 use uom::si::length::foot;
 

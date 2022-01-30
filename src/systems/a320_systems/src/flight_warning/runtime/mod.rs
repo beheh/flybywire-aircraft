@@ -277,8 +277,7 @@ impl A320FlightWarningComputerRuntime {
             &self.lg_downlocked,
         );
 
-        self.altitude_alert_c_chord
-            .update(delta, &self.altitude_alert);
+        self.altitude_alert_c_chord.update(&self.altitude_alert);
 
         // Auto Call Out Setup
         self.hoisted_gpws_inhibition.update(delta, parameters);
