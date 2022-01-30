@@ -118,17 +118,24 @@ impl A320FWCMonitor {
         let mut requested_synthetic_voice: Option<Vec<SyntheticVoice>> = None;
         let mut cancel_any_playing_synthetic_voice = false;
 
-        if self.synthetic_voice_manager.ready_in(delta) {
-            if warnings.contains(&WarningCode::new(22, 00, 060)) {
-                self.hundred_above_generated = true;
-                requested_synthetic_voice = Some(vec![SyntheticVoice::HundredAbove])
-            }
-        } else if warnings.contains(&WarningCode::new(22, 00, 070)) {
+        if warnings.contains(&WarningCode::new(22, 00, 070)) {
             cancel_any_playing_synthetic_voice = true;
             self.minimum_generated = true;
             requested_synthetic_voice = Some(vec![SyntheticVoice::Minimum])
         } else if self.synthetic_voice_manager.ready_in(delta) {
-            if warnings.contains(&WarningCode::new(34, 00, 310)) {
+            if warnings.contains(&WarningCode::new(22, 00, 060)) {
+                self.hundred_above_generated = true;
+                requested_synthetic_voice = Some(vec![SyntheticVoice::HundredAbove])
+            } else if warnings.contains(&WarningCode::new(34, 00, 340)) {
+                self.auto_call_out_generated = true;
+                requested_synthetic_voice = Some(vec![SyntheticVoice::Five]);
+            } else if warnings.contains(&WarningCode::new(34, 00, 330)) {
+                self.auto_call_out_generated = true;
+                requested_synthetic_voice = Some(vec![SyntheticVoice::Ten]);
+            } else if warnings.contains(&WarningCode::new(34, 00, 320)) {
+                self.auto_call_out_generated = true;
+                requested_synthetic_voice = Some(vec![SyntheticVoice::Twenty]);
+            } else if warnings.contains(&WarningCode::new(34, 00, 310)) {
                 self.auto_call_out_generated = true;
                 requested_synthetic_voice = Some(vec![SyntheticVoice::Thirty]);
             } else if warnings.contains(&WarningCode::new(34, 00, 300)) {
@@ -158,6 +165,9 @@ impl A320FWCMonitor {
             } else if warnings.contains(&WarningCode::new(34, 00, 410)) {
                 self.auto_call_out_generated = true;
                 requested_synthetic_voice = Some(vec![SyntheticVoice::TwoThousand]);
+            } else if warnings.contains(&WarningCode::new(34, 00, 400)) {
+                self.auto_call_out_generated = true;
+                requested_synthetic_voice = Some(vec![SyntheticVoice::TwentyFiveHundred]);
             } else if warnings.contains(&WarningCode::new(34, 00, 420)) {
                 self.auto_call_out_generated = true;
                 requested_synthetic_voice = Some(vec![SyntheticVoice::TwoThousandFiveHundred]);

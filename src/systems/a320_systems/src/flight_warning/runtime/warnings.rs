@@ -3457,6 +3457,59 @@ impl WarningActivation for AltitudeCallout2500FtAnnounceActivation {
     }
 }
 
+pub(super) struct AltitudeCallout2500BFtAnnounceActivation {
+    hysteresis: HysteresisNode<Length>,
+    mem: MemoryNode,
+    active_pulse: PulseNode,
+    prec_node: PreceedingValueNode,
+    reset_pulse: PulseNode,
+    twenty_five_hundred: bool,
+}
+
+impl Default for AltitudeCallout2500BFtAnnounceActivation {
+    fn default() -> Self {
+        Self {
+            hysteresis: HysteresisNode::new(Length::new::<foot>(2500.), Length::new::<foot>(3000.)),
+            mem: MemoryNode::new(false),
+            prec_node: Default::default(),
+            reset_pulse: PulseNode::new(false),
+            active_pulse: PulseNode::new(true),
+            twenty_five_hundred: false,
+        }
+    }
+}
+
+impl AltitudeCallout2500BFtAnnounceActivation {
+    pub fn update(
+        &mut self,
+        altitude_callout_threshold_1_sheet: &impl AltitudeThreshold1,
+        altitude_callout_inhib_sheet: &impl AutomaticCallOutInhibition,
+        altitude_trigger_sheet: &impl AltitudeThresholdTriggers1,
+    ) {
+        let rh = altitude_callout_threshold_1_sheet.radio_height();
+        let seuil_2500b_ft = altitude_trigger_sheet.seuil_2500_ft();
+        let auto_call_out_inhib = altitude_callout_inhib_sheet.auto_call_out_inhib();
+
+        let hysteresis_out = self.hysteresis.update(rh);
+        let reset_pulse_out = self.reset_pulse.update(hysteresis_out);
+
+        let mem_out = self.mem.update(self.prec_node.value(), reset_pulse_out);
+
+        let active = hysteresis_out && seuil_2500b_ft && !auto_call_out_inhib && !mem_out;
+
+        let active_pulse_out = self.active_pulse.update(active);
+        self.prec_node.update(active_pulse_out);
+
+        self.twenty_five_hundred = active;
+    }
+}
+
+impl WarningActivation for AltitudeCallout2500BFtAnnounceActivation {
+    fn warning(&self) -> bool {
+        self.twenty_five_hundred
+    }
+}
+
 pub(super) struct AltitudeCallout2000FtAnnounceActivation {
     hysteresis: HysteresisNode<Length>,
     mem: MemoryNode,
@@ -3944,14 +3997,13 @@ impl AltitudeCallout30FtAnnounceActivation {
         delta: Duration,
         altitude_callout_inhib_sheet: &impl AutomaticCallOutInhibition,
         altitude_trigger_sheet: &impl AltitudeThresholdTriggers3,
+        audio_20_sheet: &impl AltitudeCallout20FtAnnounce,
     ) {
-        let saying_thirty = false;
-
         let active = self.pulse.update(
             altitude_trigger_sheet.seuil_30_ft()
                 && !altitude_callout_inhib_sheet.auto_call_out_inhib(),
         ) && !self.prec.value()
-            && !saying_thirty;
+            && !audio_20_sheet.audio_20();
 
         self.prec.update(self.mtrig.update(active, delta));
 
@@ -3968,6 +4020,198 @@ impl AltitudeCallout30FtAnnounce for AltitudeCallout30FtAnnounceActivation {
 impl WarningActivation for AltitudeCallout30FtAnnounceActivation {
     fn warning(&self) -> bool {
         self.aco_30
+    }
+}
+
+pub(super) trait AltitudeCallout20FtAnnounce {
+    fn audio_20(&self) -> bool;
+}
+
+pub(super) struct AltitudeCallout20FtAnnounceActivation {
+    pulse: PulseNode,
+    mtrig: MonostableTriggerNode,
+    prec: PreceedingValueNode,
+    aco_20: bool,
+}
+
+impl Default for AltitudeCallout20FtAnnounceActivation {
+    fn default() -> Self {
+        Self {
+            pulse: PulseNode::new(true),
+            mtrig: MonostableTriggerNode::new(true, Duration::from_secs(2)),
+            prec: Default::default(),
+            aco_20: false,
+        }
+    }
+}
+
+impl AltitudeCallout20FtAnnounceActivation {
+    pub fn update(
+        &mut self,
+        delta: Duration,
+        signals: &(impl LandTrkModeOn + AThrEngaged),
+        altitude_callout_inhib_sheet: &impl AutomaticCallOutInhibition,
+        altitude_trigger_sheet: &impl AltitudeThresholdTriggers3,
+        ap_sheet: &impl AutoFlightAutopilotOffVoluntary,
+        audio_10_sheet: &impl AltitudeCallout10FtAnnounce,
+    ) {
+        let ap1_in_land = ap_sheet.ap1_engd() && signals.land_trk_mode_on(1).value();
+        let ap2_in_land = ap_sheet.ap2_engd() && signals.land_trk_mode_on(2).value();
+        let any_ap_in_land = ap1_in_land || ap2_in_land;
+        let athr_engaged = signals.athr_engaged().value();
+
+        let pulse_out = self.pulse.update(
+            altitude_trigger_sheet.seuil_20_ft()
+                && !altitude_callout_inhib_sheet.auto_call_out_inhib(),
+        );
+
+        let active = any_ap_in_land
+            && athr_engaged
+            && pulse_out
+            && !self.prec.value()
+            && !audio_10_sheet.audio_10();
+
+        self.prec.update(self.mtrig.update(active, delta));
+
+        self.aco_20 = active;
+    }
+}
+
+impl AltitudeCallout20FtAnnounce for AltitudeCallout20FtAnnounceActivation {
+    fn audio_20(&self) -> bool {
+        self.aco_20
+    }
+}
+
+impl WarningActivation for AltitudeCallout20FtAnnounceActivation {
+    fn warning(&self) -> bool {
+        self.aco_20
+    }
+}
+
+pub(super) trait AltitudeCallout10FtAnnounce {
+    fn audio_10(&self) -> bool;
+}
+
+pub(super) struct AltitudeCallout10FtAnnounceActivation {
+    pulse: PulseNode,
+    mtrig: MonostableTriggerNode,
+    prec: PreceedingValueNode,
+    aco_10: bool,
+}
+
+impl Default for AltitudeCallout10FtAnnounceActivation {
+    fn default() -> Self {
+        Self {
+            pulse: PulseNode::new(true),
+            mtrig: MonostableTriggerNode::new(true, Duration::from_secs(2)),
+            prec: Default::default(),
+            aco_10: false,
+        }
+    }
+}
+
+impl AltitudeCallout10FtAnnounceActivation {
+    pub fn update(
+        &mut self,
+        delta: Duration,
+        signals: &(impl LandTrkModeOn + AThrEngaged),
+        altitude_callout_inhib_sheet: &impl AutomaticCallOutInhibition,
+        altitude_trigger_sheet: &impl AltitudeThresholdTriggers3,
+        ap_sheet: &impl AutoFlightAutopilotOffVoluntary,
+        audio_5_sheet: &impl AltitudeCallout5FtAnnounce,
+    ) {
+        let ap1_in_land = ap_sheet.ap1_engd() && signals.land_trk_mode_on(1).value();
+        let ap2_in_land = ap_sheet.ap2_engd() && signals.land_trk_mode_on(2).value();
+        let any_ap_in_land = ap1_in_land || ap2_in_land;
+        let athr_engaged = signals.athr_engaged().value();
+
+        let pulse_out = self.pulse.update(
+            altitude_trigger_sheet.seuil_10_ft()
+                && !altitude_callout_inhib_sheet.auto_call_out_inhib(),
+        );
+
+        let retard_inhibtion = false; // TODO
+
+        let saying_five = false; // TODO
+
+        let active = ((!any_ap_in_land && athr_engaged) || !athr_engaged)
+            && pulse_out
+            && !self.prec.value()
+            && !retard_inhibtion
+            && !saying_five;
+
+        self.prec.update(self.mtrig.update(active, delta));
+
+        self.aco_10 = active;
+    }
+}
+
+impl AltitudeCallout10FtAnnounce for AltitudeCallout10FtAnnounceActivation {
+    fn audio_10(&self) -> bool {
+        self.aco_10
+    }
+}
+
+impl WarningActivation for AltitudeCallout10FtAnnounceActivation {
+    fn warning(&self) -> bool {
+        self.aco_10
+    }
+}
+
+pub(super) trait AltitudeCallout5FtAnnounce {
+    fn audio_5(&self) -> bool;
+}
+
+pub(super) struct AltitudeCallout5FtAnnounceActivation {
+    pulse: PulseNode,
+    mtrig: MonostableTriggerNode,
+    prec: PreceedingValueNode,
+    aco_5: bool,
+}
+
+impl Default for AltitudeCallout5FtAnnounceActivation {
+    fn default() -> Self {
+        Self {
+            pulse: PulseNode::new(true),
+            mtrig: MonostableTriggerNode::new(true, Duration::from_secs(2)),
+            prec: Default::default(),
+            aco_5: false,
+        }
+    }
+}
+
+impl AltitudeCallout5FtAnnounceActivation {
+    pub fn update(
+        &mut self,
+        delta: Duration,
+        altitude_callout_inhib_sheet: &impl AutomaticCallOutInhibition,
+        altitude_trigger_sheet: &impl AltitudeThresholdTriggers3,
+    ) {
+        let retard_inhibition = false;
+
+        let active = self.pulse.update(
+            altitude_trigger_sheet.seuil_5_ft()
+                && !altitude_callout_inhib_sheet.auto_call_out_inhib()
+                && !self.prec.value()
+                && !retard_inhibition,
+        );
+
+        self.prec.update(self.mtrig.update(active, delta));
+
+        self.aco_5 = active;
+    }
+}
+
+impl AltitudeCallout5FtAnnounce for AltitudeCallout5FtAnnounceActivation {
+    fn audio_5(&self) -> bool {
+        self.aco_5
+    }
+}
+
+impl WarningActivation for AltitudeCallout5FtAnnounceActivation {
+    fn warning(&self) -> bool {
+        self.aco_5
     }
 }
 

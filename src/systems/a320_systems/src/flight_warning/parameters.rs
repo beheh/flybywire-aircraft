@@ -265,6 +265,14 @@ pub(super) trait MinimumForMdaMdhRequest {
     fn minimum_for_mda_mdh_request(&self, index: u8) -> &DiscreteParameter;
 }
 
+pub(super) trait LandTrkModeOn {
+    fn land_trk_mode_on(&self, index: u8) -> &Arinc429Parameter<bool>;
+}
+
+pub(super) trait AThrEngaged {
+    fn athr_engaged(&self) -> &Arinc429Parameter<bool>;
+}
+
 /// This trait represents the pins for the pin programmed auto callouts.
 pub(super) trait AutoCalloutPins {
     fn decision_height_code_a(&self) -> &DiscreteParameter;
@@ -422,6 +430,9 @@ pub struct A320FWCParameterTable {
     auto_call_out_5_ft: DiscreteParameter,
     glide_deviation_1: Arinc429Parameter<Ratio>,
     glide_deviation_2: Arinc429Parameter<Ratio>,
+    land_trk_mode_on_1: Arinc429Parameter<bool>,
+    land_trk_mode_on_2: Arinc429Parameter<bool>,
+    athr_engaged: Arinc429Parameter<bool>,
 }
 
 impl A320FWCParameterTable {
@@ -533,6 +544,9 @@ impl A320FWCParameterTable {
             auto_call_out_5_ft: DiscreteParameter::new(true),     // TODO
             glide_deviation_1: Arinc429Parameter::new_inv(Ratio::new::<ratio>(0.0)),
             glide_deviation_2: Arinc429Parameter::new_inv(Ratio::new::<ratio>(0.0)),
+            land_trk_mode_on_1: Arinc429Parameter::new_inv(false),
+            land_trk_mode_on_2: Arinc429Parameter::new_inv(false),
+            athr_engaged: Arinc429Parameter::new_inv(false),
         }
     }
 
@@ -781,23 +795,38 @@ impl A320FWCParameterTable {
     ) {
         self.hundred_above_for_mda_mdh_request_1 = hundred_above_for_mda_mdh_request_1;
     }
+
     pub(super) fn set_hundred_above_for_mda_mdh_request_2(
         &mut self,
         hundred_above_for_mda_mdh_request_2: DiscreteParameter,
     ) {
         self.hundred_above_for_mda_mdh_request_2 = hundred_above_for_mda_mdh_request_2;
     }
+
     pub(super) fn set_minimum_for_mda_mdh_request_1(
         &mut self,
         minimum_for_mda_mdh_request_1: DiscreteParameter,
     ) {
         self.minimum_for_mda_mdh_request_1 = minimum_for_mda_mdh_request_1;
     }
+
     pub(super) fn set_minimum_for_mda_mdh_request_2(
         &mut self,
         minimum_for_mda_mdh_request_2: DiscreteParameter,
     ) {
         self.minimum_for_mda_mdh_request_2 = minimum_for_mda_mdh_request_2;
+    }
+
+    pub(super) fn set_land_trk_mode_on_1(&mut self, land_trk_mode_on_1: Arinc429Parameter<bool>) {
+        self.land_trk_mode_on_1 = land_trk_mode_on_1;
+    }
+
+    pub(super) fn set_land_trk_mode_on_2(&mut self, land_trk_mode_on_2: Arinc429Parameter<bool>) {
+        self.land_trk_mode_on_2 = land_trk_mode_on_2;
+    }
+
+    pub(super) fn set_athr_engaged(&mut self, athr_engaged: Arinc429Parameter<bool>) {
+        self.athr_engaged = athr_engaged;
     }
 }
 impl FwcIdentSide1 for A320FWCParameterTable {
@@ -1295,5 +1324,21 @@ impl GlideDeviation for A320FWCParameterTable {
             2 => &self.glide_deviation_2,
             _ => panic!(),
         }
+    }
+}
+
+impl LandTrkModeOn for A320FWCParameterTable {
+    fn land_trk_mode_on(&self, index: u8) -> &Arinc429Parameter<bool> {
+        match index {
+            1 => &self.land_trk_mode_on_1,
+            2 => &self.land_trk_mode_on_2,
+            _ => panic!(),
+        }
+    }
+}
+
+impl AThrEngaged for A320FWCParameterTable {
+    fn athr_engaged(&self) -> &Arinc429Parameter<bool> {
+        &self.athr_engaged
     }
 }

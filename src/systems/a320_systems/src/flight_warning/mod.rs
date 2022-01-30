@@ -121,6 +121,8 @@ pub(super) struct A320FlightWarningSystem {
     mc_cancel_on_fo_id: VariableIdentifier,
     decision_height_id: VariableIdentifier,
     minimum_descent_altitude_id: VariableIdentifier,
+    fma_vertical_mode_id: VariableIdentifier,
+    autothrust_status_id: VariableIdentifier,
 
     fwc1: A320FlightWarningComputer,
     fwc2: A320FlightWarningComputer,
@@ -140,6 +142,8 @@ pub(super) struct A320FlightWarningSystem {
     mc_cancel_on_fo: bool,
     decision_height: Option<Length>,
     minimum_descent_altitude: Option<Length>,
+    fma_vertical_mode: u8,
+    autothrust_status: u8,
 
     fwc1_normal_id: VariableIdentifier,
     fwc2_normal_id: VariableIdentifier,
@@ -173,6 +177,8 @@ impl A320FlightWarningSystem {
             decision_height_id: context.get_identifier("DECISION_HEIGHT".to_owned()),
             minimum_descent_altitude_id: context
                 .get_identifier("MINIMUM_DESCENT_ALTITUDE".to_owned()),
+            fma_vertical_mode_id: context.get_identifier("FMA_VERTICAL_MODE".to_owned()),
+            autothrust_status_id: context.get_identifier("AUTOTHRUST_STATUS".to_owned()),
             fwc1: A320FlightWarningComputer::new(
                 context,
                 1,
@@ -198,6 +204,8 @@ impl A320FlightWarningSystem {
             mc_cancel_on_fo: false,
             decision_height: None,
             minimum_descent_altitude: None,
+            fma_vertical_mode: 0,
+            autothrust_status: 0,
             fwc1_normal_id: context.get_identifier("FWC_1_NORMAL".to_owned()),
             fwc2_normal_id: context.get_identifier("FWC_2_NORMAL".to_owned()),
             flight_phase_id: context.get_identifier("FWC_FLIGHT_PHASE".to_owned()),
@@ -440,6 +448,15 @@ impl A320FlightWarningSystem {
             },
         ));
 
+        parameters.set_athr_engaged(Arinc429Parameter::new(self.autothrust_status == 2));
+
+        parameters.set_land_trk_mode_on_1(Arinc429Parameter::new(
+            self.ap1_active && self.fma_vertical_mode == 32,
+        ));
+        parameters.set_land_trk_mode_on_2(Arinc429Parameter::new(
+            self.ap2_active && self.fma_vertical_mode == 32,
+        ));
+
         parameters
     }
 }
@@ -487,6 +504,9 @@ impl SimulationElement for A320FlightWarningSystem {
         } else {
             None
         };
+
+        self.fma_vertical_mode = reader.read(&self.fma_vertical_mode_id);
+        self.autothrust_status = reader.read(&self.autothrust_status_id);
     }
 
     fn write(&self, writer: &mut SimulatorWriter) {

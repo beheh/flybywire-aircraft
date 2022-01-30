@@ -59,6 +59,9 @@ pub(super) struct A320FlightWarningComputerRuntime {
     altitude_callout_triggers1: AltitudeThresholdTriggers1Activation,
     altitude_callout_triggers2: AltitudeThresholdTriggers2Activation,
     altitude_callout_triggers3: AltitudeThresholdTriggers3Activation,
+    altitude_callout_5_ft: AltitudeCallout5FtAnnounceActivation,
+    altitude_callout_10_ft: AltitudeCallout10FtAnnounceActivation,
+    altitude_callout_20_ft: AltitudeCallout20FtAnnounceActivation,
     altitude_callout_30_ft: AltitudeCallout30FtAnnounceActivation,
     altitude_callout_40_ft: AltitudeCallout40FtAnnounceActivation,
     altitude_callout_50_ft: AltitudeCallout50FtAnnounceActivation,
@@ -70,6 +73,7 @@ pub(super) struct A320FlightWarningComputerRuntime {
     altitude_callout_1000_ft: AltitudeCallout1000FtAnnounceActivation,
     altitude_callout_2000_ft: AltitudeCallout2000FtAnnounceActivation,
     altitude_callout_2500_ft: AltitudeCallout2500FtAnnounceActivation,
+    altitude_callout_2500b_ft: AltitudeCallout2500BFtAnnounceActivation,
     altitude_callout_threshold_detection: AltitudeCalloutThresholdDetectionActivation,
     altitude_callout_intermediate_audio: IntermediateAudioActivation,
     to_memo: ToMemoActivation,
@@ -126,6 +130,9 @@ impl Default for A320FlightWarningComputerRuntime {
             altitude_callout_triggers1: Default::default(),
             altitude_callout_triggers2: Default::default(),
             altitude_callout_triggers3: Default::default(),
+            altitude_callout_5_ft: Default::default(),
+            altitude_callout_10_ft: Default::default(),
+            altitude_callout_20_ft: Default::default(),
             altitude_callout_30_ft: Default::default(),
             altitude_callout_40_ft: Default::default(),
             altitude_callout_50_ft: Default::default(),
@@ -137,6 +144,7 @@ impl Default for A320FlightWarningComputerRuntime {
             altitude_callout_1000_ft: Default::default(),
             altitude_callout_2000_ft: Default::default(),
             altitude_callout_2500_ft: Default::default(),
+            altitude_callout_2500b_ft: Default::default(),
             altitude_callout_threshold_detection: Default::default(),
             altitude_callout_intermediate_audio: Default::default(),
         }
@@ -346,10 +354,34 @@ impl A320FlightWarningComputerRuntime {
             &self.altitude_callout_threshold3,
         );
 
+        // TODO retard sheets
+
+        self.altitude_callout_5_ft.update(
+            delta,
+            &self.altitude_callout_inhibit,
+            &self.altitude_callout_triggers3,
+        );
+        self.altitude_callout_10_ft.update(
+            delta,
+            parameters,
+            &self.altitude_callout_inhibit,
+            &self.altitude_callout_triggers3,
+            &self.ap_off_voluntarily,
+            &self.altitude_callout_5_ft,
+        );
+        self.altitude_callout_20_ft.update(
+            delta,
+            parameters,
+            &self.altitude_callout_inhibit,
+            &self.altitude_callout_triggers3,
+            &self.ap_off_voluntarily,
+            &self.altitude_callout_10_ft,
+        );
         self.altitude_callout_30_ft.update(
             delta,
             &self.altitude_callout_inhibit,
             &self.altitude_callout_triggers3,
+            &self.altitude_callout_20_ft,
         );
         self.altitude_callout_40_ft.update(
             delta,
@@ -404,6 +436,11 @@ impl A320FlightWarningComputerRuntime {
             &self.altitude_callout_inhibit,
             &self.altitude_callout_triggers1,
         );
+        self.altitude_callout_2500b_ft.update(
+            &self.altitude_callout_threshold1,
+            &self.altitude_callout_inhibit,
+            &self.altitude_callout_triggers1,
+        );
         self.altitude_callout_threshold_detection.update(
             &self.altitude_callout_triggers2,
             &self.altitude_callout_triggers3,
@@ -451,6 +488,15 @@ impl A320FlightWarningComputerRuntime {
         if self.minimum.audio() {
             warnings.push(WarningCode::new(22, 00, 070));
         }
+        if self.altitude_callout_5_ft.audio() {
+            warnings.push(WarningCode::new(34, 00, 340));
+        }
+        if self.altitude_callout_10_ft.audio() {
+            warnings.push(WarningCode::new(34, 00, 330));
+        }
+        if self.altitude_callout_20_ft.audio() {
+            warnings.push(WarningCode::new(34, 00, 320));
+        }
         if self.altitude_callout_30_ft.audio() {
             warnings.push(WarningCode::new(34, 00, 310));
         }
@@ -483,6 +529,9 @@ impl A320FlightWarningComputerRuntime {
         }
         if self.altitude_callout_2500_ft.audio() {
             warnings.push(WarningCode::new(34, 00, 420));
+        }
+        if self.altitude_callout_2500b_ft.audio() {
+            warnings.push(WarningCode::new(34, 00, 400));
         }
 
         if self.altitude_alert_c_chord.audio() {
