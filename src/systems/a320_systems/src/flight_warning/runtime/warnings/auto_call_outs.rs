@@ -1145,7 +1145,7 @@ impl AltitudeCallout2500BFtAnnounceActivation {
         altitude_trigger_sheet: &impl AltitudeThresholdTriggers1,
     ) {
         let rh = altitude_callout_threshold_1_sheet.radio_height();
-        let seuil_2500b_ft = altitude_trigger_sheet.seuil_2500_ft();
+        let seuil_2500b_ft = altitude_trigger_sheet.seuil_2500b_ft();
         let auto_call_out_inhib = altitude_callout_inhib_sheet.auto_call_out_inhib();
 
         let hysteresis_out = self.hysteresis.update(rh);

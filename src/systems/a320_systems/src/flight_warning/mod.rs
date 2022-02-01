@@ -500,7 +500,7 @@ impl SimulationElement for A320FlightWarningSystem {
 
         let mda: i32 = reader.read(&self.minimum_descent_altitude_id);
         self.minimum_descent_altitude = if mda > 0 {
-            Some(Length::new::<foot>(f64::from(dh)))
+            Some(Length::new::<foot>(f64::from(mda)))
         } else {
             None
         };
