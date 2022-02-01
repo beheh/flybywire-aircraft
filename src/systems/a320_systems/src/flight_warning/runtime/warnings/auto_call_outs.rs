@@ -390,7 +390,8 @@ impl MinimumActivation {
         // Outputs
 
         self.dh_generated_discrete = dh_cond || mda_mdh_cond;
-        self.dh_generated = self.dh_generated || minimum_generated || ha_sheet.dh_hundred_above();
+        self.dh_generated =
+            self.dh_generated_discrete || minimum_generated || ha_sheet.dh_hundred_above();
     }
 }
 
