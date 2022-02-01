@@ -603,7 +603,7 @@ impl TlaAtMctOrFlexToCfmActivation {
         }
     }
 
-    pub fn update(&mut self, signals: &(impl Eng1Tla + Eng2Tla)) {
+    pub fn update(&mut self, signals: &(impl Eng1TlaCfm + Eng2TlaCfm)) {
         let any_cfm = true;
 
         // Engine 1
@@ -719,7 +719,7 @@ impl TlaPwrReverseActivation {
     pub fn update(
         &mut self,
         delta: Duration,
-        signals: &(impl Eng1Tla + Eng2Tla),
+        signals: &(impl Eng1TlaCfm + Eng2TlaCfm),
         eng_take_off_cfm: &impl EngTakeOffCfm,
     ) {
         let any_cfm = true;
@@ -813,7 +813,7 @@ impl TlaAtClCfmActivation {
         }
     }
 
-    pub fn update(&mut self, _delta: Duration, signals: &(impl Eng1Tla + Eng2Tla)) {
+    pub fn update(&mut self, _delta: Duration, signals: &(impl Eng1TlaCfm + Eng2TlaCfm)) {
         let any_cfm = true;
 
         // Engine 1

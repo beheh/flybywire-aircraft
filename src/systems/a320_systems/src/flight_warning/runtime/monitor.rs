@@ -121,10 +121,19 @@ impl A320FWCMonitor {
         if warnings.contains(&WarningCode::new(22, 00, 070)) {
             cancel_any_playing_synthetic_voice = true;
             self.minimum_generated = true;
+            self.auto_call_out_generated = true;
             requested_synthetic_voice = Some(vec![SyntheticVoice::Minimum])
         } else if self.synthetic_voice_manager.ready_in(delta) {
-            if warnings.contains(&WarningCode::new(22, 00, 060)) {
+            if warnings.contains(&WarningCode::new(34, 00, 360)) {
+                self.auto_call_out_generated = true;
+                requested_synthetic_voice = Some(vec![SyntheticVoice::Ten, SyntheticVoice::Retard])
+            } else if warnings.contains(&WarningCode::new(34, 00, 350)) {
+                self.auto_call_out_generated = true;
+                requested_synthetic_voice =
+                    Some(vec![SyntheticVoice::Twenty, SyntheticVoice::Retard])
+            } else if warnings.contains(&WarningCode::new(22, 00, 060)) {
                 self.hundred_above_generated = true;
+                self.auto_call_out_generated = true;
                 requested_synthetic_voice = Some(vec![SyntheticVoice::HundredAbove])
             } else if warnings.contains(&WarningCode::new(34, 00, 340)) {
                 self.auto_call_out_generated = true;

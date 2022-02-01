@@ -5,6 +5,7 @@ use uom::si::length::foot;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub(super) enum SyntheticVoice {
+    Retard,
     Minimum,
     HundredAbove,
     One,
@@ -77,13 +78,17 @@ pub(super) struct SyntheticVoiceFile {
 impl SyntheticVoice {
     fn get_voice_file(&self) -> SyntheticVoiceFile {
         return match self {
+            SyntheticVoice::Retard => SyntheticVoiceFile {
+                id: 70,
+                duration: Duration::from_millis(716),
+            },
             SyntheticVoice::Minimum => SyntheticVoiceFile {
                 id: 80,
-                duration: Duration::from_millis(670),
+                duration: Duration::from_millis(584),
             },
             SyntheticVoice::HundredAbove => SyntheticVoiceFile {
                 id: 81,
-                duration: Duration::from_millis(720),
+                duration: Duration::from_millis(694),
             },
             SyntheticVoice::One => SyntheticVoiceFile {
                 id: 101,

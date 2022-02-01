@@ -569,6 +569,10 @@
 
         <!-- Synthetic Voice ========================================================================================  -->
 
+        <Sound WwiseData="true" WwiseEvent="new_retard" Continuous="true" NodeName="PEDALS_LEFT" LocalVar="A32NX_FWS_SYNTHETIC_VOICE" Units="ENUM" Index="0">
+            <Range LowerBound="70" UpperBound="70" />
+        </Sound>
+
         <Sound WwiseData="true" WwiseEvent="aural_minimumnew" Continuous="true" NodeName="PEDALS_LEFT" LocalVar="A32NX_FWS_SYNTHETIC_VOICE" Units="ENUM" Index="0">
             <Range LowerBound="80" UpperBound="80" />
         </Sound>

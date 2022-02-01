@@ -1,4 +1,5 @@
 use std::time::Duration;
+use uom::si::angle::degree;
 
 use super::*;
 use systems::flight_warning::logic::*;
@@ -1873,6 +1874,138 @@ impl WarningActivation for AltitudeCallout5FtAnnounceActivation {
 
 pub(in crate::flight_warning::runtime) trait AltitudeCalloutThresholdDetection {
     fn non_inhibited_threshold_detection(&self) -> bool;
+}
+
+pub(in crate::flight_warning::runtime) trait AutoCallOutTwentyRetardAnnounce {
+    fn retard_toga(&self) -> bool;
+    fn toga(&self) -> bool;
+}
+
+pub(in crate::flight_warning::runtime) struct AutoCallOutTwentyRetardAnnounceActivation {
+    pulse: PulseNode,
+    mtrig: MonostableTriggerNode,
+    prec: PreceedingValueNode,
+    toga: bool,
+    retard_toga: bool,
+    aco_twenty_retard: bool,
+}
+
+impl Default for AutoCallOutTwentyRetardAnnounceActivation {
+    fn default() -> Self {
+        Self {
+            pulse: PulseNode::new(true),
+            mtrig: MonostableTriggerNode::new(true, Duration::from_secs(2)),
+            prec: PreceedingValueNode::new(),
+            toga: false,
+            retard_toga: false,
+            aco_twenty_retard: false,
+        }
+    }
+}
+
+impl AutoCallOutTwentyRetardAnnounceActivation {
+    pub fn update(
+        &mut self,
+        delta: Duration,
+        signals: &(impl Eng1TlaCfm + Eng2TlaCfm + LandTrkModeOn + AThrEngaged),
+        inhibit_sheet: &impl AutomaticCallOutInhibition,
+        cfm_tla_sheet: &impl TlaAtMctOrFlexToCfm,
+        flight_phase_sheet: &impl FlightPhasesGround,
+        trigger_sheet: &impl AltitudeThresholdTriggers3,
+        ap_sheet: &impl AutoFlightAutopilotOffVoluntary,
+    ) {
+        let cfm_tla_cond = signals.eng1_tla(1).value() > Angle::new::<degree>(43.3)
+            || signals.eng2_tla(1).value() > Angle::new::<degree>(43.3);
+
+        let cfm_mct_cond = flight_phase_sheet.phase_8()
+            && (cfm_tla_sheet.eng_1_sup_mct_cfm() || cfm_tla_sheet.eng_2_sup_mct_cfm());
+
+        let toga_cond = cfm_tla_cond || cfm_mct_cond;
+        let retard_inhib = inhibit_sheet.retard_inhib();
+
+        self.retard_toga = retard_inhib || toga_cond;
+        self.toga = toga_cond || inhibit_sheet.auto_call_out_inhib();
+
+        let ap1_in_land = ap_sheet.ap1_engd() && signals.land_trk_mode_on(1).value();
+        let ap2_in_land = ap_sheet.ap2_engd() && signals.land_trk_mode_on(2).value();
+        let any_ap_in_land = ap1_in_land || ap2_in_land;
+        let athr_engaged = signals.athr_engaged().value();
+        let athr_cond = !athr_engaged || !any_ap_in_land;
+
+        let twenty_retard =
+            !self.toga && trigger_sheet.seuil_20_ft() && athr_cond && !self.prec.value();
+
+        let pulse_out = self.pulse.update(twenty_retard);
+        self.aco_twenty_retard = pulse_out;
+        self.prec.update(self.mtrig.update(pulse_out, delta));
+    }
+}
+
+impl AutoCallOutTwentyRetardAnnounce for AutoCallOutTwentyRetardAnnounceActivation {
+    fn retard_toga(&self) -> bool {
+        self.retard_toga
+    }
+
+    fn toga(&self) -> bool {
+        self.toga
+    }
+}
+
+impl WarningActivation for AutoCallOutTwentyRetardAnnounceActivation {
+    fn warning(&self) -> bool {
+        self.aco_twenty_retard
+    }
+}
+
+pub(in crate::flight_warning::runtime) struct AutoCallOutTenRetardAnnounceActivation {
+    pulse: PulseNode,
+    mtrig: MonostableTriggerNode,
+    prec: PreceedingValueNode,
+    aco_twenty_retard: bool,
+}
+
+impl Default for AutoCallOutTenRetardAnnounceActivation {
+    fn default() -> Self {
+        Self {
+            pulse: PulseNode::new(true),
+            mtrig: MonostableTriggerNode::new(true, Duration::from_secs(2)),
+            prec: PreceedingValueNode::new(),
+            aco_twenty_retard: false,
+        }
+    }
+}
+
+impl AutoCallOutTenRetardAnnounceActivation {
+    pub fn update(
+        &mut self,
+        delta: Duration,
+        signals: &(impl Eng1TlaCfm + Eng2TlaCfm + LandTrkModeOn + AThrEngaged),
+        inhibit_sheet: &impl AutomaticCallOutInhibition,
+        twenty_sheet: &impl AutoCallOutTwentyRetardAnnounce,
+        trigger_sheet: &impl AltitudeThresholdTriggers3,
+        ap_sheet: &impl AutoFlightAutopilotOffVoluntary,
+    ) {
+        let ap1_in_land = ap_sheet.ap1_engd() && signals.land_trk_mode_on(1).value();
+        let ap2_in_land = ap_sheet.ap2_engd() && signals.land_trk_mode_on(2).value();
+        let any_ap_in_land = ap1_in_land || ap2_in_land;
+        let athr_engaged = signals.athr_engaged().value();
+        let athr_cond = athr_engaged && any_ap_in_land;
+
+        let twenty_retard = !(twenty_sheet.toga() || inhibit_sheet.auto_call_out_inhib())
+            && trigger_sheet.seuil_10_ft()
+            && athr_cond
+            && !self.prec.value();
+
+        let pulse_out = self.pulse.update(twenty_retard);
+        self.aco_twenty_retard = pulse_out;
+        self.prec.update(self.mtrig.update(pulse_out, delta));
+    }
+}
+
+impl WarningActivation for AutoCallOutTenRetardAnnounceActivation {
+    fn warning(&self) -> bool {
+        self.aco_twenty_retard
+    }
 }
 
 #[derive(Default)]

@@ -85,11 +85,11 @@ pub(super) trait ToConfigTest {
     fn to_config_test(&self) -> &Arinc429Parameter<bool>;
 }
 
-pub(super) trait Eng1Tla {
+pub(super) trait Eng1TlaCfm {
     fn eng1_tla(&self, index: u8) -> &Arinc429Parameter<Angle>;
 }
 
-pub(super) trait Eng2Tla {
+pub(super) trait Eng2TlaCfm {
     fn eng2_tla(&self, index: u8) -> &Arinc429Parameter<Angle>;
 }
 
@@ -948,7 +948,7 @@ impl ToConfigTest for A320FWCParameterTable {
     }
 }
 
-impl Eng1Tla for A320FWCParameterTable {
+impl Eng1TlaCfm for A320FWCParameterTable {
     fn eng1_tla(&self, index: u8) -> &Arinc429Parameter<Angle> {
         match index {
             1 => &self.eng1_tla_a,
@@ -958,7 +958,7 @@ impl Eng1Tla for A320FWCParameterTable {
     }
 }
 
-impl Eng2Tla for A320FWCParameterTable {
+impl Eng2TlaCfm for A320FWCParameterTable {
     fn eng2_tla(&self, index: u8) -> &Arinc429Parameter<Angle> {
         match index {
             1 => &self.eng2_tla_a,

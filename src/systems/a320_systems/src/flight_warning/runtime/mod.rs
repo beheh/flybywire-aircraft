@@ -74,6 +74,8 @@ pub(super) struct A320FlightWarningComputerRuntime {
     altitude_callout_2000_ft: AltitudeCallout2000FtAnnounceActivation,
     altitude_callout_2500_ft: AltitudeCallout2500FtAnnounceActivation,
     altitude_callout_2500b_ft: AltitudeCallout2500BFtAnnounceActivation,
+    twenty_retard_callout: AutoCallOutTwentyRetardAnnounceActivation,
+    ten_retard_callout: AutoCallOutTenRetardAnnounceActivation,
     altitude_callout_threshold_detection: AltitudeCalloutThresholdDetectionActivation,
     altitude_callout_intermediate_audio: IntermediateAudioActivation,
     to_memo: ToMemoActivation,
@@ -145,6 +147,8 @@ impl Default for A320FlightWarningComputerRuntime {
             altitude_callout_2000_ft: Default::default(),
             altitude_callout_2500_ft: Default::default(),
             altitude_callout_2500b_ft: Default::default(),
+            twenty_retard_callout: Default::default(),
+            ten_retard_callout: Default::default(),
             altitude_callout_threshold_detection: Default::default(),
             altitude_callout_intermediate_audio: Default::default(),
         }
@@ -440,6 +444,23 @@ impl A320FlightWarningComputerRuntime {
             &self.altitude_callout_inhibit,
             &self.altitude_callout_triggers1,
         );
+        self.twenty_retard_callout.update(
+            delta,
+            parameters,
+            &self.altitude_callout_inhibit,
+            &self.tla_at_mct_or_flex_to_cfm,
+            &self.flight_phases_ground,
+            &self.altitude_callout_triggers3,
+            &self.ap_off_voluntarily,
+        );
+        self.ten_retard_callout.update(
+            delta,
+            parameters,
+            &self.altitude_callout_inhibit,
+            &self.twenty_retard_callout,
+            &self.altitude_callout_triggers3,
+            &self.ap_off_voluntarily,
+        );
         self.altitude_callout_threshold_detection.update(
             &self.altitude_callout_triggers2,
             &self.altitude_callout_triggers3,
@@ -481,6 +502,12 @@ impl A320FlightWarningComputerRuntime {
     fn update_monitor(&mut self, delta: Duration) {
         let mut warnings: Vec<WarningCode> = Default::default();
 
+        if self.ten_retard_callout.audio() {
+            warnings.push(WarningCode::new(34, 00, 360));
+        }
+        if self.twenty_retard_callout.audio() {
+            warnings.push(WarningCode::new(34, 00, 350));
+        }
         if self.hundred_above.audio() {
             warnings.push(WarningCode::new(22, 00, 060));
         }
