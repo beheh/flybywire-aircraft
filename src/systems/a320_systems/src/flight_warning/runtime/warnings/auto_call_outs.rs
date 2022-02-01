@@ -275,11 +275,6 @@ impl HundredAboveActivation {
 
         let mda_mdh_cond = !mem_mda_mdh_out && mtrig2_out && pin_programmed && !mda_mdh_inhib;
 
-        println!(
-            "dh={} hundred_above_generated={} pin_programmed={} below_100_above={} mtrig1_out={} mem_dh_out={} dh_inhib={} dh_cond={}",
-            dh.get::<foot>(), hundred_above_generated, pin_programmed, below_100_above, mtrig1_out, mem_dh_out, dh_inhib, dh_cond
-        );
-
         // Outputs
 
         self.ha_generated = dh_cond || mda_mdh_cond;
