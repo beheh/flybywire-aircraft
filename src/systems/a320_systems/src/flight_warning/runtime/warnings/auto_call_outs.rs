@@ -536,7 +536,9 @@ pub(in crate::flight_warning::runtime) trait AltitudeThreshold2 {
     fn alt_40_ft(&self) -> bool;
     fn alt_30_ft(&self) -> bool;
     fn alt_20_ft(&self) -> bool;
+    fn alt_inf_20_ft(&self) -> bool;
     fn alt_10_ft(&self) -> bool;
+    fn alt_inf_10_ft(&self) -> bool;
     fn alt_5_ft(&self) -> bool;
     fn alt_inf_3_ft(&self) -> bool;
     fn dh_inhibition(&self) -> bool;
@@ -609,8 +611,16 @@ impl AltitudeThreshold2 for AltitudeThreshold2Activation {
         self.alt_20_ft
     }
 
+    fn alt_inf_20_ft(&self) -> bool {
+        self.alt_inf_20_ft
+    }
+
     fn alt_10_ft(&self) -> bool {
         self.alt_10_ft
+    }
+
+    fn alt_inf_10_ft(&self) -> bool {
+        self.alt_inf_10_ft
     }
 
     fn alt_5_ft(&self) -> bool {
@@ -785,7 +795,7 @@ impl AutomaticCallOutInhibitionActivation {
         let ra_invalid = threshold1_sheet.ra_invalid();
         let ra_ncd = threshold1_sheet.ra_no_computed_data();
         let cfm_flex = cfm_flex_sheet.cfm_flex();
-        let iae_flex = false; // TODO
+        let iae_flex = false; // TODO IAE
         let speed_on = false; // TODO
 
         let main_inhibit = stall_on || ra_invalid || ra_ncd || cfm_flex || iae_flex || speed_on;
@@ -1775,6 +1785,7 @@ impl AltitudeCallout10FtAnnounceActivation {
         altitude_trigger_sheet: &impl AltitudeThresholdTriggers3,
         ap_sheet: &impl AutoFlightAutopilotOffVoluntary,
         audio_5_sheet: &impl AltitudeCallout5FtAnnounce,
+        retard_sheet: &impl AutoCallOutRetardAnnounce,
     ) {
         let ap1_in_land = ap_sheet.ap1_engd() && signals.land_trk_mode_on(1).value();
         let ap2_in_land = ap_sheet.ap2_engd() && signals.land_trk_mode_on(2).value();
@@ -1786,12 +1797,10 @@ impl AltitudeCallout10FtAnnounceActivation {
                 && !altitude_callout_inhib_sheet.auto_call_out_inhib(),
         );
 
-        let retard_inhibtion = false; // TODO
-
         let active = ((!any_ap_in_land && athr_engaged) || !athr_engaged)
             && pulse_out
             && !self.prec.value()
-            && !retard_inhibtion
+            && !retard_sheet.retard_inhibition()
             && !audio_5_sheet.audio_5();
 
         self.prec.update(self.mtrig.update(active, delta));
@@ -1840,14 +1849,13 @@ impl AltitudeCallout5FtAnnounceActivation {
         delta: Duration,
         altitude_callout_inhib_sheet: &impl AutomaticCallOutInhibition,
         altitude_trigger_sheet: &impl AltitudeThresholdTriggers3,
+        retard_sheet: &impl AutoCallOutRetardAnnounce,
     ) {
-        let retard_inhibition = false;
-
         let active = self.pulse.update(
             altitude_trigger_sheet.seuil_5_ft()
                 && !altitude_callout_inhib_sheet.auto_call_out_inhib()
                 && !self.prec.value()
-                && !retard_inhibition,
+                && !retard_sheet.retard_inhibition(),
         );
 
         self.prec.update(self.mtrig.update(active, delta));
@@ -2001,6 +2009,276 @@ impl AutoCallOutTenRetardAnnounceActivation {
 impl WarningActivation for AutoCallOutTenRetardAnnounceActivation {
     fn warning(&self) -> bool {
         self.aco_twenty_retard
+    }
+}
+
+pub(in crate::flight_warning::runtime) trait TlaAtIdleRetard {
+    fn eng_1_inf_2_6(&self) -> bool;
+    fn eng_2_inf_2_6(&self) -> bool;
+    fn eng_1_tla_idle_retard(&self) -> bool;
+    fn eng_2_tla_idle_retard(&self) -> bool;
+    fn eng_12_idle_retard(&self) -> bool;
+}
+
+#[derive(Default)]
+pub(in crate::flight_warning::runtime) struct TlaAtIdleRetardActivation {
+    eng_1_inf_26: bool,
+    eng_2_inf_26: bool,
+    eng_1_tla_idle_retard: bool,
+    eng_2_tla_idle_retard: bool,
+    eng_12_idle_retard: bool,
+}
+
+impl TlaAtIdleRetardActivation {
+    pub fn update(&mut self, signals: &(impl Eng1TlaCfm + Eng2TlaCfm)) {
+        // TODO IAE
+        let eng_1_a = signals.eng1_tla(1);
+        let eng_1_b = signals.eng1_tla(2);
+
+        let eng_1_a_inf_26 = eng_1_a.is_val() && eng_1_a.value() < Angle::new::<degree>(2.6);
+        let eng_1_b_inf_26 = eng_1_b.is_val() && eng_1_b.value() < Angle::new::<degree>(2.6);
+        self.eng_1_inf_26 = eng_1_a_inf_26 || eng_1_b_inf_26;
+
+        let eng_1_a_idle_retard = eng_1_a_inf_26 && eng_1_a.value() >= Angle::new::<degree>(-4.3);
+        let eng_1_b_idle_retard = eng_1_b_inf_26 && eng_1_b.value() >= Angle::new::<degree>(-4.3);
+        self.eng_1_tla_idle_retard = eng_1_a_idle_retard || eng_1_b_idle_retard;
+
+        let eng_2_a = signals.eng2_tla(1);
+        let eng_2_b = signals.eng2_tla(2);
+
+        let eng_2_a_inf_26 = eng_2_a.is_val() && eng_2_a.value() < Angle::new::<degree>(2.6);
+        let eng_2_b_inf_26 = eng_2_b.is_val() && eng_2_b.value() < Angle::new::<degree>(2.6);
+        self.eng_2_inf_26 = eng_2_a_inf_26 || eng_2_b_inf_26;
+
+        let eng_2_a_idle_retard = eng_2_a_inf_26 && eng_2_a.value() >= Angle::new::<degree>(-4.3);
+        let eng_2_b_idle_retard = eng_2_b_inf_26 && eng_2_b.value() >= Angle::new::<degree>(-4.3);
+        self.eng_2_tla_idle_retard = eng_2_a_idle_retard || eng_2_b_idle_retard;
+
+        self.eng_12_idle_retard = self.eng_1_tla_idle_retard && self.eng_2_tla_idle_retard;
+    }
+}
+
+impl TlaAtIdleRetard for TlaAtIdleRetardActivation {
+    fn eng_1_inf_2_6(&self) -> bool {
+        self.eng_1_inf_26
+    }
+
+    fn eng_2_inf_2_6(&self) -> bool {
+        self.eng_2_inf_26
+    }
+
+    fn eng_1_tla_idle_retard(&self) -> bool {
+        self.eng_1_tla_idle_retard
+    }
+
+    fn eng_2_tla_idle_retard(&self) -> bool {
+        self.eng_2_tla_idle_retard
+    }
+
+    fn eng_12_idle_retard(&self) -> bool {
+        self.eng_12_idle_retard
+    }
+}
+
+pub(in crate::flight_warning::runtime) trait RetardTogaInhibition {
+    fn toga_inhibition(&self) -> bool;
+}
+
+pub(in crate::flight_warning::runtime) struct RetardTogaInhibitionActivation {
+    mem: MemoryNode,
+    phase2_pulse: PulseNode,
+    phase3_pulse: PulseNode,
+    phase4_pulse: PulseNode,
+    phase7_pulse: PulseNode,
+    phase9_pulse: PulseNode,
+    toga_inhibition: bool,
+}
+
+impl Default for RetardTogaInhibitionActivation {
+    fn default() -> Self {
+        Self {
+            mem: MemoryNode::new(false),
+            phase2_pulse: PulseNode::new(true),
+            phase3_pulse: PulseNode::new(true),
+            phase4_pulse: PulseNode::new(true),
+            phase7_pulse: PulseNode::new(true),
+            phase9_pulse: PulseNode::new(true),
+            toga_inhibition: false,
+        }
+    }
+}
+
+impl RetardTogaInhibitionActivation {
+    pub fn update(
+        &mut self,
+        idle_retard_sheet: &impl TlaAtIdleRetard,
+        flight_phases_gnd: &impl FlightPhasesGround,
+        flight_phases_air: &impl FlightPhasesAir,
+    ) {
+        let set = idle_retard_sheet.eng_12_idle_retard() && flight_phases_gnd.phase_8();
+
+        let new_retard = false; // TODO
+        let phase2_out = self.phase2_pulse.update(flight_phases_gnd.phase_2());
+        let phase3_out = self.phase3_pulse.update(flight_phases_gnd.phase_3());
+        let phase4_out = self.phase4_pulse.update(flight_phases_gnd.phase_4());
+        let phase7_out = self.phase7_pulse.update(flight_phases_air.phase_7());
+        let phase9_out = self.phase9_pulse.update(flight_phases_gnd.phase_9());
+
+        let reset =
+            new_retard || phase2_out || phase3_out || phase4_out || phase7_out || phase9_out;
+
+        self.toga_inhibition = self.mem.update(set, reset);
+    }
+}
+
+impl RetardTogaInhibition for RetardTogaInhibitionActivation {
+    fn toga_inhibition(&self) -> bool {
+        self.toga_inhibition
+    }
+}
+
+pub(in crate::flight_warning::runtime) trait RetardTlaInhibition {
+    fn tla_inhibition(&self) -> bool;
+}
+
+#[derive(Default)]
+pub(in crate::flight_warning::runtime) struct RetardTlaInhibitionActivation {
+    tla_inhibition: bool,
+}
+
+impl RetardTlaInhibitionActivation {
+    pub fn update(
+        &mut self,
+        engine_running_sheet: &impl EngineNotRunning,
+        reversers_sheet: &impl TlaPwrReverse,
+        idle_retard_sheet: &impl TlaAtIdleRetard,
+        retard_toga_inhib: &impl RetardTogaInhibition,
+    ) {
+        let eng1_not_on = engine_running_sheet.eng_1_not_running();
+        let eng2_not_on = engine_running_sheet.eng_2_not_running();
+
+        let eng1_any_tla_fault = false; // TODO
+        let eng1_tla_fault = !eng1_not_on && eng2_not_on && eng1_any_tla_fault;
+
+        let eng2_any_tla_fault = false; // TODO
+        let eng2_tla_fault = !eng2_not_on && eng1_not_on && eng2_any_tla_fault;
+
+        let eng1_reverser = reversers_sheet.eng_1_tla_reverse_cfm()
+            && (idle_retard_sheet.eng_2_inf_2_6() || eng2_not_on);
+        let eng2_reverser = reversers_sheet.eng_2_tla_reverse_cfm()
+            && (idle_retard_sheet.eng_1_inf_2_6() || eng1_not_on);
+        let reversers = eng1_reverser || eng2_reverser;
+
+        let running_and_idle_retard =
+            !eng1_not_on && !eng2_not_on && idle_retard_sheet.eng_12_idle_retard();
+
+        self.tla_inhibition = eng1_tla_fault
+            || eng2_tla_fault
+            || reversers
+            || running_and_idle_retard
+            || retard_toga_inhib.toga_inhibition();
+    }
+}
+
+impl RetardTlaInhibition for RetardTlaInhibitionActivation {
+    fn tla_inhibition(&self) -> bool {
+        self.tla_inhibition
+    }
+}
+
+pub(in crate::flight_warning::runtime) trait AutoCallOutRetardAnnounce {
+    fn retard_inhibition(&self) -> bool;
+    fn retard(&self) -> bool;
+}
+
+pub(in crate::flight_warning::runtime) struct AutoCallOutRetardAnnounceActivation {
+    conf1: ConfirmationNode,
+    conf2: ConfirmationNode,
+    pulse: PulseNode,
+    retard: bool,
+    retard_inhibition: bool,
+}
+
+impl Default for AutoCallOutRetardAnnounceActivation {
+    fn default() -> Self {
+        Self {
+            conf1: ConfirmationNode::new(true, Duration::from_secs_f64(0.1)),
+            conf2: ConfirmationNode::new(true, Duration::from_secs_f64(0.1)),
+            pulse: PulseNode::new(true),
+            retard: false,
+            retard_inhibition: false,
+        }
+    }
+}
+
+impl AutoCallOutRetardAnnounceActivation {
+    pub fn update(
+        &mut self,
+        delta: Duration,
+        signals: &(impl AutoCalloutPins + AThrEngaged + LandTrkModeOn),
+        tla_inhibition: &impl RetardTlaInhibition,
+        threshold_sheet: &impl AltitudeThreshold2,
+        cfm_flex_sheet: &impl CfmFlightPhasesDef,
+        flight_phases_air: &impl FlightPhasesAir,
+        flight_phases_gnd: &impl FlightPhasesGround,
+        twenty_retard_sheet: &impl AutoCallOutTwentyRetardAnnounce,
+        ap_sheet: &impl AutoFlightAutopilotOffVoluntary,
+    ) {
+        let aco_10_pin = signals.auto_call_out_10_ft().value();
+        let aco_20_pin = signals.auto_call_out_20_ft().value();
+
+        let ap1_in_land = ap_sheet.ap1_engd() && signals.land_trk_mode_on(1).value();
+        let ap2_in_land = ap_sheet.ap2_engd() && signals.land_trk_mode_on(2).value();
+        let any_ap_in_land = ap1_in_land || ap2_in_land;
+        let athr_engaged = signals.athr_engaged().value();
+        let autoland = any_ap_in_land && athr_engaged;
+        let manual_land = !athr_engaged || !any_ap_in_land;
+
+        let fallback_10 = !aco_10_pin && threshold_sheet.alt_10_ft() && autoland;
+        let fallback_20 = !aco_20_pin && threshold_sheet.alt_20_ft() && manual_land;
+        let any_fallback = self.pulse.update(fallback_10 || fallback_20);
+
+        let new_retard = false; // TODO
+
+        let rops = false; // TODO ROPS
+
+        let inf_20_conf = self.conf1.update(threshold_sheet.alt_inf_20_ft(), delta);
+        let inf_10_conf = self.conf2.update(threshold_sheet.alt_inf_10_ft(), delta);
+        let autoland_conf = autoland && inf_10_conf;
+        let manual_land_conf = manual_land && inf_20_conf;
+        let any_conf_inf = autoland_conf || manual_land_conf;
+
+        let retard_phase = (flight_phases_air.phase_6()
+            || flight_phases_air.phase_7()
+            || flight_phases_gnd.phase_8());
+
+        let retard_inhibition = !tla_inhibition.tla_inhibition() && any_conf_inf && retard_phase;
+
+        let retard_toga = twenty_retard_sheet.retard_toga();
+        let iae_flex = false; // TODO IAE
+        let cfm_flex = cfm_flex_sheet.cfm_flex();
+        let dh_inhibition = threshold_sheet.dh_inhibition();
+        let do_not_announce = retard_toga || iae_flex || cfm_flex || dh_inhibition;
+
+        self.retard_inhibition = retard_inhibition;
+        self.retard =
+            (retard_inhibition || any_fallback) && !do_not_announce && !new_retard && !rops;
+    }
+}
+
+impl AutoCallOutRetardAnnounce for AutoCallOutRetardAnnounceActivation {
+    fn retard_inhibition(&self) -> bool {
+        self.retard_inhibition
+    }
+
+    fn retard(&self) -> bool {
+        self.retard
+    }
+}
+
+impl WarningActivation for AutoCallOutRetardAnnounceActivation {
+    fn warning(&self) -> bool {
+        self.retard
     }
 }
 

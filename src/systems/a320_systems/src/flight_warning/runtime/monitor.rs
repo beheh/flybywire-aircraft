@@ -126,11 +126,24 @@ impl A320FWCMonitor {
         } else if self.synthetic_voice_manager.ready_in(delta) {
             if warnings.contains(&WarningCode::new(34, 00, 360)) {
                 self.auto_call_out_generated = true;
-                requested_synthetic_voice = Some(vec![SyntheticVoice::Ten, SyntheticVoice::Retard])
+                requested_synthetic_voice = Some(vec![
+                    SyntheticVoice::Ten,
+                    SyntheticVoice::Pause100,
+                    SyntheticVoice::Retard,
+                    SyntheticVoice::Pause200,
+                ]);
             } else if warnings.contains(&WarningCode::new(34, 00, 350)) {
                 self.auto_call_out_generated = true;
+                requested_synthetic_voice = Some(vec![
+                    SyntheticVoice::Twenty,
+                    SyntheticVoice::Pause50,
+                    SyntheticVoice::Retard,
+                    SyntheticVoice::Pause200,
+                ]);
+            } else if warnings.contains(&WarningCode::new(34, 00, 370)) {
+                self.auto_call_out_generated = true;
                 requested_synthetic_voice =
-                    Some(vec![SyntheticVoice::Twenty, SyntheticVoice::Retard])
+                    Some(vec![SyntheticVoice::Retard, SyntheticVoice::Pause600]);
             } else if warnings.contains(&WarningCode::new(22, 00, 060)) {
                 self.hundred_above_generated = true;
                 self.auto_call_out_generated = true;

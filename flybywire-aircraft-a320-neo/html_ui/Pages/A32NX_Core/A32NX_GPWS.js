@@ -399,34 +399,4 @@ class A32NX_GPWS {
             mode.current = 0;
         }
     }
-
-    /*UpdateAltState(radioAlt) {
-        switch (this.RetardState.value) {
-            case "overRetard":
-                if (radioAlt < 20) {
-                    if (!SimVar.GetSimVarValue("L:A32NX_AUTOPILOT_ACTIVE", "Bool")) {
-                        this.RetardState.action("play");
-                        this.core.soundManager.addPeriodicSound(soundList.retard, 1.1);
-                    } else if (radioAlt < 10) {
-                        this.RetardState.action("play");
-                        this.core.soundManager.addPeriodicSound(soundList.retard, 1.1);
-                    }
-                }
-                break;
-            case "retardPlaying":
-                if (SimVar.GetSimVarValue("L:A32NX_AUTOTHRUST_TLA:1", "number") < 2.6 || SimVar.GetSimVarValue("L:A32NX_AUTOTHRUST_TLA:2", "number") < 2.6) {
-                    this.RetardState.action("land");
-                    this.core.soundManager.removePeriodicSound(soundList.retard);
-                } else if (SimVar.GetSimVarValue("L:A32NX_FMGC_FLIGHT_PHASE", "Enum") === FmgcFlightPhases.GOAROUND || radioAlt > 20) {
-                    this.RetardState.action("go_around");
-                    this.core.soundManager.removePeriodicSound(soundList.retard);
-                }
-                break;
-            case "landed":
-                if (radioAlt > 20) {
-                    this.RetardState.action("up");
-                }
-                break;
-        }
-    }*/
 }

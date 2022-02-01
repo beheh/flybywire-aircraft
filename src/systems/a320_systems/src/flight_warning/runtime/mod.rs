@@ -59,6 +59,10 @@ pub(super) struct A320FlightWarningComputerRuntime {
     altitude_callout_triggers1: AltitudeThresholdTriggers1Activation,
     altitude_callout_triggers2: AltitudeThresholdTriggers2Activation,
     altitude_callout_triggers3: AltitudeThresholdTriggers3Activation,
+    tla_at_idle_retard: TlaAtIdleRetardActivation,
+    retard_toga_inhibition: RetardTogaInhibitionActivation,
+    retard_tla_inhibition: RetardTlaInhibitionActivation,
+    retard_callout: AutoCallOutRetardAnnounceActivation,
     altitude_callout_5_ft: AltitudeCallout5FtAnnounceActivation,
     altitude_callout_10_ft: AltitudeCallout10FtAnnounceActivation,
     altitude_callout_20_ft: AltitudeCallout20FtAnnounceActivation,
@@ -132,6 +136,10 @@ impl Default for A320FlightWarningComputerRuntime {
             altitude_callout_triggers1: Default::default(),
             altitude_callout_triggers2: Default::default(),
             altitude_callout_triggers3: Default::default(),
+            tla_at_idle_retard: Default::default(),
+            retard_toga_inhibition: Default::default(),
+            retard_tla_inhibition: Default::default(),
+            retard_callout: Default::default(),
             altitude_callout_5_ft: Default::default(),
             altitude_callout_10_ft: Default::default(),
             altitude_callout_20_ft: Default::default(),
@@ -357,12 +365,52 @@ impl A320FlightWarningComputerRuntime {
             &self.altitude_callout_threshold3,
         );
 
-        // TODO retard sheets
+        self.twenty_retard_callout.update(
+            delta,
+            parameters,
+            &self.altitude_callout_inhibit,
+            &self.tla_at_mct_or_flex_to_cfm,
+            &self.flight_phases_ground,
+            &self.altitude_callout_triggers3,
+            &self.ap_off_voluntarily,
+        );
+        self.ten_retard_callout.update(
+            delta,
+            parameters,
+            &self.altitude_callout_inhibit,
+            &self.twenty_retard_callout,
+            &self.altitude_callout_triggers3,
+            &self.ap_off_voluntarily,
+        );
+        self.tla_at_idle_retard.update(parameters);
+        self.retard_toga_inhibition.update(
+            &self.tla_at_idle_retard,
+            &self.flight_phases_ground,
+            &self.flight_phases_air,
+        );
+        self.retard_tla_inhibition.update(
+            &self.engines_not_running,
+            &self.tla_pwr_reverse,
+            &self.tla_at_idle_retard,
+            &self.retard_toga_inhibition,
+        );
+        self.retard_callout.update(
+            delta,
+            parameters,
+            &self.retard_tla_inhibition,
+            &self.altitude_callout_threshold2,
+            &self.cfm_flight_phases,
+            &self.flight_phases_air,
+            &self.flight_phases_ground,
+            &self.twenty_retard_callout,
+            &self.ap_off_voluntarily,
+        );
 
         self.altitude_callout_5_ft.update(
             delta,
             &self.altitude_callout_inhibit,
             &self.altitude_callout_triggers3,
+            &self.retard_callout,
         );
         self.altitude_callout_10_ft.update(
             delta,
@@ -371,6 +419,7 @@ impl A320FlightWarningComputerRuntime {
             &self.altitude_callout_triggers3,
             &self.ap_off_voluntarily,
             &self.altitude_callout_5_ft,
+            &self.retard_callout,
         );
         self.altitude_callout_20_ft.update(
             delta,
@@ -444,23 +493,6 @@ impl A320FlightWarningComputerRuntime {
             &self.altitude_callout_inhibit,
             &self.altitude_callout_triggers1,
         );
-        self.twenty_retard_callout.update(
-            delta,
-            parameters,
-            &self.altitude_callout_inhibit,
-            &self.tla_at_mct_or_flex_to_cfm,
-            &self.flight_phases_ground,
-            &self.altitude_callout_triggers3,
-            &self.ap_off_voluntarily,
-        );
-        self.ten_retard_callout.update(
-            delta,
-            parameters,
-            &self.altitude_callout_inhibit,
-            &self.twenty_retard_callout,
-            &self.altitude_callout_triggers3,
-            &self.ap_off_voluntarily,
-        );
         self.altitude_callout_threshold_detection.update(
             &self.altitude_callout_triggers2,
             &self.altitude_callout_triggers3,
@@ -507,6 +539,9 @@ impl A320FlightWarningComputerRuntime {
         }
         if self.twenty_retard_callout.audio() {
             warnings.push(WarningCode::new(34, 00, 350));
+        }
+        if self.retard_callout.audio() {
+            warnings.push(WarningCode::new(34, 00, 370));
         }
         if self.hundred_above.audio() {
             warnings.push(WarningCode::new(22, 00, 060));

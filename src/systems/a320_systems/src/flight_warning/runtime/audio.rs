@@ -5,6 +5,10 @@ use uom::si::length::foot;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub(super) enum SyntheticVoice {
+    Pause50,
+    Pause100,
+    Pause200,
+    Pause600,
     Retard,
     Minimum,
     HundredAbove,
@@ -78,6 +82,22 @@ pub(super) struct SyntheticVoiceFile {
 impl SyntheticVoice {
     fn get_voice_file(&self) -> SyntheticVoiceFile {
         return match self {
+            SyntheticVoice::Pause50 => SyntheticVoiceFile {
+                id: 0,
+                duration: Duration::from_millis(50),
+            },
+            SyntheticVoice::Pause100 => SyntheticVoiceFile {
+                id: 0,
+                duration: Duration::from_millis(100),
+            },
+            SyntheticVoice::Pause200 => SyntheticVoiceFile {
+                id: 0,
+                duration: Duration::from_millis(200),
+            },
+            SyntheticVoice::Pause600 => SyntheticVoiceFile {
+                id: 0,
+                duration: Duration::from_millis(600),
+            },
             SyntheticVoice::Retard => SyntheticVoiceFile {
                 id: 70,
                 duration: Duration::from_millis(716),
@@ -374,8 +394,10 @@ impl SyntheticVoiceManager {
         cancel: bool,
     ) {
         let mut requested_sound: Option<SyntheticVoice> = None;
-        if self.synthesizer.ready_in(delta) || cancel {
-            if self.next_index < self.sequence.len() && !cancel {
+        let mut has_next = self.next_index < self.sequence.len() && !cancel;
+
+        if (has_next && self.synthesizer.ready_in(delta)) || self.synthesizer.ready() || cancel {
+            if has_next {
                 // we have parts still to play
                 requested_sound = Some(self.sequence[self.next_index].clone());
                 self.next_index = self.next_index + 1;

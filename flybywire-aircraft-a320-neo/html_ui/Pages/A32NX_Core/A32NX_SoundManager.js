@@ -105,9 +105,5 @@ const soundList = {
     too_low_terrain: {
         name: "aural_too_low_terrain",
         length: 0.9
-    },
-    retard: {
-        name: "new_retard",
-        length: 0.9
-    },
+    }
 };
