@@ -57,3 +57,46 @@ impl LgDownlocked for LgDownlockedActivation {
         self.lg_downlocked
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::flight_warning::test::*;
+    use std::time::Duration;
+    use uom::si::f64::*;
+    use uom::si::{length::foot, velocity::knot};
+
+    use super::*;
+
+    #[cfg(test)]
+    mod lg_downlocked_activation_tests {
+        use super::*;
+
+        #[test]
+        fn when_main_gears_downlocked_reports_main_lg_downlocked() {
+            let mut sheet = LgDownlockedActivation::default();
+            sheet.update(
+                test_bed_with()
+                    .lh_gear_downlocked(true)
+                    .rh_gear_downlocked(true)
+                    .nose_gear_downlocked(false)
+                    .parameters(),
+            );
+            assert_eq!(sheet.main_lg_downlocked(), true);
+            assert_eq!(sheet.lg_downlocked(), false);
+        }
+
+        #[test]
+        fn when_all_gears_downlocked_reports_lg_downlocked() {
+            let mut sheet = LgDownlockedActivation::default();
+            sheet.update(
+                test_bed_with()
+                    .lh_gear_downlocked(true)
+                    .rh_gear_downlocked(true)
+                    .nose_gear_downlocked(true)
+                    .parameters(),
+            );
+            assert_eq!(sheet.main_lg_downlocked(), true);
+            assert_eq!(sheet.lg_downlocked(), true);
+        }
+    }
+}

@@ -10,7 +10,7 @@ use systems::landing_gear::LandingGearControlInterfaceUnit;
 use systems::navigation::adirs::AirDataInertialReferenceSystem;
 use systems::shared::arinc429::SignStatus;
 use systems::shared::{
-    ConsumePower, ElectricalBusType, ElectricalBuses, EngineCorrectedN1, EngineFirePushButtons,
+    ElectricalBusType, ElectricalBuses, EngineCorrectedN1, EngineFirePushButtons,
     HydraulicSysLowPressure, LgciuGearExtension, LgciuWeightOnWheels,
 };
 use systems::simulation::{
@@ -504,9 +504,10 @@ impl SimulationElement for A320FlightWarningSystem {
     fn write(&self, writer: &mut SimulatorWriter) {
         let runtime1 = &self.fwc1.runtime;
         let runtime2 = &self.fwc2.runtime;
-        let runtime = match runtime1 {
-            Some(r) => runtime1,
-            None => runtime2,
+        let runtime = if runtime1.is_some() {
+            runtime1
+        } else {
+            runtime2
         };
 
         let mut flight_phase = 0;

@@ -266,6 +266,7 @@ pub(in crate::flight_warning::runtime) struct AutoFlightAutopilotOffUnvoluntaryA
     ap_off_reset: bool,
     ap_mw: bool,
     ap_off_audio: bool,
+    audio: bool,
 }
 
 impl Default for AutoFlightAutopilotOffUnvoluntaryActivation {
@@ -287,6 +288,7 @@ impl Default for AutoFlightAutopilotOffUnvoluntaryActivation {
             ap_unvol_off: false,
             ap_off_reset: false,
             ap_mw: false,
+            audio: false,
         }
     }
 }
@@ -349,8 +351,7 @@ impl AutoFlightAutopilotOffUnvoluntaryActivation {
         let ap_off_reset =
             reset_ap_warnings || (!ap_recently_unvol_off && (any_instinc_discnct_pulse || ap_mw));
 
-        let warning = self.mem_warning.update(ap_unvol_off_pulse, ap_off_reset); // TODO use
-
+        self.audio = self.mem_warning.update(ap_unvol_off_pulse, ap_off_reset);
         self.ap_off_warning = voluntary_sheet.ap_off_text() || ap_unvol_off;
         self.ap_unvol_off = ap_unvol_off;
         self.ap_off_reset = ap_off_reset;
@@ -377,6 +378,16 @@ impl AutoFlightAutopilotOffUnvoluntary for AutoFlightAutopilotOffUnvoluntaryActi
 
     fn ap_off_audio(&self) -> bool {
         self.ap_off_audio
+    }
+}
+
+impl WarningActivation for AutoFlightAutopilotOffUnvoluntaryActivation {
+    fn audio(&self) -> bool {
+        self.audio
+    }
+
+    fn warning(&self) -> bool {
+        self.ap_unvol_off
     }
 }
 

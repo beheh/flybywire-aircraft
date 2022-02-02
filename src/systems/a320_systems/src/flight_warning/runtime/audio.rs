@@ -52,7 +52,6 @@ pub(super) enum SyntheticVoice {
     TwoC,
     ThreeC,
     FourC,
-    FiveC,
     TwentyC,
     ThirtyC,
     FortyC,
@@ -270,10 +269,6 @@ impl SyntheticVoice {
                 id: 144,
                 duration: Duration::from_millis(286),
             },
-            SyntheticVoice::FiveC => SyntheticVoiceFile {
-                id: 145,
-                duration: Duration::from_millis(309),
-            },
             SyntheticVoice::TwentyC => SyntheticVoiceFile {
                 id: 152,
                 duration: Duration::from_millis(299),
@@ -394,7 +389,7 @@ impl SyntheticVoiceManager {
         cancel: bool,
     ) {
         let mut requested_sound: Option<SyntheticVoice> = None;
-        let mut has_next = self.next_index < self.sequence.len() && !cancel;
+        let has_next = self.next_index < self.sequence.len() && !cancel;
 
         if (has_next && self.synthesizer.ready_in(delta)) || self.synthesizer.ready() || cancel {
             if has_next {
@@ -485,7 +480,7 @@ pub(super) fn translate_height(raw_height: Length) -> Option<Vec<SyntheticVoice>
                 7 => SyntheticVoice::SeventyC,
                 8 => SyntheticVoice::EightyC,
                 9 => SyntheticVoice::NinetyC,
-                _ => panic!("wat"),
+                _ => panic!(),
             };
             let suffix = match height % 10 {
                 1 => SyntheticVoice::One,
@@ -497,7 +492,7 @@ pub(super) fn translate_height(raw_height: Length) -> Option<Vec<SyntheticVoice>
                 7 => SyntheticVoice::Seven,
                 8 => SyntheticVoice::Eight,
                 9 => SyntheticVoice::Nine,
-                _ => panic!("wat"),
+                _ => panic!(),
             };
             return Some(vec![prefix, suffix]);
         }
@@ -516,7 +511,7 @@ pub(super) fn translate_height(raw_height: Length) -> Option<Vec<SyntheticVoice>
                 2 => SyntheticVoice::TwoC,
                 3 => SyntheticVoice::ThreeC,
                 4 => SyntheticVoice::FourC,
-                _ => panic!("wat"),
+                _ => panic!(),
             };
             let suffix = match (height % 100) / 10 {
                 1 => SyntheticVoice::Ten,
@@ -528,7 +523,7 @@ pub(super) fn translate_height(raw_height: Length) -> Option<Vec<SyntheticVoice>
                 7 => SyntheticVoice::Seventy,
                 8 => SyntheticVoice::Eighty,
                 9 => SyntheticVoice::Ninety,
-                x => panic!(format!("wat {}", x)),
+                _ => panic!(),
             };
             return Some(vec![prefix, SyntheticVoice::Hundredand, suffix]);
         }

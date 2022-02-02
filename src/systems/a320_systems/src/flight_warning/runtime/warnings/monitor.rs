@@ -1,14 +1,6 @@
-use std::time::Duration;
-
 use super::*;
 use systems::flight_warning::logic::*;
-use systems::flight_warning::parameters::{SignStatusMatrix, Value};
-use systems::flight_warning::utils::FwcSsm;
-use uom::si::angle::degree;
-use uom::si::f64::*;
-use uom::si::length::foot;
-use uom::si::ratio::{percent, ratio};
-use uom::si::velocity::knot;
+use systems::flight_warning::parameters::Value;
 
 pub(in crate::flight_warning::runtime) trait GeneralCancel {
     fn mw_cancel_pulse_up(&self) -> bool;
@@ -76,7 +68,7 @@ impl AudioAttenuationActivation {
     pub fn update(
         &mut self,
         ground_sheet: &impl GroundDetection,
-        engine_not_running_sheet: &impl EngineNotRunning,
+        engine_not_running_sheet: &impl EngineNotRunningCfm,
     ) {
         self.audio_attenuation = ground_sheet.ground()
             && engine_not_running_sheet.eng_1_not_running()

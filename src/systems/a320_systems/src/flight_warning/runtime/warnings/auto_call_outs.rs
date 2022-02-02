@@ -157,8 +157,8 @@ impl MdaMdhInbitionActivation {
         dh_sheet: &impl DecisionHeightVal,
         aco_inhib: &impl AutomaticCallOutInhibition,
     ) {
-        let stall_on = false; // TODO
-        let speed_on = false; // TODO
+        let stall_on = false; // TODO stall call out
+        let speed_on = false; // TODO speed call out
         let tcas_output = self
             .mrtrig
             .update(signals.tcas_aural_advisory_output().value(), delta);
@@ -791,12 +791,12 @@ impl AutomaticCallOutInhibitionActivation {
         let ground_test = threshold1_sheet.ra_fonctionnal_test()
             && (signals.ess_lh_lg_compressed().value() || signals.norm_lh_lg_compressed().value());
 
-        let stall_on = false; // TODO
+        let iae_flex = false; // TODO IAE
+        let stall_on = false; // TODO Stall Call Out
+        let speed_on = false; // TODO Speed Call Out
         let ra_invalid = threshold1_sheet.ra_invalid();
         let ra_ncd = threshold1_sheet.ra_no_computed_data();
         let cfm_flex = cfm_flex_sheet.cfm_flex();
-        let iae_flex = false; // TODO IAE
-        let speed_on = false; // TODO
 
         let main_inhibit = stall_on || ra_invalid || ra_ncd || cfm_flex || iae_flex || speed_on;
 
@@ -2149,7 +2149,7 @@ pub(in crate::flight_warning::runtime) struct RetardTlaInhibitionActivation {
 impl RetardTlaInhibitionActivation {
     pub fn update(
         &mut self,
-        engine_running_sheet: &impl EngineNotRunning,
+        engine_running_sheet: &impl EngineNotRunningCfm,
         reversers_sheet: &impl TlaPwrReverse,
         idle_retard_sheet: &impl TlaAtIdleRetard,
         retard_toga_inhib: &impl RetardTogaInhibition,
@@ -2219,8 +2219,8 @@ impl AutoCallOutRetardAnnounceActivation {
         tla_inhibition: &impl RetardTlaInhibition,
         threshold_sheet: &impl AltitudeThreshold2,
         cfm_flex_sheet: &impl CfmFlightPhasesDef,
-        flight_phases_air: &impl FlightPhasesAir,
         flight_phases_gnd: &impl FlightPhasesGround,
+        flight_phases_air: &impl FlightPhasesAir,
         twenty_retard_sheet: &impl AutoCallOutTwentyRetardAnnounce,
         ap_sheet: &impl AutoFlightAutopilotOffVoluntary,
     ) {
@@ -2248,9 +2248,9 @@ impl AutoCallOutRetardAnnounceActivation {
         let manual_land_conf = manual_land && inf_20_conf;
         let any_conf_inf = autoland_conf || manual_land_conf;
 
-        let retard_phase = (flight_phases_air.phase_6()
+        let retard_phase = flight_phases_air.phase_6()
             || flight_phases_air.phase_7()
-            || flight_phases_gnd.phase_8());
+            || flight_phases_gnd.phase_8();
 
         let retard_inhibition = !tla_inhibition.tla_inhibition() && any_conf_inf && retard_phase;
 
@@ -2378,5 +2378,427 @@ impl IntermediateAudioActivation {
 impl IntermediateAudio for IntermediateAudioActivation {
     fn intermediate_call_out(&self) -> bool {
         self.intermediate_call_out
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use std::time::Duration;
+    use uom::si::f64::*;
+    use uom::si::length::foot;
+
+    use super::*;
+
+    #[cfg(test)]
+    mod intermediate_audio_activation {
+        use super::*;
+
+        #[test]
+        fn when_above_410ft_inhibits_call_out() {
+            let mut sheet = IntermediateAudioActivation::default();
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                &TestAltitudeThreshold1::new(Length::new::<foot>(411.)),
+                &TestAltitudeThreshold3::default(),
+                &TestThresholdDetection::new(false),
+                &TestMinimum::new(false),
+                false,
+                false,
+            );
+            assert_eq!(sheet.intermediate_call_out(), true);
+        }
+
+        #[test]
+        fn when_below_400ft_after_11s_allows_call_out() {
+            let mut sheet = IntermediateAudioActivation::default();
+
+            // generate a normal call out to prime the intermediate
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                &TestAltitudeThreshold1::new(Length::new::<foot>(300.)),
+                &TestAltitudeThreshold3::default(),
+                &TestThresholdDetection::new(false),
+                &TestMinimum::new(false),
+                false,
+                false,
+            );
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                &TestAltitudeThreshold1::new(Length::new::<foot>(300.)),
+                &TestAltitudeThreshold3::new_at_threshold(),
+                &TestThresholdDetection::new(true),
+                &TestMinimum::new(false),
+                true,
+                false,
+            );
+            assert_eq!(sheet.intermediate_call_out(), true); // inhibited
+
+            // should be initially inhibited after the callout has ended
+            sheet.update(
+                Duration::from_secs_f64(0.9),
+                &TestAltitudeThreshold1::new(Length::new::<foot>(390.)),
+                &TestAltitudeThreshold3::default(),
+                &TestThresholdDetection::new(false),
+                &TestMinimum::new(false),
+                false,
+                false,
+            );
+            assert_eq!(sheet.intermediate_call_out(), true); // still inhibited
+
+            // should be no longer inhibited after 11s
+            sheet.update(
+                Duration::from_secs_f64(10.1),
+                &TestAltitudeThreshold1::new(Length::new::<foot>(345.)),
+                &TestAltitudeThreshold3::default(),
+                &TestThresholdDetection::new(false),
+                &TestMinimum::new(false),
+                false,
+                false,
+            );
+            assert_eq!(sheet.intermediate_call_out(), false); // finally allowed to trigger
+        }
+
+        #[test]
+        fn when_below_50ft_after_4s_allows_call_out() {
+            let mut sheet = IntermediateAudioActivation::default();
+
+            // generate a normal call out to prime the intermediate
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                &TestAltitudeThreshold1::new(Length::new::<foot>(49.)),
+                &TestAltitudeThreshold3::default(),
+                &TestThresholdDetection::new(false),
+                &TestMinimum::new(false),
+                false,
+                false,
+            );
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                &TestAltitudeThreshold1::new(Length::new::<foot>(49.)),
+                &TestAltitudeThreshold3::new_at_threshold(),
+                &TestThresholdDetection::new(true),
+                &TestMinimum::new(false),
+                true,
+                false,
+            );
+            assert_eq!(sheet.intermediate_call_out(), true); // inhibited
+
+            // should be initially inhibited after the callout has ended
+            sheet.update(
+                Duration::from_secs_f64(0.9),
+                &TestAltitudeThreshold1::new(Length::new::<foot>(45.)),
+                &TestAltitudeThreshold3::default(),
+                &TestThresholdDetection::new(false),
+                &TestMinimum::new(false),
+                false,
+                false,
+            );
+            assert_eq!(sheet.intermediate_call_out(), true); // still inhibited
+
+            // should be no longer inhibited after 11s
+            sheet.update(
+                Duration::from_secs_f64(3.1),
+                &TestAltitudeThreshold1::new(Length::new::<foot>(43.)),
+                &TestAltitudeThreshold3::default(),
+                &TestThresholdDetection::new(false),
+                &TestMinimum::new(false),
+                false,
+                false,
+            );
+            assert_eq!(sheet.intermediate_call_out(), false); // finally allowed to trigger
+        }
+
+        #[test]
+        fn when_below_50ft_after_4s_after_an_intermediate_allows_call_out() {
+            let mut sheet = IntermediateAudioActivation::default();
+
+            // generate a normal call out to prime the intermediate
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                &TestAltitudeThreshold1::new(Length::new::<foot>(49.)),
+                &TestAltitudeThreshold3::default(),
+                &TestThresholdDetection::new(false),
+                &TestMinimum::new(false),
+                false,
+                false,
+            );
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                &TestAltitudeThreshold1::new(Length::new::<foot>(49.)),
+                &TestAltitudeThreshold3::new_at_threshold(),
+                &TestThresholdDetection::new(false),
+                &TestMinimum::new(false),
+                false,
+                true,
+            );
+            assert_eq!(sheet.intermediate_call_out(), true); // inhibited
+
+            // should be initially inhibited after the callout has ended
+            sheet.update(
+                Duration::from_secs_f64(0.9),
+                &TestAltitudeThreshold1::new(Length::new::<foot>(45.)),
+                &TestAltitudeThreshold3::default(),
+                &TestThresholdDetection::new(false),
+                &TestMinimum::new(false),
+                false,
+                false,
+            );
+            assert_eq!(sheet.intermediate_call_out(), true); // still inhibited
+
+            // should be no longer inhibited after 11s
+            sheet.update(
+                Duration::from_secs_f64(3.1),
+                &TestAltitudeThreshold1::new(Length::new::<foot>(43.)),
+                &TestAltitudeThreshold3::default(),
+                &TestThresholdDetection::new(false),
+                &TestMinimum::new(false),
+                false,
+                false,
+            );
+            assert_eq!(sheet.intermediate_call_out(), false); // finally allowed to trigger
+        }
+    }
+
+    struct TestAltitudeThreshold1 {
+        ra_1_inv: bool,
+        radio_height: Length,
+        ra_inv: bool,
+        ra_ft: bool,
+        ra_ncd: bool,
+    }
+
+    impl TestAltitudeThreshold1 {
+        pub fn new(radio_height: Length) -> Self {
+            Self {
+                radio_height,
+                ra_1_inv: false,
+                ra_inv: false,
+                ra_ft: false,
+                ra_ncd: false,
+            }
+        }
+
+        pub fn new_ncd() -> Self {
+            Self {
+                radio_height: Length::new::<foot>(0.),
+                ra_1_inv: false,
+                ra_inv: false,
+                ra_ft: false,
+                ra_ncd: true,
+            }
+        }
+
+        pub fn new_inv() -> Self {
+            Self {
+                radio_height: Length::new::<foot>(0.),
+                ra_1_inv: true,
+                ra_inv: true,
+                ra_ft: false,
+                ra_ncd: false,
+            }
+        }
+
+        pub fn new_ft() -> Self {
+            Self {
+                radio_height: Length::new::<foot>(0.),
+                ra_1_inv: false,
+                ra_inv: false,
+                ra_ft: true,
+                ra_ncd: false,
+            }
+        }
+    }
+
+    impl AltitudeThreshold1 for TestAltitudeThreshold1 {
+        fn ra_1_inv(&self) -> bool {
+            self.ra_1_inv
+        }
+
+        fn alt_sup_50_ft(&self) -> bool {
+            self.radio_height > Length::new::<foot>(50.)
+        }
+
+        fn alt_sup_410_ft(&self) -> bool {
+            self.radio_height >= Length::new::<foot>(410.)
+        }
+
+        fn alt_400_ft(&self) -> bool {
+            Length::new::<foot>(400.) <= self.radio_height
+                && self.radio_height < Length::new::<foot>(410.)
+        }
+
+        fn alt_300_ft(&self) -> bool {
+            Length::new::<foot>(300.) <= self.radio_height
+                && self.radio_height < Length::new::<foot>(310.)
+        }
+
+        fn alt_200_ft(&self) -> bool {
+            Length::new::<foot>(200.) <= self.radio_height
+                && self.radio_height < Length::new::<foot>(210.)
+        }
+
+        fn alt_100_ft(&self) -> bool {
+            Length::new::<foot>(100.) <= self.radio_height
+                && self.radio_height < Length::new::<foot>(110.)
+        }
+
+        fn alt_50_ft(&self) -> bool {
+            Length::new::<foot>(50.) <= self.radio_height
+                && self.radio_height < Length::new::<foot>(53.)
+        }
+
+        fn radio_height(&self) -> Length {
+            self.radio_height
+        }
+
+        fn ra_invalid(&self) -> bool {
+            self.ra_inv
+        }
+
+        fn ra_fonctionnal_test(&self) -> bool {
+            self.ra_ft
+        }
+
+        fn ra_no_computed_data(&self) -> bool {
+            self.ra_ncd
+        }
+    }
+
+    struct TestAltitudeThreshold2 {
+        radio_height: Length,
+        dh_inhib: bool,
+    }
+
+    impl TestAltitudeThreshold2 {
+        pub fn new(radio_height: Length, dh_inhib: bool) -> Self {
+            Self {
+                radio_height,
+                dh_inhib,
+            }
+        }
+    }
+
+    impl AltitudeThreshold2 for TestAltitudeThreshold2 {
+        fn alt_40_ft(&self) -> bool {
+            Length::new::<foot>(40.) <= self.radio_height
+                && self.radio_height < Length::new::<foot>(42.)
+        }
+
+        fn alt_30_ft(&self) -> bool {
+            Length::new::<foot>(30.) <= self.radio_height
+                && self.radio_height < Length::new::<foot>(32.)
+        }
+
+        fn alt_20_ft(&self) -> bool {
+            Length::new::<foot>(20.) <= self.radio_height
+                && self.radio_height < Length::new::<foot>(22.)
+        }
+
+        fn alt_inf_20_ft(&self) -> bool {
+            Length::new::<foot>(-5.) <= self.radio_height
+                && self.radio_height < Length::new::<foot>(22.)
+        }
+
+        fn alt_10_ft(&self) -> bool {
+            Length::new::<foot>(10.) <= self.radio_height
+                && self.radio_height < Length::new::<foot>(12.)
+        }
+
+        fn alt_inf_10_ft(&self) -> bool {
+            Length::new::<foot>(-12.) <= self.radio_height
+                && self.radio_height < Length::new::<foot>(5.)
+        }
+
+        fn alt_5_ft(&self) -> bool {
+            Length::new::<foot>(5.) <= self.radio_height
+                && self.radio_height < Length::new::<foot>(6.)
+        }
+
+        fn alt_inf_3_ft(&self) -> bool {
+            self.radio_height < Length::new::<foot>(3.)
+        }
+
+        fn dh_inhibition(&self) -> bool {
+            self.dh_inhib
+        }
+    }
+
+    #[derive(Default)]
+    struct TestAltitudeThreshold3 {
+        threshold_detection: bool,
+        gpws_inhib: bool,
+        to_and_ground_detection: bool,
+        renvoi1: bool,
+        renvoi2: bool,
+        renvoi3: bool,
+    }
+
+    impl TestAltitudeThreshold3 {
+        pub fn new_at_threshold() -> Self {
+            Self {
+                threshold_detection: true,
+                ..Default::default()
+            }
+        }
+    }
+
+    impl AltitudeThreshold3 for TestAltitudeThreshold3 {
+        fn threshold_detection(&self) -> bool {
+            self.threshold_detection
+        }
+
+        fn gpws_inhibition(&self) -> bool {
+            self.gpws_inhib
+        }
+
+        fn to_and_ground_detection(&self) -> bool {
+            self.to_and_ground_detection
+        }
+
+        fn renvoi1(&self) -> bool {
+            self.renvoi1
+        }
+
+        fn renvoi2(&self) -> bool {
+            self.renvoi2
+        }
+
+        fn renvoi3(&self) -> bool {
+            self.renvoi3
+        }
+    }
+
+    struct TestThresholdDetection {
+        non_inhibited_threshold_detection: bool,
+    }
+
+    impl TestThresholdDetection {
+        pub fn new(non_inhibited_threshold_detection: bool) -> Self {
+            Self {
+                non_inhibited_threshold_detection,
+            }
+        }
+    }
+
+    impl AltitudeCalloutThresholdDetection for TestThresholdDetection {
+        fn non_inhibited_threshold_detection(&self) -> bool {
+            self.non_inhibited_threshold_detection
+        }
+    }
+
+    struct TestMinimum {
+        dh_generated: bool,
+    }
+
+    impl TestMinimum {
+        pub fn new(dh_generated: bool) -> Self {
+            Self { dh_generated }
+        }
+    }
+
+    impl Minimum for TestMinimum {
+        fn dh_generated(&self) -> bool {
+            self.dh_generated
+        }
     }
 }

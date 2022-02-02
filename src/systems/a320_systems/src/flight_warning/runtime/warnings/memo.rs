@@ -32,7 +32,7 @@ impl ToMemoActivation {
         &mut self,
         delta: Duration,
         signals: &impl ToConfigTest,
-        engine_not_running_sheet: &impl EngineNotRunning,
+        engine_not_running_sheet: &impl EngineNotRunningCfm,
         flight_phases_gnd_sheet: &impl FlightPhasesGround,
         flight_phases_air_sheet: &impl FlightPhasesAir,
     ) {

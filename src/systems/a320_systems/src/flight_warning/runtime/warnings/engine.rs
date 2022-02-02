@@ -89,3 +89,40 @@ impl Eng2StartSequence for Eng2StartSequenceActivation {
         self.phase_5_to_30s
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::flight_warning::test::*;
+    use std::time::Duration;
+    use uom::si::f64::*;
+    use uom::si::{length::foot, velocity::knot};
+
+    use super::*;
+
+    #[cfg(test)]
+    mod eng_1_start_sequence_tests {
+        use super::*;
+
+        #[test]
+        fn after_30_seconds_reports_eng_1_temp_master_lever_1_on() {
+            let mut sheet = Eng1StartSequenceActivation::default();
+            sheet.update(
+                Duration::from_secs_f64(29.9),
+                test_bed_with().eng1_master_lever_select_on().parameters(),
+            );
+            assert_eq!(sheet.eng_1_tempo_master_lever_1_on(), false);
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                test_bed_with().eng1_master_lever_select_on().parameters(),
+            );
+            assert_eq!(sheet.eng_1_tempo_master_lever_1_on(), true);
+        }
+    }
+
+    #[cfg(test)]
+    mod eng_2_start_sequence_tests {
+        use super::*;
+
+        // TODO
+    }
+}

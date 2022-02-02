@@ -18,7 +18,7 @@ pub(super) trait FwcIdentSide2 {
 pub(super) trait LhLgCompressed {
     /// This signal indicates that the left main landing gear is compressed.
     /// The index is either 1 or 2, corresponding to LGCIU 1 or 2 respectively.
-    fn lh_lg_compressed(&self, index: u8) -> &Arinc429Parameter<bool>;
+    fn lh_lg_compressed(&self, number: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait EssLhLgCompressed {
@@ -36,29 +36,29 @@ pub(super) trait NormLhLgCompressed {
 pub(super) trait LhGearDownLock {
     /// This signal indicates that the left main landing gear is downlocked.
     /// The index is either 1 or 2, corresponding to LGCIU 1 or 2 respectively.
-    fn lh_gear_down_lock(&self, index: u8) -> &Arinc429Parameter<bool>;
+    fn lh_gear_down_lock(&self, number: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait RhGearDownLock {
     /// This signal indicates that the right main landing gear is downlocked.
     /// The index is either 1 or 2, corresponding to LGCIU 1 or 2 respectively.
-    fn rh_gear_down_lock(&self, index: u8) -> &Arinc429Parameter<bool>;
+    fn rh_gear_down_lock(&self, number: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait NoseGearDownLock {
     /// This signal indicates that the nose landing gear is downlocked.
     /// The index is either 1 or 2, corresponding to LGCIU 1 or 2 respectively.
-    fn nose_gear_down_lock(&self, index: u8) -> &Arinc429Parameter<bool>;
+    fn nose_gear_down_lock(&self, number: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait RadioHeight {
     /// This signal contains the measured radio altitude.
     /// The index is either 1 or 2, corresponding to Radio Altimeter 1 or 2 respectively.
-    fn radio_height(&self, index: u8) -> &Arinc429Parameter<Length>;
+    fn radio_height(&self, number: u8) -> &Arinc429Parameter<Length>;
 }
 
 pub(super) trait ComputedSpeed {
-    fn computed_speed(&self, index: u8) -> &Arinc429Parameter<Velocity>;
+    fn computed_speed(&self, number: u8) -> &Arinc429Parameter<Velocity>;
 }
 
 pub(super) trait Eng1MasterLeverSelectOn {
@@ -70,11 +70,11 @@ pub(super) trait Eng2MasterLeverSelectOn {
 }
 
 pub(super) trait Eng1CoreSpeedAtOrAboveIdle {
-    fn eng1_core_speed_at_or_above_idle(&self, index: u8) -> &Arinc429Parameter<bool>;
+    fn eng1_core_speed_at_or_above_idle(&self, channel: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Eng2CoreSpeedAtOrAboveIdle {
-    fn eng2_core_speed_at_or_above_idle(&self, index: u8) -> &Arinc429Parameter<bool>;
+    fn eng2_core_speed_at_or_above_idle(&self, channel: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Eng1FirePbOut {
@@ -86,55 +86,55 @@ pub(super) trait ToConfigTest {
 }
 
 pub(super) trait Eng1TlaCfm {
-    fn eng1_tla(&self, index: u8) -> &Arinc429Parameter<Angle>;
+    fn eng1_tla(&self, channel: u8) -> &Arinc429Parameter<Angle>;
 }
 
 pub(super) trait Eng2TlaCfm {
-    fn eng2_tla(&self, index: u8) -> &Arinc429Parameter<Angle>;
+    fn eng2_tla(&self, channel: u8) -> &Arinc429Parameter<Angle>;
 }
 
 /// This parameter indicates that the engine 1 CFM ECU has determined that the TLA is in the
 /// Flex Take Off (FTO) position.
 pub(super) trait Eng1TlaFto {
-    fn eng1_tla_fto(&self, index: u8) -> &Arinc429Parameter<bool>;
+    fn eng1_tla_fto(&self, channel: u8) -> &Arinc429Parameter<bool>;
 }
 
 /// This parameter indicates that the engine 2 CFM ECU has determined that the TLA is in the
 /// Flex Take Off (FTO) position.
 pub(super) trait Eng2TlaFto {
-    fn eng2_tla_fto(&self, index: u8) -> &Arinc429Parameter<bool>;
+    fn eng2_tla_fto(&self, channel: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Eng1AutoToga {
-    fn eng_1_auto_toga(&self, index: u8) -> &Arinc429Parameter<bool>;
+    fn eng_1_auto_toga(&self, channel: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Eng1LimitModeSoftGa {
-    fn eng_1_limit_mode_soft_ga(&self, index: u8) -> &Arinc429Parameter<bool>;
+    fn eng_1_limit_mode_soft_ga(&self, channel: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Eng2AutoToga {
-    fn eng_2_auto_toga(&self, index: u8) -> &Arinc429Parameter<bool>;
+    fn eng_2_auto_toga(&self, channel: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Eng2LimitModeSoftGa {
-    fn eng_2_limit_mode_soft_ga(&self, index: u8) -> &Arinc429Parameter<bool>;
+    fn eng_2_limit_mode_soft_ga(&self, channel: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Eng1N1SelectedActual {
-    fn eng1_n1_selected_actual(&self, index: u8) -> &Arinc429Parameter<Ratio>;
+    fn eng1_n1_selected_actual(&self, channel: u8) -> &Arinc429Parameter<Ratio>;
 }
 
 pub(super) trait Eng2N1SelectedActual {
-    fn eng2_n1_selected_actual(&self, index: u8) -> &Arinc429Parameter<Ratio>;
+    fn eng2_n1_selected_actual(&self, channel: u8) -> &Arinc429Parameter<Ratio>;
 }
 
 pub(super) trait Tla1IdlePwr {
-    fn tla1_idle_pwr(&self, index: u8) -> &Arinc429Parameter<bool>;
+    fn tla1_idle_pwr(&self, channel: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Tla2IdlePwr {
-    fn tla2_idle_pwr(&self, index: u8) -> &Arinc429Parameter<bool>;
+    fn tla2_idle_pwr(&self, channel: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait Eng1ChannelInControl {
@@ -150,7 +150,7 @@ pub(super) trait Eng2ChannelInControl {
 pub(super) trait AltitudeParameter {
     /// This parameter contains the barometric altitude as measures by the ADR.
     /// The index is 1, 2, or 3, for ADR 1, 2, or 3 respectively.
-    fn altitude(&self, index: u8) -> &Arinc429Parameter<Length>;
+    fn altitude(&self, number: u8) -> &Arinc429Parameter<Length>;
 }
 
 pub(super) trait AltiSelect {
@@ -234,8 +234,14 @@ pub(super) trait TcasEngaged {
 
 pub(super) trait GsModeOn {
     /// This parameter indicates that the respective autopilot is in GS mode.
-    /// The index is 1 or 2, for FMGC 1 or 2 respectively.
-    fn gs_mode_on(&self, index: u8) -> &Arinc429Parameter<bool>;
+    /// The number is 1 or 2, for FMGC 1 or 2 respectively.
+    fn gs_mode_on(&self, number: u8) -> &Arinc429Parameter<bool>;
+}
+
+pub(super) trait LandTrkModeOn {
+    /// This parameter indicates that the respective autopilot is in Land Track mode.
+    /// The number is 1 or 2, for FMGC 1 or 2 respectively.
+    fn land_trk_mode_on(&self, number: u8) -> &Arinc429Parameter<bool>;
 }
 
 pub(super) trait GpwsModesOn {
@@ -254,19 +260,19 @@ pub(super) trait TcasAuralAdvisaryOutput {
 }
 
 pub(super) trait DecisionHeight {
-    fn decision_height(&self, index: u8) -> &Arinc429Parameter<Length>;
+    fn decision_height(&self, number: u8) -> &Arinc429Parameter<Length>;
 }
 
 pub(super) trait HundredAboveForMdaMdhRequest {
-    fn hundred_above_for_mda_mdh_request(&self, index: u8) -> &DiscreteParameter;
+    /// This parameter indicates that the respective DMC has decided that we're 100ft above the
+    /// decision altitude.
+    fn hundred_above_for_mda_mdh_request(&self, number: u8) -> &DiscreteParameter;
 }
 
 pub(super) trait MinimumForMdaMdhRequest {
-    fn minimum_for_mda_mdh_request(&self, index: u8) -> &DiscreteParameter;
-}
-
-pub(super) trait LandTrkModeOn {
-    fn land_trk_mode_on(&self, index: u8) -> &Arinc429Parameter<bool>;
+    /// This parameter indicates that the respective DMC has decided that we're at the decision
+    /// altitude.
+    fn minimum_for_mda_mdh_request(&self, number: u8) -> &DiscreteParameter;
 }
 
 pub(super) trait AThrEngaged {
@@ -840,8 +846,8 @@ impl FwcIdentSide2 for A320FWCParameterTable {
     }
 }
 impl LhLgCompressed for A320FWCParameterTable {
-    fn lh_lg_compressed(&self, index: u8) -> &Arinc429Parameter<bool> {
-        match index {
+    fn lh_lg_compressed(&self, number: u8) -> &Arinc429Parameter<bool> {
+        match number {
             1 => &self.lh_lg_compressed_1,
             2 => &self.lh_lg_compressed_2,
             _ => panic!(),
@@ -859,8 +865,8 @@ impl NormLhLgCompressed for A320FWCParameterTable {
     }
 }
 impl LhGearDownLock for A320FWCParameterTable {
-    fn lh_gear_down_lock(&self, index: u8) -> &Arinc429Parameter<bool> {
-        match index {
+    fn lh_gear_down_lock(&self, number: u8) -> &Arinc429Parameter<bool> {
+        match number {
             1 => &self.lh_gear_down_lock_1,
             2 => &self.lh_gear_down_lock_2,
             _ => panic!(),
@@ -868,8 +874,8 @@ impl LhGearDownLock for A320FWCParameterTable {
     }
 }
 impl RhGearDownLock for A320FWCParameterTable {
-    fn rh_gear_down_lock(&self, index: u8) -> &Arinc429Parameter<bool> {
-        match index {
+    fn rh_gear_down_lock(&self, number: u8) -> &Arinc429Parameter<bool> {
+        match number {
             1 => &self.rh_gear_down_lock_1,
             2 => &self.rh_gear_down_lock_2,
             _ => panic!(),
@@ -877,8 +883,8 @@ impl RhGearDownLock for A320FWCParameterTable {
     }
 }
 impl NoseGearDownLock for A320FWCParameterTable {
-    fn nose_gear_down_lock(&self, index: u8) -> &Arinc429Parameter<bool> {
-        match index {
+    fn nose_gear_down_lock(&self, number: u8) -> &Arinc429Parameter<bool> {
+        match number {
             1 => &self.nose_gear_down_lock_1,
             2 => &self.nose_gear_down_lock_2,
             _ => panic!(),
@@ -886,8 +892,8 @@ impl NoseGearDownLock for A320FWCParameterTable {
     }
 }
 impl RadioHeight for A320FWCParameterTable {
-    fn radio_height(&self, index: u8) -> &Arinc429Parameter<Length> {
-        match index {
+    fn radio_height(&self, number: u8) -> &Arinc429Parameter<Length> {
+        match number {
             1 => &self.radio_height_1,
             2 => &self.radio_height_2,
             _ => panic!(),
@@ -895,8 +901,8 @@ impl RadioHeight for A320FWCParameterTable {
     }
 }
 impl ComputedSpeed for A320FWCParameterTable {
-    fn computed_speed(&self, index: u8) -> &Arinc429Parameter<Velocity> {
-        match index {
+    fn computed_speed(&self, number: u8) -> &Arinc429Parameter<Velocity> {
+        match number {
             1 => &self.computed_speed_1,
             2 => &self.computed_speed_2,
             3 => &self.computed_speed_3,
@@ -917,8 +923,8 @@ impl Eng2MasterLeverSelectOn for A320FWCParameterTable {
 }
 
 impl Eng1CoreSpeedAtOrAboveIdle for A320FWCParameterTable {
-    fn eng1_core_speed_at_or_above_idle(&self, index: u8) -> &Arinc429Parameter<bool> {
-        match index {
+    fn eng1_core_speed_at_or_above_idle(&self, channel: u8) -> &Arinc429Parameter<bool> {
+        match channel {
             1 => &self.eng1_core_speed_at_or_above_idle_a,
             2 => &self.eng1_core_speed_at_or_above_idle_b,
             _ => panic!(),
@@ -927,8 +933,8 @@ impl Eng1CoreSpeedAtOrAboveIdle for A320FWCParameterTable {
 }
 
 impl Eng2CoreSpeedAtOrAboveIdle for A320FWCParameterTable {
-    fn eng2_core_speed_at_or_above_idle(&self, index: u8) -> &Arinc429Parameter<bool> {
-        match index {
+    fn eng2_core_speed_at_or_above_idle(&self, channel: u8) -> &Arinc429Parameter<bool> {
+        match channel {
             1 => &self.eng2_core_speed_at_or_above_idle_a,
             2 => &self.eng2_core_speed_at_or_above_idle_b,
             _ => panic!(),
@@ -949,8 +955,8 @@ impl ToConfigTest for A320FWCParameterTable {
 }
 
 impl Eng1TlaCfm for A320FWCParameterTable {
-    fn eng1_tla(&self, index: u8) -> &Arinc429Parameter<Angle> {
-        match index {
+    fn eng1_tla(&self, channel: u8) -> &Arinc429Parameter<Angle> {
+        match channel {
             1 => &self.eng1_tla_a,
             2 => &self.eng1_tla_b,
             _ => panic!(),
@@ -959,8 +965,8 @@ impl Eng1TlaCfm for A320FWCParameterTable {
 }
 
 impl Eng2TlaCfm for A320FWCParameterTable {
-    fn eng2_tla(&self, index: u8) -> &Arinc429Parameter<Angle> {
-        match index {
+    fn eng2_tla(&self, channel: u8) -> &Arinc429Parameter<Angle> {
+        match channel {
             1 => &self.eng2_tla_a,
             2 => &self.eng2_tla_b,
             _ => panic!(),
@@ -969,8 +975,8 @@ impl Eng2TlaCfm for A320FWCParameterTable {
 }
 
 impl Eng1TlaFto for A320FWCParameterTable {
-    fn eng1_tla_fto(&self, index: u8) -> &Arinc429Parameter<bool> {
-        match index {
+    fn eng1_tla_fto(&self, channel: u8) -> &Arinc429Parameter<bool> {
+        match channel {
             1 => &self.eng1_tla_fto_a,
             2 => &self.eng1_tla_fto_b,
             _ => panic!(),
@@ -979,8 +985,8 @@ impl Eng1TlaFto for A320FWCParameterTable {
 }
 
 impl Eng2TlaFto for A320FWCParameterTable {
-    fn eng2_tla_fto(&self, index: u8) -> &Arinc429Parameter<bool> {
-        match index {
+    fn eng2_tla_fto(&self, channel: u8) -> &Arinc429Parameter<bool> {
+        match channel {
             1 => &self.eng2_tla_fto_a,
             2 => &self.eng2_tla_fto_b,
             _ => panic!(),
@@ -989,8 +995,8 @@ impl Eng2TlaFto for A320FWCParameterTable {
 }
 
 impl Eng1N1SelectedActual for A320FWCParameterTable {
-    fn eng1_n1_selected_actual(&self, index: u8) -> &Arinc429Parameter<Ratio> {
-        match index {
+    fn eng1_n1_selected_actual(&self, channel: u8) -> &Arinc429Parameter<Ratio> {
+        match channel {
             1 => &self.eng1_n1_selected_actual_a,
             2 => &self.eng1_n1_selected_actual_b,
             _ => panic!(),
@@ -998,8 +1004,8 @@ impl Eng1N1SelectedActual for A320FWCParameterTable {
     }
 }
 impl Eng2N1SelectedActual for A320FWCParameterTable {
-    fn eng2_n1_selected_actual(&self, index: u8) -> &Arinc429Parameter<Ratio> {
-        match index {
+    fn eng2_n1_selected_actual(&self, channel: u8) -> &Arinc429Parameter<Ratio> {
+        match channel {
             1 => &self.eng2_n1_selected_actual_a,
             2 => &self.eng2_n1_selected_actual_b,
             _ => panic!(),
@@ -1007,8 +1013,8 @@ impl Eng2N1SelectedActual for A320FWCParameterTable {
     }
 }
 impl Tla1IdlePwr for A320FWCParameterTable {
-    fn tla1_idle_pwr(&self, index: u8) -> &Arinc429Parameter<bool> {
-        match index {
+    fn tla1_idle_pwr(&self, channel: u8) -> &Arinc429Parameter<bool> {
+        match channel {
             1 => &self.tla1_idle_pwr_a,
             2 => &self.tla1_idle_pwr_b,
             _ => panic!(),
@@ -1016,8 +1022,8 @@ impl Tla1IdlePwr for A320FWCParameterTable {
     }
 }
 impl Tla2IdlePwr for A320FWCParameterTable {
-    fn tla2_idle_pwr(&self, index: u8) -> &Arinc429Parameter<bool> {
-        match index {
+    fn tla2_idle_pwr(&self, channel: u8) -> &Arinc429Parameter<bool> {
+        match channel {
             1 => &self.tla2_idle_pwr_a,
             2 => &self.tla2_idle_pwr_b,
             _ => panic!(),
@@ -1043,8 +1049,8 @@ impl Eng2ChannelInControl for A320FWCParameterTable {
     }
 }
 impl Eng1AutoToga for A320FWCParameterTable {
-    fn eng_1_auto_toga(&self, index: u8) -> &Arinc429Parameter<bool> {
-        match index {
+    fn eng_1_auto_toga(&self, channel: u8) -> &Arinc429Parameter<bool> {
+        match channel {
             1 => &self.eng_1_auto_toga_a,
             2 => &self.eng_1_auto_toga_b,
             _ => panic!(),
@@ -1052,8 +1058,8 @@ impl Eng1AutoToga for A320FWCParameterTable {
     }
 }
 impl Eng2AutoToga for A320FWCParameterTable {
-    fn eng_2_auto_toga(&self, index: u8) -> &Arinc429Parameter<bool> {
-        match index {
+    fn eng_2_auto_toga(&self, channel: u8) -> &Arinc429Parameter<bool> {
+        match channel {
             1 => &self.eng_2_auto_toga_a,
             2 => &self.eng_2_auto_toga_b,
             _ => panic!(),
@@ -1061,8 +1067,8 @@ impl Eng2AutoToga for A320FWCParameterTable {
     }
 }
 impl Eng1LimitModeSoftGa for A320FWCParameterTable {
-    fn eng_1_limit_mode_soft_ga(&self, index: u8) -> &Arinc429Parameter<bool> {
-        match index {
+    fn eng_1_limit_mode_soft_ga(&self, channel: u8) -> &Arinc429Parameter<bool> {
+        match channel {
             1 => &self.eng_1_limit_mode_soft_ga_a,
             2 => &self.eng_1_limit_mode_soft_ga_b,
             _ => panic!(),
@@ -1070,8 +1076,8 @@ impl Eng1LimitModeSoftGa for A320FWCParameterTable {
     }
 }
 impl Eng2LimitModeSoftGa for A320FWCParameterTable {
-    fn eng_2_limit_mode_soft_ga(&self, index: u8) -> &Arinc429Parameter<bool> {
-        match index {
+    fn eng_2_limit_mode_soft_ga(&self, channel: u8) -> &Arinc429Parameter<bool> {
+        match channel {
             1 => &self.eng_2_limit_mode_soft_ga_a,
             2 => &self.eng_2_limit_mode_soft_ga_b,
             _ => panic!(),
@@ -1079,8 +1085,8 @@ impl Eng2LimitModeSoftGa for A320FWCParameterTable {
     }
 }
 impl AltitudeParameter for A320FWCParameterTable {
-    fn altitude(&self, index: u8) -> &Arinc429Parameter<Length> {
-        match index {
+    fn altitude(&self, number: u8) -> &Arinc429Parameter<Length> {
+        match number {
             1 => &self.altitude_1,
             2 => &self.altitude_2,
             3 => &self.altitude_3,
@@ -1176,8 +1182,8 @@ impl TcasEngaged for A320FWCParameterTable {
 }
 
 impl GsModeOn for A320FWCParameterTable {
-    fn gs_mode_on(&self, index: u8) -> &Arinc429Parameter<bool> {
-        match index {
+    fn gs_mode_on(&self, number: u8) -> &Arinc429Parameter<bool> {
+        match number {
             1 => &self.gs_mode_on_1,
             2 => &self.gs_mode_on_2,
             _ => panic!(),
@@ -1204,8 +1210,8 @@ impl TcasAuralAdvisaryOutput for A320FWCParameterTable {
 }
 
 impl DecisionHeight for A320FWCParameterTable {
-    fn decision_height(&self, index: u8) -> &Arinc429Parameter<Length> {
-        match index {
+    fn decision_height(&self, number: u8) -> &Arinc429Parameter<Length> {
+        match number {
             1 => &self.decision_height_1,
             2 => &self.decision_height_2,
             _ => panic!(),
@@ -1214,8 +1220,8 @@ impl DecisionHeight for A320FWCParameterTable {
 }
 
 impl HundredAboveForMdaMdhRequest for A320FWCParameterTable {
-    fn hundred_above_for_mda_mdh_request(&self, index: u8) -> &DiscreteParameter {
-        match index {
+    fn hundred_above_for_mda_mdh_request(&self, number: u8) -> &DiscreteParameter {
+        match number {
             1 => &self.hundred_above_for_mda_mdh_request_1,
             2 => &self.hundred_above_for_mda_mdh_request_2,
             _ => panic!(),
@@ -1224,8 +1230,8 @@ impl HundredAboveForMdaMdhRequest for A320FWCParameterTable {
 }
 
 impl MinimumForMdaMdhRequest for A320FWCParameterTable {
-    fn minimum_for_mda_mdh_request(&self, index: u8) -> &DiscreteParameter {
-        match index {
+    fn minimum_for_mda_mdh_request(&self, number: u8) -> &DiscreteParameter {
+        match number {
             1 => &self.minimum_for_mda_mdh_request_1,
             2 => &self.minimum_for_mda_mdh_request_2,
             _ => panic!(),
@@ -1318,8 +1324,8 @@ impl AutoCalloutPins for A320FWCParameterTable {
 }
 
 impl GlideDeviation for A320FWCParameterTable {
-    fn glide_deviation(&self, index: u8) -> &Arinc429Parameter<Ratio> {
-        match index {
+    fn glide_deviation(&self, number: u8) -> &Arinc429Parameter<Ratio> {
+        match number {
             1 => &self.glide_deviation_1,
             2 => &self.glide_deviation_2,
             _ => panic!(),
@@ -1328,8 +1334,8 @@ impl GlideDeviation for A320FWCParameterTable {
 }
 
 impl LandTrkModeOn for A320FWCParameterTable {
-    fn land_trk_mode_on(&self, index: u8) -> &Arinc429Parameter<bool> {
-        match index {
+    fn land_trk_mode_on(&self, number: u8) -> &Arinc429Parameter<bool> {
+        match number {
             1 => &self.land_trk_mode_on_1,
             2 => &self.land_trk_mode_on_2,
             _ => panic!(),

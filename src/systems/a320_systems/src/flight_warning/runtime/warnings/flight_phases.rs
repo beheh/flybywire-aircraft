@@ -26,9 +26,9 @@ pub(in crate::flight_warning::runtime) struct NewGroundActivation {
     lgciu_12_inv: bool,
 }
 
-impl NewGroundActivation {
-    pub fn new() -> Self {
-        NewGroundActivation {
+impl Default for NewGroundActivation {
+    fn default() -> Self {
+        Self {
             conf1: ConfirmationNode::new_leading(Duration::from_secs_f64(1.0)),
             conf2: ConfirmationNode::new_leading(Duration::from_secs_f64(0.5)),
             conf3: ConfirmationNode::new_leading(Duration::from_secs_f64(1.0)),
@@ -39,25 +39,29 @@ impl NewGroundActivation {
             lgciu_12_inv: false,
         }
     }
+}
 
+impl NewGroundActivation {
     pub fn update(
         &mut self,
         delta: Duration,
         signals: &(impl LhLgCompressed + EssLhLgCompressed + NormLhLgCompressed),
     ) {
         let xor1 = signals.lh_lg_compressed(1).value() ^ signals.ess_lh_lg_compressed().value();
+        let conf1_out = self.conf1.update(xor1, delta);
         let set_memory1 = signals.lh_lg_compressed(1).is_ncd()
             || signals.lh_lg_compressed(1).is_inv()
-            || self.conf1.update(xor1, delta);
+            || conf1_out;
 
         let memory1_out = self
             .memory1
             .update(set_memory1, self.conf2.update(!xor1, delta));
 
         let xor3 = signals.lh_lg_compressed(2).value() ^ signals.norm_lh_lg_compressed().value();
+        let conf3_out = self.conf3.update(xor3, delta);
         let set_memory2 = signals.lh_lg_compressed(2).is_ncd()
             || signals.lh_lg_compressed(2).is_inv()
-            || self.conf3.update(xor3, delta);
+            || conf3_out;
         let memory2_out = self
             .memory2
             .update(set_memory2, self.conf4.update(!xor3, delta));
@@ -93,8 +97,8 @@ pub(in crate::flight_warning::runtime) struct GroundDetectionActivation {
     ground: bool,
 }
 
-impl GroundDetectionActivation {
-    pub fn new() -> Self {
+impl Default for GroundDetectionActivation {
+    fn default() -> Self {
         Self {
             memory1: MemoryNode::new(true),
             memory2: MemoryNode::new(true),
@@ -104,7 +108,9 @@ impl GroundDetectionActivation {
             ground: false,
         }
     }
+}
 
+impl GroundDetectionActivation {
     pub fn update(
         &mut self,
         delta: Duration,
@@ -127,15 +133,21 @@ impl GroundDetectionActivation {
         let radio_1_on_gnd = (memory1_out || set_memory_1) && !radio_1_ncd && !radio_1_inv;
         let radio_2_on_gnd = (memory2_out || set_memory_2) && !radio_2_ncd && !radio_2_inv;
 
-        let ground_signals = [
-            signals.ess_lh_lg_compressed().value(),
-            signals.norm_lh_lg_compressed().value(),
-            radio_1_on_gnd,
-            radio_2_on_gnd,
-        ];
-        let ground_count = ground_signals.iter().filter(|&n| *n).count();
-        let more_than_2 = ground_count > 2;
-        let more_than_1 = ground_count > 1;
+        let mut ground_signals = 0;
+        if signals.ess_lh_lg_compressed().value() {
+            ground_signals += 1;
+        }
+        if signals.norm_lh_lg_compressed().value() {
+            ground_signals += 1;
+        }
+        if radio_1_on_gnd {
+            ground_signals += 1;
+        }
+        if radio_2_on_gnd {
+            ground_signals += 1;
+        }
+        let more_than_2 = ground_signals > 2;
+        let more_than_1 = ground_signals > 1;
 
         let dual_radio_inv = radio_1_inv && radio_2_inv;
         let gnd_cond1 = more_than_2 && !dual_radio_inv;
@@ -175,8 +187,8 @@ pub(in crate::flight_warning::runtime) struct SpeedDetectionActivation {
     adc_test_inhib: bool,
 }
 
-impl SpeedDetectionActivation {
-    pub fn new() -> Self {
+impl Default for SpeedDetectionActivation {
+    fn default() -> Self {
         Self {
             conf1: ConfirmationNode::new(true, Duration::from_secs(1)),
             conf2: ConfirmationNode::new(true, Duration::from_secs(1)),
@@ -188,7 +200,9 @@ impl SpeedDetectionActivation {
             adc_test_inhib: false,
         }
     }
+}
 
+impl SpeedDetectionActivation {
     pub fn update(&mut self, delta: Duration, signals: &impl ComputedSpeed) {
         let adc_1_invalid =
             signals.computed_speed(1).is_inv() || signals.computed_speed(1).is_ncd();
@@ -222,13 +236,20 @@ impl SpeedDetectionActivation {
             && signals.computed_speed(3).value() > Velocity::new::<knot>(83.0);
         let any_adc_above_80_kt = adc_1_above_80_kt || adc_2_above_80_kt || adc_3_above_80_kt;
 
-        let set_signals = &[
-            adc_1_above_80_kt,
-            adc_2_above_80_kt,
-            adc_3_above_80_kt,
-            any_adc_above_80_kt && any_adc_invalid,
-        ];
-        let set_memory = set_signals.iter().filter(|&n| *n).count() > 1;
+        let mut set_count = 0;
+        if adc_1_above_80_kt {
+            set_count += 1;
+        }
+        if adc_2_above_80_kt {
+            set_count += 1;
+        }
+        if adc_3_above_80_kt {
+            set_count += 1;
+        }
+        if any_adc_above_80_kt && any_adc_invalid {
+            set_count += 1;
+        }
+        let set_memory = set_count > 1;
 
         let adc_1_below_77_kt =
             signals.computed_speed(1).value() < Velocity::new::<knot>(77.0) && !adc_1_invalid;
@@ -242,14 +263,21 @@ impl SpeedDetectionActivation {
             || signals.computed_speed(2).is_ft()
             || signals.computed_speed(3).is_ft();
 
-        let reset_signals = &[
-            adc_1_below_77_kt,
-            adc_2_below_77_kt,
-            adc_3_below_77_kt,
-            any_adc_below_77_kt && any_adc_invalid,
-        ];
-        let reset_memory = reset_signals.iter().filter(|&n| *n).count() > 1
-            || self.mtrig1.update(any_adc_fault, delta);
+        let mut reset_count = 0;
+        if adc_1_below_77_kt {
+            reset_count += 1;
+        }
+        if adc_2_below_77_kt {
+            reset_count += 1;
+        }
+        if adc_3_below_77_kt {
+            reset_count += 1;
+        }
+        if any_adc_below_77_kt && any_adc_invalid {
+            reset_count += 1;
+        }
+        let mtrig1_out = self.mtrig1.update(any_adc_fault, delta);
+        let reset_memory = reset_count > 1 || mtrig1_out;
 
         self.ac_speed_above_80_kt = self.memory.update(set_memory, reset_memory);
         self.adc_test_inhib = self.mtrig2.update(any_adc_fault, delta);
@@ -265,12 +293,12 @@ impl SpeedDetection for SpeedDetectionActivation {
     }
 }
 
-pub(in crate::flight_warning::runtime) trait EngineNotRunning {
+pub(in crate::flight_warning::runtime) trait EngineNotRunningCfm {
     fn eng_1_not_running(&self) -> bool;
     fn eng_2_not_running(&self) -> bool;
 }
 
-pub(in crate::flight_warning::runtime) struct EnginesNotRunning {
+pub(in crate::flight_warning::runtime) struct EngineNotRunningCfmActivation {
     trans1: TransientDetectionNode,
     conf1: ConfirmationNode,
     conf2: ConfirmationNode,
@@ -279,10 +307,11 @@ pub(in crate::flight_warning::runtime) struct EnginesNotRunning {
     conf5: ConfirmationNode,
     eng_1_not_running: bool,
     eng_2_not_running: bool,
+    debug: bool,
 }
 
-impl EnginesNotRunning {
-    pub fn new() -> Self {
+impl Default for EngineNotRunningCfmActivation {
+    fn default() -> Self {
         Self {
             trans1: TransientDetectionNode::new(true),
             conf1: ConfirmationNode::new_leading(Duration::from_secs(30)),
@@ -292,9 +321,12 @@ impl EnginesNotRunning {
             conf5: ConfirmationNode::new_falling(Duration::from_secs(31)),
             eng_1_not_running: false,
             eng_2_not_running: false,
+            debug: false,
         }
     }
+}
 
+impl EngineNotRunningCfmActivation {
     pub fn update(
         &mut self,
         delta: Duration,
@@ -308,7 +340,11 @@ impl EnginesNotRunning {
         let eng1_core_speed_at_or_above_idle_a = signals.eng1_core_speed_at_or_above_idle(1);
         let eng1_core_speed_at_or_above_idle_b = signals.eng1_core_speed_at_or_above_idle(2);
 
-        let conf5_out = self.trans1.update(signals.eng_1_fire_pb_out().value());
+        let conf5_out = self.conf5.update(
+            self.trans1.update(signals.eng_1_fire_pb_out().value()),
+            delta,
+        );
+        let flying = !ground.ground();
 
         let conf1_out = self
             .conf1
@@ -319,17 +355,19 @@ impl EnginesNotRunning {
             .update(eng1_core_speed_at_or_above_idle_b.value(), delta);
 
         let eng_1_core_speed_not_running_conf = !conf1_out && !conf2_out;
-        let eng_1_core_speed_running_immediate = eng1_core_speed_at_or_above_idle_a.value()
+        let eng_1_core_speed_inhibit = eng1_core_speed_at_or_above_idle_a.value()
             && eng1_core_speed_at_or_above_idle_b.value()
             && conf5_out
-            && !ground.ground();
+            && flying;
+        self.debug = eng_1_core_speed_inhibit;
 
         let eng_1_core_speed_not_running =
-            eng_1_core_speed_not_running_conf && !eng_1_core_speed_running_immediate;
+            eng_1_core_speed_not_running_conf && !eng_1_core_speed_inhibit;
 
-        self.eng_1_not_running = (signals.eng1_master_lever_select_on().is_val()
-            && !signals.eng1_master_lever_select_on().value())
-            || eng_1_core_speed_not_running;
+        let eng_1_master_lever_valid_and_off = signals.eng1_master_lever_select_on().is_val()
+            && !signals.eng1_master_lever_select_on().value();
+
+        self.eng_1_not_running = eng_1_master_lever_valid_and_off || eng_1_core_speed_not_running;
 
         let eng2_core_speed_at_or_above_idle_a = signals.eng2_core_speed_at_or_above_idle(1);
         let eng2_core_speed_at_or_above_idle_b = signals.eng2_core_speed_at_or_above_idle(2);
@@ -342,23 +380,24 @@ impl EnginesNotRunning {
             .conf4
             .update(eng2_core_speed_at_or_above_idle_b.value(), delta);
 
-        let eng_2_core_speed_running_immediate = !ground.ground()
+        let eng_2_core_speed_inhibit = eng2_core_speed_at_or_above_idle_b.value()
+            && eng2_core_speed_at_or_above_idle_a.value()
             && conf5_out
-            && eng1_core_speed_at_or_above_idle_b.value()
-            && eng1_core_speed_at_or_above_idle_a.value();
+            && flying;
 
         let eng_2_core_speed_not_running_conf = !conf3_out && !conf4_out;
 
         let eng_2_core_speed_not_running =
-            !eng_2_core_speed_running_immediate && eng_2_core_speed_not_running_conf;
+            !eng_2_core_speed_inhibit && eng_2_core_speed_not_running_conf;
 
-        self.eng_2_not_running = eng_2_core_speed_not_running
-            || (!signals.eng1_master_lever_select_on().value()
-                && signals.eng2_master_lever_select_on().is_val());
+        let eng_2_master_lever_valid_and_off = signals.eng2_master_lever_select_on().is_val()
+            && !signals.eng2_master_lever_select_on().value();
+
+        self.eng_2_not_running = eng_2_core_speed_not_running || eng_2_master_lever_valid_and_off;
     }
 }
 
-impl EngineNotRunning for EnginesNotRunning {
+impl EngineNotRunningCfm for EngineNotRunningCfmActivation {
     fn eng_1_not_running(&self) -> bool {
         self.eng_1_not_running
     }
@@ -381,8 +420,8 @@ pub(in crate::flight_warning::runtime) struct EngRunningActivation {
     one_eng_running: bool,
 }
 
-impl EngRunningActivation {
-    pub fn new() -> Self {
+impl Default for EngRunningActivation {
+    fn default() -> Self {
         Self {
             conf1: ConfirmationNode::new(true, Duration::from_secs(30)),
             eng_1_and_2_not_running: false,
@@ -390,12 +429,14 @@ impl EngRunningActivation {
             one_eng_running: false,
         }
     }
+}
 
+impl EngRunningActivation {
     pub fn update(
         &mut self,
         delta: Duration,
         signals: &(impl Eng1CoreSpeedAtOrAboveIdle + Eng2CoreSpeedAtOrAboveIdle),
-        engine_not_running: &impl EngineNotRunning,
+        engine_not_running: &impl EngineNotRunningCfm,
     ) {
         self.eng_1_and_2_not_running =
             engine_not_running.eng_1_not_running() && engine_not_running.eng_2_not_running();
@@ -430,6 +471,7 @@ pub(in crate::flight_warning::runtime) trait EngTakeOffCfm {
     fn tla2_idle_pwr_cfm(&self) -> bool;
 }
 
+#[derive(Default)]
 pub(in crate::flight_warning::runtime) struct EngTakeOffCfmActivation {
     eng1_to_cfm: bool,
     eng2_to_cfm: bool,
@@ -438,15 +480,6 @@ pub(in crate::flight_warning::runtime) struct EngTakeOffCfmActivation {
 }
 
 impl EngTakeOffCfmActivation {
-    pub fn new() -> Self {
-        Self {
-            eng1_to_cfm: false,
-            eng2_to_cfm: false,
-            tla1_idle_pwr_cfm: false,
-            tla2_idle_pwr_cfm: false,
-        }
-    }
-
     pub fn update(
         &mut self,
         signals: &(impl Eng1N1SelectedActual
@@ -523,6 +556,7 @@ pub(in crate::flight_warning::runtime) trait NeoEcu {
     fn eng_2_limit_mode_soft_ga(&self) -> bool;
 }
 
+#[derive(Default)]
 pub(in crate::flight_warning::runtime) struct NeoEcuActivation {
     eng_1_auto_toga: bool,
     eng_1_limit_mode_soft_ga: bool,
@@ -531,15 +565,6 @@ pub(in crate::flight_warning::runtime) struct NeoEcuActivation {
 }
 
 impl NeoEcuActivation {
-    pub fn new() -> Self {
-        Self {
-            eng_1_auto_toga: false,
-            eng_1_limit_mode_soft_ga: false,
-            eng_2_auto_toga: false,
-            eng_2_limit_mode_soft_ga: false,
-        }
-    }
-
     pub fn update(
         &mut self,
         signals: &(impl Eng1AutoToga + Eng1LimitModeSoftGa + Eng2AutoToga + Eng2LimitModeSoftGa),
@@ -582,6 +607,7 @@ pub(in crate::flight_warning::runtime) trait TlaAtMctOrFlexToCfm {
     fn eng_2_sup_mct_cfm(&self) -> bool;
 }
 
+#[derive(Default)]
 pub(in crate::flight_warning::runtime) struct TlaAtMctOrFlexToCfmActivation {
     eng_1_tla_mct_cfm: bool,
     eng_1_end_mct: bool,
@@ -592,17 +618,6 @@ pub(in crate::flight_warning::runtime) struct TlaAtMctOrFlexToCfmActivation {
 }
 
 impl TlaAtMctOrFlexToCfmActivation {
-    pub fn new() -> Self {
-        Self {
-            eng_1_tla_mct_cfm: false,
-            eng_1_end_mct: false,
-            eng_1_sup_mct_cfm: false,
-            eng_2_tla_mct_cfm: false,
-            eng_2_end_mct: false,
-            eng_2_sup_mct_cfm: false,
-        }
-    }
-
     pub fn update(&mut self, signals: &(impl Eng1TlaCfm + Eng2TlaCfm)) {
         let any_cfm = true;
 
@@ -704,8 +719,8 @@ pub(in crate::flight_warning::runtime) struct TlaPwrReverseActivation {
     eng_2_tla_reverse_cfm: bool,
 }
 
-impl TlaPwrReverseActivation {
-    pub fn new() -> Self {
+impl Default for TlaPwrReverseActivation {
+    fn default() -> Self {
         Self {
             conf1: ConfirmationNode::new_falling(Duration::from_secs(10)),
             conf2: ConfirmationNode::new_falling(Duration::from_secs(10)),
@@ -715,7 +730,9 @@ impl TlaPwrReverseActivation {
             eng_2_tla_reverse_cfm: false,
         }
     }
+}
 
+impl TlaPwrReverseActivation {
     pub fn update(
         &mut self,
         delta: Duration,
@@ -798,6 +815,7 @@ pub(in crate::flight_warning::runtime) trait TlaAtClCfm {
     fn eng_2_tla_cl_cfm(&self) -> bool;
 }
 
+#[derive(Default)]
 pub(in crate::flight_warning::runtime) struct TlaAtClCfmActivation {
     eng_1_tla_cl_cfm: bool,
     eng_12_mcl_cfm: bool,
@@ -805,14 +823,6 @@ pub(in crate::flight_warning::runtime) struct TlaAtClCfmActivation {
 }
 
 impl TlaAtClCfmActivation {
-    pub fn new() -> Self {
-        Self {
-            eng_1_tla_cl_cfm: false,
-            eng_12_mcl_cfm: false,
-            eng_2_tla_cl_cfm: false,
-        }
-    }
-
     pub fn update(&mut self, _delta: Duration, signals: &(impl Eng1TlaCfm + Eng2TlaCfm)) {
         let any_cfm = true;
 
@@ -883,15 +893,17 @@ pub(in crate::flight_warning::runtime) struct CfmFlightPhasesDefActivation {
     eng_1_or_2_to_pwr: bool,
 }
 
-impl CfmFlightPhasesDefActivation {
-    pub fn new() -> Self {
+impl Default for CfmFlightPhasesDefActivation {
+    fn default() -> Self {
         Self {
             conf1: ConfirmationNode::new_falling(Duration::from_secs(60)),
             cfm_flex: false,
             eng_1_or_2_to_pwr: false,
         }
     }
+}
 
+impl CfmFlightPhasesDefActivation {
     pub fn update(
         &mut self,
         delta: Duration,
@@ -959,23 +971,25 @@ pub(in crate::flight_warning::runtime) trait FlightPhasesAltitudeDef {
 
 pub(in crate::flight_warning::runtime) struct AltitudeDefActivation {
     conf1: ConfirmationNode,
-    memory1: MemoryNode,
+    mem: MemoryNode,
     h_fail: bool,
     h_gt_800ft: bool,
     h_gt_1500ft: bool,
 }
 
-impl AltitudeDefActivation {
-    pub fn new() -> Self {
+impl Default for AltitudeDefActivation {
+    fn default() -> Self {
         Self {
             conf1: ConfirmationNode::new_leading(Duration::from_secs(4)),
-            memory1: MemoryNode::new(false),
+            mem: MemoryNode::new(false),
             h_fail: false,
             h_gt_800ft: false,
             h_gt_1500ft: false,
         }
     }
+}
 
+impl AltitudeDefActivation {
     pub fn update(&mut self, delta: Duration, signals: &impl RadioHeight) {
         let radio1_inv = signals.radio_height(1).is_inv();
         let radio2_inv = signals.radio_height(2).is_inv();
@@ -1007,7 +1021,7 @@ impl AltitudeDefActivation {
         let memory1_set = h_gt_1500ft;
         let memory1_reset = (radio1_blw_800ft || radio2_blw_800ft) && !conf1_out;
 
-        self.h_gt_800ft = self.memory1.update(memory1_set, memory1_reset);
+        self.h_gt_800ft = self.mem.update(memory1_set, memory1_reset);
     }
 }
 
@@ -1056,8 +1070,8 @@ pub(in crate::flight_warning::runtime) struct FlightPhasesGroundActivation {
     phase10: bool,
 }
 
-impl FlightPhasesGroundActivation {
-    pub fn new() -> Self {
+impl Default for FlightPhasesGroundActivation {
+    fn default() -> Self {
         Self {
             trans1: TransientDetectionNode::new(false),
             conf1: ConfirmationNode::new_leading(Duration::from_secs_f64(0.2)),
@@ -1079,7 +1093,9 @@ impl FlightPhasesGroundActivation {
             phase10: false,
         }
     }
+}
 
+impl FlightPhasesGroundActivation {
     pub fn update(
         &mut self,
         delta: Duration,
@@ -1207,8 +1223,8 @@ pub(in crate::flight_warning::runtime) struct FlightPhasesAirActivation {
     phase7: bool,
 }
 
-impl FlightPhasesAirActivation {
-    pub fn new() -> Self {
+impl Default for FlightPhasesAirActivation {
+    fn default() -> Self {
         Self {
             conf1: ConfirmationNode::new_leading(Duration::from_secs_f64(0.2)),
             mtrig1: MonostableTriggerNode::new_leading(Duration::from_secs(120)),
@@ -1221,7 +1237,9 @@ impl FlightPhasesAirActivation {
             phase7: false,
         }
     }
+}
 
+impl FlightPhasesAirActivation {
     pub fn update(
         &mut self,
         delta: Duration,
@@ -1275,7 +1293,7 @@ impl FlightPhasesAir for FlightPhasesAirActivation {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use crate::flight_warning::test::*;
     use uom::si::f64::*;
     use uom::si::{length::foot, velocity::knot};
@@ -1288,7 +1306,7 @@ mod tests {
 
         #[test]
         fn when_all_compressed_new_ground_and_not_inv() {
-            let mut sheet = NewGroundActivation::new();
+            let mut sheet = NewGroundActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with()
@@ -1298,13 +1316,13 @@ mod tests {
                     .norm_lh_lg_compressed()
                     .parameters(),
             );
-            assert_eq!(sheet.new_ground, true);
-            assert_eq!(sheet.lgciu_12_inv, false);
+            assert_eq!(sheet.new_ground(), true);
+            assert_eq!(sheet.lgciu_12_inv(), false);
         }
 
         #[test]
         fn when_none_compressed_new_ground_and_not_inv() {
-            let mut sheet = NewGroundActivation::new();
+            let mut sheet = NewGroundActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with()
@@ -1312,13 +1330,13 @@ mod tests {
                     .lh_lg_extended(2)
                     .parameters(),
             );
-            assert_eq!(sheet.new_ground, false);
-            assert_eq!(sheet.lgciu_12_inv, false);
+            assert_eq!(sheet.new_ground(), false);
+            assert_eq!(sheet.lgciu_12_inv(), false);
         }
 
         #[test]
         fn when_single_lgciu_mismatch_then_lgciu12_inv() {
-            let mut sheet = NewGroundActivation::new();
+            let mut sheet = NewGroundActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with()
@@ -1326,8 +1344,8 @@ mod tests {
                     .lh_lg_extended(2)
                     .parameters(),
             );
-            assert_eq!(sheet.new_ground, false);
-            assert_eq!(sheet.lgciu_12_inv, true);
+            assert_eq!(sheet.new_ground(), false);
+            assert_eq!(sheet.lgciu_12_inv(), true);
         }
     }
 
@@ -1360,7 +1378,7 @@ mod tests {
 
         #[test]
         fn when_on_ground_ground_immediate_and_ground() {
-            let mut sheet = GroundDetectionActivation::new();
+            let mut sheet = GroundDetectionActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with()
@@ -1376,7 +1394,7 @@ mod tests {
 
         #[test]
         fn when_touching_down_triggers_ground_immediate_first() {
-            let mut sheet = GroundDetectionActivation::new();
+            let mut sheet = GroundDetectionActivation::default();
             sheet.update(
                 Duration::from_millis(500),
                 test_bed_with()
@@ -1403,7 +1421,7 @@ mod tests {
 
         #[test]
         fn when_dual_ra_failure_on_ground() {
-            let mut sheet = GroundDetectionActivation::new();
+            let mut sheet = GroundDetectionActivation::default();
             sheet.update(
                 Duration::from_millis(500),
                 test_bed_with()
@@ -1422,7 +1440,7 @@ mod tests {
 
         #[test]
         fn when_at_37_0_degress_above_mct() {
-            let mut sheet = TlaAtMctOrFlexToCfmActivation::new();
+            let mut sheet = TlaAtMctOrFlexToCfmActivation::default();
             sheet.update(
                 test_bed_with()
                     .eng1_tla(Angle::new::<degree>(37.0))
@@ -1435,7 +1453,7 @@ mod tests {
 
         #[test]
         fn when_at_36_55_degress_at_end_mct() {
-            let mut sheet = TlaAtMctOrFlexToCfmActivation::new();
+            let mut sheet = TlaAtMctOrFlexToCfmActivation::default();
             sheet.update(
                 test_bed_with()
                     .eng1_tla(Angle::new::<degree>(36.65))
@@ -1448,7 +1466,7 @@ mod tests {
 
         #[test]
         fn when_at_33_degress_not_in_mct() {
-            let mut sheet = TlaAtMctOrFlexToCfmActivation::new();
+            let mut sheet = TlaAtMctOrFlexToCfmActivation::default();
             sheet.update(
                 test_bed_with()
                     .eng1_tla(Angle::new::<degree>(33.0))
@@ -1461,7 +1479,7 @@ mod tests {
 
         #[test]
         fn when_at_35_degress_in_mct() {
-            let mut sheet = TlaAtMctOrFlexToCfmActivation::new();
+            let mut sheet = TlaAtMctOrFlexToCfmActivation::default();
             sheet.update(
                 test_bed_with()
                     .eng1_tla(Angle::new::<degree>(35.0))
@@ -1479,7 +1497,7 @@ mod tests {
 
         #[test]
         fn when_at_0_kt_not_above_80_kt() {
-            let mut sheet = SpeedDetectionActivation::new();
+            let mut sheet = SpeedDetectionActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with()
@@ -1495,7 +1513,7 @@ mod tests {
 
         #[test]
         fn when_at_250_kt_above_80_kt() {
-            let mut sheet = SpeedDetectionActivation::new();
+            let mut sheet = SpeedDetectionActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with()
@@ -1511,7 +1529,7 @@ mod tests {
 
         #[test]
         fn when_one_adc_at_250_kt_not_above_80_kt() {
-            let mut sheet = SpeedDetectionActivation::new();
+            let mut sheet = SpeedDetectionActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with()
@@ -1527,7 +1545,7 @@ mod tests {
 
         #[test]
         fn when_two_at_250_kt_and_adc_failure_above_80_kt() {
-            let mut sheet = SpeedDetectionActivation::new();
+            let mut sheet = SpeedDetectionActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with()
@@ -1539,7 +1557,7 @@ mod tests {
 
         #[test]
         fn when_two_adcs_at_250_kt_above_80_kt() {
-            let mut sheet = SpeedDetectionActivation::new();
+            let mut sheet = SpeedDetectionActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with()
@@ -1555,7 +1573,7 @@ mod tests {
 
         #[test]
         fn when_spikes_below_50_to_above_80_kt_not_above_80_kt() {
-            let mut sheet = SpeedDetectionActivation::new();
+            let mut sheet = SpeedDetectionActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with()
@@ -1581,7 +1599,7 @@ mod tests {
 
         #[test]
         fn when_jumps_below_50_to_above_80_kt_above_80_kt() {
-            let mut sheet = SpeedDetectionActivation::new();
+            let mut sheet = SpeedDetectionActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with()
@@ -1612,7 +1630,7 @@ mod tests {
 
         #[test]
         fn when_engines_off() {
-            let mut sheet = EnginesNotRunning::new();
+            let mut sheet = EngineNotRunningCfmActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with().parameters(),
@@ -1623,22 +1641,20 @@ mod tests {
         }
 
         #[test]
-        fn when_engine_off_and_master_lever_on() {
-            let mut sheet = EnginesNotRunning::new();
+        fn when_engine_off_and_master_lever_on_after_30s() {
+            let mut sheet = EngineNotRunningCfmActivation::default();
             sheet.update(
-                Duration::from_secs(1),
-                test_bed_with().eng1_master_lever_select_on().parameters(),
+                Duration::from_secs_f64(29.9),
+                test_bed_with()
+                    .eng1_master_lever_select_on()
+                    .eng1_at_or_above_idle()
+                    .parameters(),
                 &TestGroundDetection::new(true),
             );
             assert_eq!(sheet.eng_1_not_running(), true);
             assert_eq!(sheet.eng_2_not_running(), true);
-        }
-
-        #[test]
-        fn when_engine_on_and_master_lever_on_after_30_secs() {
-            let mut sheet = EnginesNotRunning::new();
             sheet.update(
-                Duration::from_secs(30),
+                Duration::from_secs_f64(0.1),
                 test_bed_with()
                     .eng1_master_lever_select_on()
                     .eng1_at_or_above_idle()
@@ -1651,7 +1667,7 @@ mod tests {
 
         #[test]
         fn when_engine_on_and_master_lever_off_after_30_secs() {
-            let mut sheet = EnginesNotRunning::new();
+            let mut sheet = EngineNotRunningCfmActivation::default();
             sheet.update(
                 Duration::from_secs(30),
                 test_bed_with().eng1_at_or_above_idle().parameters(),
@@ -1665,50 +1681,42 @@ mod tests {
 
         #[test]
         fn when_engine_1_on_and_master_lever_on_in_flight_with_fire_pb() {
-            let mut sheet = EnginesNotRunning::new();
+            let mut sheet = EngineNotRunningCfmActivation::default();
 
-            // Engine 1 just turned on, we would need to wait 30s for "off" confirmation...
+            // Engine 1 has been running for 30 secs
             sheet.update(
-                Duration::from_secs(1),
-                test_bed_with().eng1_at_or_above_idle().parameters(),
-                &TestGroundDetection::new(false),
-            );
-            assert_eq!(sheet.eng_1_not_running(), true);
-
-            // ...however toggling the fire p/b immediately forces it to off
-            sheet.update(
-                Duration::from_secs(1),
+                Duration::from_secs(30),
                 test_bed_with()
+                    .eng1_master_lever_select_on()
                     .eng1_at_or_above_idle()
-                    .eng1_fire_pb_out()
                     .parameters(),
                 &TestGroundDetection::new(false),
             );
             assert_eq!(sheet.eng_1_not_running(), false);
-        }
 
-        #[test]
-        fn when_engine_2_on_and_master_lever_on_in_flight_with_fire_pb() {
-            let mut sheet = EnginesNotRunning::new();
-
-            // Engine 2 just turned on, we would need to wait 30s for "off" confirmation...
+            // ...and toggling the eng 1 fire p/b keeps it running
             sheet.update(
-                Duration::from_secs(1),
-                test_bed_with().eng1_at_or_above_idle().parameters(),
+                Duration::from_secs_f64(0.1),
+                test_bed_with()
+                    .eng1_master_lever_select_on()
+                    .eng1_fire_pb_out()
+                    .parameters(),
                 &TestGroundDetection::new(false),
             );
-            assert_eq!(sheet.eng_2_not_running(), true);
+            println!("debug={}", sheet.debug);
+            assert_eq!(sheet.eng_1_not_running(), false);
 
-            // ...however toggling engine 1 (!!) fire p/b immediately forces it to off
+            // after 31s the engine is truly considered off
             sheet.update(
-                Duration::from_secs(1),
+                Duration::from_secs_f64(0.1),
                 test_bed_with()
+                    .eng1_master_lever_select_on()
                     .eng1_at_or_above_idle()
                     .eng1_fire_pb_out()
                     .parameters(),
                 &TestGroundDetection::new(false),
             );
-            assert_eq!(sheet.eng_2_not_running(), false);
+            assert_eq!(sheet.eng_1_not_running(), true);
         }
 
         // TODO a/b channel discrepancy
@@ -1720,7 +1728,7 @@ mod tests {
 
         #[test]
         fn when_at_cruise() {
-            let mut sheet = AltitudeDefActivation::new();
+            let mut sheet = AltitudeDefActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with().radio_heights_at_cruise().parameters(),
@@ -1732,7 +1740,7 @@ mod tests {
 
         #[test]
         fn when_above_1500ft() {
-            let mut sheet = AltitudeDefActivation::new();
+            let mut sheet = AltitudeDefActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with()
@@ -1746,7 +1754,7 @@ mod tests {
 
         #[test]
         fn when_above_800ft_and_below_1500ft() {
-            let mut sheet = AltitudeDefActivation::new();
+            let mut sheet = AltitudeDefActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with()
@@ -1766,7 +1774,7 @@ mod tests {
 
         #[test]
         fn when_below_800ft() {
-            let mut sheet = AltitudeDefActivation::new();
+            let mut sheet = AltitudeDefActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with()
@@ -1786,7 +1794,7 @@ mod tests {
 
         #[test]
         fn when_on_ground() {
-            let mut sheet = AltitudeDefActivation::new();
+            let mut sheet = AltitudeDefActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with()
@@ -1805,7 +1813,7 @@ mod tests {
 
         #[test]
         fn when_cold_and_dark_is_phase_1() {
-            let mut sheet = FlightPhasesGroundActivation::new();
+            let mut sheet = FlightPhasesGroundActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with().parameters(),
@@ -1819,7 +1827,7 @@ mod tests {
 
         #[test]
         fn when_one_eng_running_is_phase_2() {
-            let mut sheet = FlightPhasesGroundActivation::new();
+            let mut sheet = FlightPhasesGroundActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with().parameters(),
@@ -1833,7 +1841,7 @@ mod tests {
 
         #[test]
         fn when_at_flex_takeoff_is_phase_3() {
-            let mut sheet = FlightPhasesGroundActivation::new();
+            let mut sheet = FlightPhasesGroundActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with().parameters(),
@@ -1847,7 +1855,7 @@ mod tests {
 
         #[test]
         fn when_at_toga_takeoff_is_phase_3() {
-            let mut sheet = FlightPhasesGroundActivation::new();
+            let mut sheet = FlightPhasesGroundActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with().parameters(),
@@ -1861,7 +1869,7 @@ mod tests {
 
         #[test]
         fn when_at_toga_above_80_kt_is_phase_4() {
-            let mut sheet = FlightPhasesGroundActivation::new();
+            let mut sheet = FlightPhasesGroundActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with().parameters(),
@@ -1875,7 +1883,7 @@ mod tests {
 
         #[test]
         fn when_engine_failed_above_80_kt_is_phase_4() {
-            let mut sheet = FlightPhasesGroundActivation::new();
+            let mut sheet = FlightPhasesGroundActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with().parameters(),
@@ -1889,7 +1897,7 @@ mod tests {
 
         #[test]
         fn when_below_flex_above_80_kt_is_phase_8() {
-            let mut sheet = FlightPhasesGroundActivation::new();
+            let mut sheet = FlightPhasesGroundActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with().parameters(),
@@ -1903,7 +1911,7 @@ mod tests {
 
         #[test]
         fn after_rto_below_80_knots_is_phase_9() {
-            let mut sheet = FlightPhasesGroundActivation::new();
+            let mut sheet = FlightPhasesGroundActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with().parameters(),
@@ -1925,7 +1933,7 @@ mod tests {
 
         #[test]
         fn after_rto_below_80_knots_and_to_config_is_phase_2() {
-            let mut sheet = FlightPhasesGroundActivation::new();
+            let mut sheet = FlightPhasesGroundActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 test_bed_with().parameters(),
@@ -1955,7 +1963,7 @@ mod tests {
 
         /*#[test]
         fn after_engine_shutdown_reset_to_phase_1() {
-            let mut sheet = FlightPhasesGroundActivation::new();
+            let mut sheet = FlightPhasesGroundActivation::default();
             sheet.update(Duration::from_secs(1), test_bed().signals());
             assert_eq!(sheet.get_phase(), 3);
             sheet.update(Duration::from_secs(30), test_bed().signals());
@@ -1975,7 +1983,7 @@ mod tests {
 
         #[test]
         fn when_at_toga_below_1500ft_is_phase_5() {
-            let mut sheet = FlightPhasesAirActivation::new();
+            let mut sheet = FlightPhasesAirActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 &TestGroundDetection::new(false),
@@ -1988,7 +1996,7 @@ mod tests {
 
         #[test]
         fn when_at_flex_below_1500ft_is_phase_5() {
-            let mut sheet = FlightPhasesAirActivation::new();
+            let mut sheet = FlightPhasesAirActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 &TestGroundDetection::new(false),
@@ -2001,7 +2009,7 @@ mod tests {
 
         #[test]
         fn when_at_takeoff_power_above_1500ft_is_phase_6() {
-            let mut sheet = FlightPhasesAirActivation::new();
+            let mut sheet = FlightPhasesAirActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 &TestGroundDetection::new(false),
@@ -2014,7 +2022,7 @@ mod tests {
 
         #[test]
         fn when_at_flex_above_1500ft_is_phase_6() {
-            let mut sheet = FlightPhasesAirActivation::new();
+            let mut sheet = FlightPhasesAirActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 &TestGroundDetection::new(false),
@@ -2027,7 +2035,7 @@ mod tests {
 
         #[test]
         fn when_at_below_flex_below_800ft_is_phase_7() {
-            let mut sheet = FlightPhasesAirActivation::new();
+            let mut sheet = FlightPhasesAirActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 &TestGroundDetection::new(false),
@@ -2047,7 +2055,7 @@ mod tests {
 
         #[test]
         fn when_at_flex_below_800ft_is_phase_5() {
-            let mut sheet = FlightPhasesAirActivation::new();
+            let mut sheet = FlightPhasesAirActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 &TestGroundDetection::new(false),
@@ -2060,7 +2068,7 @@ mod tests {
 
         #[test]
         fn when_at_toga_below_800ft_is_phase_5() {
-            let mut sheet = FlightPhasesAirActivation::new();
+            let mut sheet = FlightPhasesAirActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 &TestGroundDetection::new(false),
@@ -2073,7 +2081,7 @@ mod tests {
 
         #[test]
         fn when_ra_failed_is_phase_6() {
-            let mut sheet = FlightPhasesAirActivation::new();
+            let mut sheet = FlightPhasesAirActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 &TestGroundDetection::new(false),
@@ -2086,7 +2094,7 @@ mod tests {
 
         #[test]
         fn when_on_ground_and_ra_failed_is_no_phase() {
-            let mut sheet = FlightPhasesAirActivation::new();
+            let mut sheet = FlightPhasesAirActivation::default();
             sheet.update(
                 Duration::from_secs(1),
                 &TestGroundDetection::new(true),
@@ -2530,28 +2538,28 @@ mod tests {
         }
     }
 
-    struct TestCfmFlightPhasesDef {
+    pub struct TestCfmFlightPhasesDef {
         cfm_flex: bool,
         eng_1_or_2_to_pwr: bool,
     }
 
     impl TestCfmFlightPhasesDef {
-        fn new(cfm_flex: bool, eng_1_or_2_to_pwr: bool) -> Self {
+        pub fn new(cfm_flex: bool, eng_1_or_2_to_pwr: bool) -> Self {
             Self {
                 cfm_flex,
                 eng_1_or_2_to_pwr,
             }
         }
 
-        fn new_below_flex() -> Self {
+        pub fn new_below_flex() -> Self {
             Self::new(false, false)
         }
 
-        fn new_flex() -> Self {
+        pub fn new_flex() -> Self {
             Self::new(true, true)
         }
 
-        fn new_toga() -> Self {
+        pub fn new_toga() -> Self {
             Self::new(false, true)
         }
     }
@@ -2566,12 +2574,12 @@ mod tests {
         }
     }
 
-    struct TestFlightPhasesGround {
+    pub struct TestFlightPhasesGround {
         phase: usize,
     }
 
     impl TestFlightPhasesGround {
-        fn new(phase: usize) -> Self {
+        pub fn new(phase: usize) -> Self {
             Self { phase }
         }
     }
@@ -2607,6 +2615,36 @@ mod tests {
     }
 
     impl Default for TestFlightPhasesGround {
+        fn default() -> Self {
+            Self::new(0)
+        }
+    }
+
+    pub struct TestFlightPhasesAir {
+        phase: usize,
+    }
+
+    impl TestFlightPhasesAir {
+        pub fn new(phase: usize) -> Self {
+            Self { phase }
+        }
+    }
+
+    impl FlightPhasesAir for TestFlightPhasesAir {
+        fn phase_5(&self) -> bool {
+            self.phase == 5
+        }
+
+        fn phase_6(&self) -> bool {
+            self.phase == 6
+        }
+
+        fn phase_7(&self) -> bool {
+            self.phase == 7
+        }
+    }
+
+    impl Default for TestFlightPhasesAir {
         fn default() -> Self {
             Self::new(0)
         }
