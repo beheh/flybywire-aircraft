@@ -602,18 +602,6 @@ var A320_Neo_UpperECAM;
                         ]
                     },
                     {
-                        name: "AUTO FLT",
-                        messages: [
-                            {
-                                message: "AP OFF",
-                                level: 3,
-                                isActive: () => {
-                                    return this.getCachedSimVar("L:A32NX_FWS_AP_OFF_WARNING", "Bool");
-                                },
-                            }
-                        ]
-                    },
-                    {
                         name: "CARGO SMOKE",
                         messages: [
                             {
@@ -1348,12 +1336,6 @@ var A320_Neo_UpperECAM;
                         style: "fail-2",
                         important: true,
                         isActive: () => this.leftEcamMessagePanel.landASAP === 2 && !Simplane.getIsGrounded()
-                    },
-                    {
-                        message: "AP OFF",
-                        style: "fail-3",
-                        important: true,
-                        isActive: () => this.getCachedSimVar("L:A32NX_FWS_AP_OFF", "Bool")
                     },
 
                     //Secondary failures

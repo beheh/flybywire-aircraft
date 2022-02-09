@@ -719,3 +719,295 @@ impl Default for AltitudeAlertCChordActivation {
         Self { c_chord: false }
     }
 }
+
+pub mod tests {
+    use super::*;
+    use crate::flight_warning::test::{test_bed, test_bed_with};
+
+    mod voluntary_autopilot_warnings {
+        use super::*;
+
+        #[test]
+        fn reports_ap1_engaged() {
+            let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
+            sheet.update(
+                Duration::from_secs(1),
+                test_bed_with().ap1_engaged(true).parameters(),
+                false,
+            );
+            assert_eq!(sheet.ap1_engd(), true);
+            assert_eq!(sheet.ap2_engd(), false);
+            assert_eq!(sheet.one_ap_engd(), true);
+            assert_eq!(sheet.ap_off_audio(), false);
+            assert_eq!(sheet.ap_off_mw(), false);
+            assert_eq!(sheet.ap_off_text(), false);
+        }
+
+        #[test]
+        fn reports_ap2_engaged() {
+            let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
+            sheet.update(
+                Duration::from_secs(1),
+                test_bed_with().ap2_engaged(true).parameters(),
+                false,
+            );
+            assert_eq!(sheet.ap1_engd(), false);
+            assert_eq!(sheet.ap2_engd(), true);
+            assert_eq!(sheet.one_ap_engd(), true);
+            assert_eq!(sheet.ap_off_audio(), false);
+            assert_eq!(sheet.ap_off_mw(), false);
+            assert_eq!(sheet.ap_off_text(), false);
+        }
+
+        #[test]
+        fn reports_both_aps_engaged() {
+            let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
+            sheet.update(
+                Duration::from_secs(1),
+                test_bed_with()
+                    .ap1_engaged(true)
+                    .ap2_engaged(true)
+                    .parameters(),
+                false,
+            );
+            assert_eq!(sheet.ap1_engd(), true);
+            assert_eq!(sheet.ap2_engd(), true);
+            assert_eq!(sheet.one_ap_engd(), true);
+            assert_eq!(sheet.ap_off_audio(), false);
+            assert_eq!(sheet.ap_off_mw(), false);
+            assert_eq!(sheet.ap_off_text(), false);
+        }
+
+        #[test]
+        fn warns_when_ap1_is_instinctively_disconnected() {
+            let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                test_bed_with().ap1_engaged(true).parameters(),
+                false,
+            );
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                test_bed_with()
+                    .ap1_engaged(false)
+                    .instinc_disconnect_1ap_engd(true)
+                    .parameters(),
+                false,
+            );
+            assert_eq!(sheet.ap_off_audio(), true);
+            assert_eq!(sheet.ap_off_mw(), true);
+            assert_eq!(sheet.ap_off_text(), true);
+            sheet.update(Duration::from_secs_f64(1.5), test_bed().parameters(), true);
+            assert_eq!(sheet.ap_off_audio(), true);
+            assert_eq!(sheet.ap_off_mw(), true);
+            assert_eq!(sheet.ap_off_text(), true);
+            sheet.update(Duration::from_secs_f64(1.5), test_bed().parameters(), true);
+            assert_eq!(sheet.ap_off_audio(), false);
+            assert_eq!(sheet.ap_off_mw(), false);
+            assert_eq!(sheet.ap_off_text(), true);
+            sheet.update(Duration::from_secs_f64(6.0), test_bed().parameters(), false);
+            assert_eq!(sheet.ap_off_audio(), false);
+            assert_eq!(sheet.ap_off_mw(), false);
+            assert_eq!(sheet.ap_off_text(), false);
+        }
+
+        #[test]
+        fn stops_warning_when_instinctive_disconnect_is_pressed_again() {
+            let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
+            sheet.update(
+                Duration::from_secs_f64(0.001),
+                test_bed_with().ap1_engaged(true).parameters(),
+                false,
+            );
+            sheet.update(
+                Duration::from_secs_f64(0.001),
+                test_bed_with()
+                    .ap1_engaged(false)
+                    .instinc_disconnect_1ap_engd(true)
+                    .parameters(),
+                false,
+            );
+            assert_eq!(sheet.ap_off_audio(), true);
+            assert_eq!(sheet.ap_off_mw(), true);
+            assert_eq!(sheet.ap_off_text(), true);
+            sheet.update(
+                Duration::from_secs_f64(0.001),
+                test_bed_with()
+                    .instinc_disconnect_1ap_engd(false)
+                    .parameters(),
+                false,
+            );
+
+            // another press within 0.2s is inhibited
+            sheet.update(
+                Duration::from_secs_f64(0.001),
+                test_bed_with()
+                    .instinc_disconnect_1ap_engd(true)
+                    .parameters(),
+                false,
+            );
+            sheet.update(
+                Duration::from_secs_f64(0.001),
+                test_bed_with()
+                    .instinc_disconnect_1ap_engd(false)
+                    .parameters(),
+                false,
+            );
+            assert_eq!(sheet.ap_off_audio(), true);
+            assert_eq!(sheet.ap_off_mw(), true);
+            assert_eq!(sheet.ap_off_text(), true);
+
+            // after 0.2s a press inhibits the mw and text signal, but audio remains
+            sheet.update(
+                Duration::from_secs_f64(0.2),
+                test_bed_with()
+                    .instinc_disconnect_1ap_engd(true)
+                    .parameters(),
+                false,
+            );
+            assert_eq!(sheet.ap_off_audio(), true);
+            assert_eq!(sheet.ap_off_mw(), false);
+            assert_eq!(sheet.ap_off_text(), false);
+
+            // once 0.5s have passed since the inhibit is pressed, the audio is also inhibited
+            sheet.update(
+                Duration::from_secs_f64(0.5),
+                test_bed_with()
+                    .instinc_disconnect_1ap_engd(true)
+                    .parameters(),
+                false,
+            );
+            assert_eq!(sheet.ap_off_audio(), false);
+        }
+
+        #[test]
+        fn warns_when_ap2_is_instinctively_disconnected() {
+            let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                test_bed_with().ap2_engaged(true).parameters(),
+                false,
+            );
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                test_bed_with()
+                    .ap2_engaged(false)
+                    .instinc_disconnect_2ap_engd(true)
+                    .parameters(),
+                false,
+            );
+            assert_eq!(sheet.ap_off_audio(), true);
+            assert_eq!(sheet.ap_off_mw(), true);
+            assert_eq!(sheet.ap_off_text(), true);
+        }
+
+        #[test]
+        fn warns_when_both_aps_are_instinctively_disconnected() {
+            let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                test_bed_with()
+                    .ap1_engaged(true)
+                    .ap2_engaged(true)
+                    .parameters(),
+                false,
+            );
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                test_bed_with()
+                    .ap1_engaged(false)
+                    .ap2_engaged(false)
+                    .instinc_disconnect_1ap_engd(true)
+                    .parameters(),
+                false,
+            );
+            assert_eq!(sheet.ap_off_audio(), true);
+            assert_eq!(sheet.ap_off_mw(), true);
+            assert_eq!(sheet.ap_off_text(), true);
+        }
+
+        #[test]
+        fn does_not_warn_when_ap1_is_involuntarily_disconnected() {
+            let mut sheet = AutoFlightAutopilotOffVoluntaryActivation::default();
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                test_bed_with().ap1_engaged(true).parameters(),
+                false,
+            );
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                test_bed_with()
+                    .ap1_engaged(false)
+                    .instinc_disconnect_1ap_engd(false)
+                    .parameters(),
+                false,
+            );
+            assert_eq!(sheet.ap_off_audio(), false);
+            assert_eq!(sheet.ap_off_mw(), false);
+            assert_eq!(sheet.ap_off_text(), false);
+        }
+    }
+
+    #[derive(Default)]
+    pub struct TestAutoFlightAutopilotOffVoluntary {
+        ap1_engd: bool,
+        ap2_engd: bool,
+        ap_off_audio: bool,
+        ap_off_mw: bool,
+        ap_off_text: bool,
+    }
+
+    impl TestAutoFlightAutopilotOffVoluntary {
+        pub fn new(
+            ap1_engd: bool,
+            ap2_engd: bool,
+            ap_off_audio: bool,
+            ap_off_mw: bool,
+            ap_off_text: bool,
+        ) -> Self {
+            Self {
+                ap1_engd,
+                ap2_engd,
+                ap_off_audio,
+                ap_off_mw,
+                ap_off_text,
+            }
+        }
+
+        pub fn new_ap1_engd() -> Self {
+            Self {
+                ap1_engd: true,
+                ap2_engd: false,
+                ap_off_audio: false,
+                ap_off_mw: false,
+                ap_off_text: false,
+            }
+        }
+    }
+
+    impl AutoFlightAutopilotOffVoluntary for TestAutoFlightAutopilotOffVoluntary {
+        fn ap1_engd(&self) -> bool {
+            self.ap1_engd
+        }
+
+        fn ap2_engd(&self) -> bool {
+            self.ap2_engd
+        }
+
+        fn one_ap_engd(&self) -> bool {
+            self.ap1_engd || self.ap2_engd
+        }
+
+        fn ap_off_audio(&self) -> bool {
+            self.ap_off_audio
+        }
+
+        fn ap_off_mw(&self) -> bool {
+            self.ap_off_mw
+        }
+
+        fn ap_off_text(&self) -> bool {
+            self.ap_off_text
+        }
+    }
+}

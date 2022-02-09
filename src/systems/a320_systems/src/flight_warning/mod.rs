@@ -149,8 +149,6 @@ pub(super) struct A320FlightWarningSystem {
     to_memo_id: VariableIdentifier,
     ldg_memo_id: VariableIdentifier,
     audio_attenuation_id: VariableIdentifier,
-    ap_off_text_id: VariableIdentifier,
-    ap_off_warning_id: VariableIdentifier,
     alt_deviation_id: VariableIdentifier,
     alt_alert_steady_light_id: VariableIdentifier,
     alt_alert_flashing_light_id: VariableIdentifier,
@@ -208,8 +206,6 @@ impl A320FlightWarningSystem {
             to_memo_id: context.get_identifier("FWS_TOMEMO".to_owned()),
             ldg_memo_id: context.get_identifier("FWS_LDGMEMO".to_owned()),
             audio_attenuation_id: context.get_identifier("FWS_AUDIO_ATTENUATION".to_owned()),
-            ap_off_text_id: context.get_identifier("FWS_AP_OFF".to_owned()),
-            ap_off_warning_id: context.get_identifier("FWS_AP_OFF_WARNING".to_owned()),
             alt_deviation_id: context.get_identifier("FWS_SOUND_ALT_DEVIATION".to_owned()),
             alt_alert_steady_light_id: context
                 .get_identifier("FWS_ALT_ALERT_STEADY_LIGHT".to_owned()),
@@ -514,8 +510,6 @@ impl SimulationElement for A320FlightWarningSystem {
         let mut show_to_memo = false;
         let mut show_ldg_memo = false;
         let mut audio_attenuation = false;
-        let mut ap_off_text = false;
-        let mut ap_off_warning = false;
         let mut cchord = false;
         let mut alt_alert_steady_light = false;
         let mut alt_alert_flashing_light = false;
@@ -531,8 +525,6 @@ impl SimulationElement for A320FlightWarningSystem {
                 show_to_memo = runtime.show_to_memo();
                 show_ldg_memo = runtime.show_ldg_memo();
                 audio_attenuation = runtime.audio_attenuation();
-                ap_off_text = runtime.ap_off_text();
-                ap_off_warning = runtime.ap_off_warning();
                 cchord = runtime.c_chord();
                 alt_alert_steady_light = runtime.alt_alert_light_on();
                 alt_alert_flashing_light = runtime.alt_alert_flashing_light();
@@ -551,8 +543,6 @@ impl SimulationElement for A320FlightWarningSystem {
         writer.write(&self.to_memo_id, show_to_memo);
         writer.write(&self.ldg_memo_id, show_ldg_memo);
         writer.write(&self.audio_attenuation_id, audio_attenuation);
-        writer.write(&self.ap_off_text_id, ap_off_text);
-        writer.write(&self.ap_off_warning_id, ap_off_warning);
         writer.write(&self.alt_deviation_id, cchord);
         writer.write(&self.alt_alert_steady_light_id, alt_alert_steady_light);
         writer.write(&self.alt_alert_flashing_light_id, alt_alert_flashing_light);
