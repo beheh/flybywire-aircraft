@@ -254,6 +254,11 @@ pub(super) trait LandTrkModeOn {
     fn land_trk_mode_on(&self, number: u8) -> &Arinc429Parameter<bool>;
 }
 
+pub(super) trait PitchLawCode1 {
+    /// The number is 1 or 2, for FMGC 1 or 2 respectively.
+    fn pitch_law_code_1(&self, number: u8) -> &Arinc429Parameter<bool>;
+}
+
 pub(super) trait GpwsModesOn {
     /// This parameter indicates that one of the main GPWS alerts is active.
     fn gpws_modes_on(&self) -> &DiscreteParameter;
