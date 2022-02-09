@@ -99,7 +99,6 @@ mod tests {
 
     use super::*;
 
-    #[cfg(test)]
     mod eng_1_start_sequence_tests {
         use super::*;
 
@@ -119,7 +118,6 @@ mod tests {
         }
     }
 
-    #[cfg(test)]
     mod eng_2_start_sequence_tests {
         use super::*;
 

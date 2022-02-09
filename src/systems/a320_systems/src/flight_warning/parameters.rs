@@ -174,39 +174,49 @@ pub(super) trait Ap2Engd {
 }
 
 pub(super) trait InstincDiscnct1ApEngd {
-    /// This signal indicates when the A/P Disconnect button on the Captain's sidestick has been
-    /// pressed.
+    /// This signal indicates when the A/P Disconnect button on the Captain's sidestick is
+    /// depressed.
     fn instinc_discnct_1ap_engd(&self) -> &DiscreteParameter;
 }
 
 pub(super) trait InstincDiscnct2ApEngd {
-    /// This signal indicates when the A/P Disconnect button on the First Officer's sidestick has
-    /// been pressed.
+    /// This signal indicates when the A/P Disconnect button on the First Officer's sidestick is
+    /// depressed.
     fn instinc_discnct_2ap_engd(&self) -> &DiscreteParameter;
 }
 
 pub(super) trait CaptMwCancelOn {
     /// This parameter indicates that the master warning cancel button on the Captain's side
-    /// has been pressed.
+    /// is depressed.
     fn capt_mw_cancel_on(&self) -> &DiscreteParameter;
 }
 
 pub(super) trait FoMwCancelOn {
     /// This parameter indicates that the master warning cancel button on the First Officer's side
-    /// has been pressed.
+    /// is depressed.
     fn fo_mw_cancel_on(&self) -> &DiscreteParameter;
 }
 
 pub(super) trait CaptMcCancelOn {
     /// This parameter indicates that the master caution cancel button on the Captain's side
-    /// has been pressed.
+    /// is depressed.
     fn capt_mc_cancel_on(&self) -> &DiscreteParameter;
 }
 
 pub(super) trait FoMcCancelOn {
     /// This parameter indicates that the master caution cancel button on the First Officer's side
-    /// has been pressed.
+    /// is depressed.
     fn fo_mc_cancel_on(&self) -> &DiscreteParameter;
+}
+
+pub(super) trait EcpEmerCancelOn {
+    /// This parameter indicates that the EMER CANC button on the ECP is depressed.
+    fn ecp_emer_cancel_on(&self) -> &DiscreteParameter;
+}
+
+pub(super) trait EcpRecall {
+    /// This parameter indicates that the RECALL button on the ECP is depressed.
+    fn ecp_recall(&self) -> &DiscreteParameter;
 }
 
 pub(super) trait BlueSysLoPr {

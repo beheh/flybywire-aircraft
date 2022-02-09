@@ -1300,7 +1300,6 @@ pub mod tests {
 
     use super::*;
 
-    #[cfg(test)]
     mod new_ground_activation_tests {
         use super::*;
 
@@ -1349,7 +1348,6 @@ pub mod tests {
         }
     }
 
-    #[cfg(test)]
     mod ground_detection_activation_tests {
         use super::*;
 
@@ -1491,7 +1489,6 @@ pub mod tests {
         }
     }
 
-    #[cfg(test)]
     mod speed_detection_activation_tests {
         use super::*;
 
@@ -1624,7 +1621,6 @@ pub mod tests {
         }
     }
 
-    #[cfg(test)]
     mod engines_not_running_activation_tests {
         use super::*;
 
@@ -1722,7 +1718,6 @@ pub mod tests {
         // TODO a/b channel discrepancy
     }
 
-    #[cfg(test)]
     mod altitude_def_activation_tests {
         use super::*;
 
@@ -1807,7 +1802,6 @@ pub mod tests {
         }
     }
 
-    #[cfg(test)]
     mod flight_phases_ground {
         use super::*;
 
@@ -1977,7 +1971,6 @@ pub mod tests {
         }*/
     }
 
-    #[cfg(test)]
     mod flight_phases_air {
         use super::*;
 

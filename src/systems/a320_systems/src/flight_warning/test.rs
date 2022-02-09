@@ -269,6 +269,20 @@ impl A320FWCParameterTestBed {
             .set_instinc_discnct_1ap_engd(DiscreteParameter::new(engaged));
         self
     }
+
+    pub fn athr_engaged(mut self, engaged: bool) -> Self {
+        self.parameters
+            .set_athr_engaged(Arinc429Parameter::new(engaged));
+        self
+    }
+
+    pub fn land_trk_mode_on(mut self, on: bool) -> Self {
+        self.parameters
+            .set_land_trk_mode_on_1(Arinc429Parameter::new(on));
+        self.parameters
+            .set_land_trk_mode_on_2(Arinc429Parameter::new(on));
+        self
+    }
 }
 
 pub fn test_bed() -> A320FWCParameterTestBed {

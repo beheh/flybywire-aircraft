@@ -535,8 +535,7 @@ pub(super) fn translate_height(raw_height: Length) -> Option<Vec<SyntheticVoice>
 mod tests {
     use super::*;
 
-    #[cfg(test)]
-    mod test_voice_synthesizer {
+    mod voice_synthesizer_tests {
         use super::*;
 
         #[test]
@@ -554,8 +553,7 @@ mod tests {
         }
     }
 
-    #[cfg(test)]
-    mod test_translate_height {
+    mod translate_height_tests {
         use uom::si::f64::*;
         use uom::si::length::foot;
 
@@ -624,7 +622,7 @@ mod tests {
         }
 
         #[test]
-        fn resolves() {
+        fn resolves_every_height_between_1_and_400() {
             for i in 1..400 {
                 assert!(
                     translate_height(Length::new::<foot>(i as f64)).is_some(),

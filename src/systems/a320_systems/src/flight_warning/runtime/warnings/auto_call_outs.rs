@@ -2389,8 +2389,150 @@ pub mod tests {
 
     use super::*;
 
-    #[cfg(test)]
-    mod intermediate_audio_activation {
+    // TODO TWENTY Retard
+
+    // TODO TEN RETARD
+
+    // TODO TLA INHIBITION
+
+    mod retard_announce_activation_tests {
+        use super::*;
+        use crate::flight_warning::runtime::warnings::auto_flight::tests::TestAutoFlightAutopilotOffVoluntary;
+        use crate::flight_warning::runtime::warnings::flight_phases::tests::{
+            TestCfmFlightPhasesDef, TestFlightPhasesAir, TestFlightPhasesGround,
+        };
+        use crate::flight_warning::test::{test_bed, test_bed_with};
+
+        #[test]
+        fn when_in_manual_flight_calls_out_below_22ft() {
+            let mut sheet = AutoCallOutRetardAnnounceActivation::default();
+
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                test_bed().parameters(),
+                &TestRetardTlaInhibition::default(),
+                &TestAltitudeThreshold2::new(Length::new::<foot>(22.), false),
+                &TestCfmFlightPhasesDef::new_below_flex(),
+                &TestFlightPhasesGround::new(7),
+                &TestFlightPhasesAir::new(7),
+                &TestTwentyRetardAnnounce::default(),
+                &TestAutoFlightAutopilotOffVoluntary::default(),
+            );
+            assert_eq!(sheet.audio(), false);
+
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                test_bed().parameters(),
+                &TestRetardTlaInhibition::default(),
+                &TestAltitudeThreshold2::new(Length::new::<foot>(21.9), false),
+                &TestCfmFlightPhasesDef::new_below_flex(),
+                &TestFlightPhasesGround::new(7),
+                &TestFlightPhasesAir::new(7),
+                &TestTwentyRetardAnnounce::default(),
+                &TestAutoFlightAutopilotOffVoluntary::default(),
+            );
+            assert_eq!(sheet.audio(), true);
+
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                test_bed().parameters(),
+                &TestRetardTlaInhibition::default(),
+                &TestAltitudeThreshold2::new(Length::new::<foot>(5.), false),
+                &TestCfmFlightPhasesDef::new_below_flex(),
+                &TestFlightPhasesGround::new(7),
+                &TestFlightPhasesAir::new(7),
+                &TestTwentyRetardAnnounce::default(),
+                &TestAutoFlightAutopilotOffVoluntary::default(),
+            );
+            assert_eq!(sheet.audio(), true);
+        }
+
+        #[test]
+        fn when_in_autoland_calls_out_below_12ft() {
+            let mut sheet = AutoCallOutRetardAnnounceActivation::default();
+
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                test_bed_with()
+                    .athr_engaged(true)
+                    .land_trk_mode_on(true)
+                    .parameters(),
+                &TestRetardTlaInhibition::default(),
+                &TestAltitudeThreshold2::new(Length::new::<foot>(12.), false),
+                &TestCfmFlightPhasesDef::new_below_flex(),
+                &TestFlightPhasesGround::new(7),
+                &TestFlightPhasesAir::new(7),
+                &TestTwentyRetardAnnounce::default(),
+                &TestAutoFlightAutopilotOffVoluntary::new_ap1_engd(),
+            );
+            assert_eq!(sheet.audio(), false);
+
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                test_bed_with()
+                    .athr_engaged(true)
+                    .land_trk_mode_on(true)
+                    .parameters(),
+                &TestRetardTlaInhibition::default(),
+                &TestAltitudeThreshold2::new(Length::new::<foot>(11.9), false),
+                &TestCfmFlightPhasesDef::new_below_flex(),
+                &TestFlightPhasesGround::new(7),
+                &TestFlightPhasesAir::new(7),
+                &TestTwentyRetardAnnounce::default(),
+                &TestAutoFlightAutopilotOffVoluntary::new_ap1_engd(),
+            );
+            assert_eq!(sheet.audio(), true);
+
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                test_bed_with()
+                    .athr_engaged(true)
+                    .land_trk_mode_on(true)
+                    .parameters(),
+                &TestRetardTlaInhibition::default(),
+                &TestAltitudeThreshold2::new(Length::new::<foot>(5.), false),
+                &TestCfmFlightPhasesDef::new_below_flex(),
+                &TestFlightPhasesGround::new(7),
+                &TestFlightPhasesAir::new(7),
+                &TestTwentyRetardAnnounce::default(),
+                &TestAutoFlightAutopilotOffVoluntary::new_ap1_engd(),
+            );
+            assert_eq!(sheet.audio(), true);
+        }
+
+        #[test]
+        fn when_at_idle_stops_call_out() {
+            let mut sheet = AutoCallOutRetardAnnounceActivation::default();
+
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                test_bed().parameters(),
+                &TestRetardTlaInhibition::default(),
+                &TestAltitudeThreshold2::new(Length::new::<foot>(15.), false),
+                &TestCfmFlightPhasesDef::new_below_flex(),
+                &TestFlightPhasesGround::new(7),
+                &TestFlightPhasesAir::new(7),
+                &TestTwentyRetardAnnounce::default(),
+                &TestAutoFlightAutopilotOffVoluntary::default(),
+            );
+            assert_eq!(sheet.audio(), true);
+
+            sheet.update(
+                Duration::from_secs_f64(0.1),
+                test_bed().parameters(),
+                &TestRetardTlaInhibition::new(true), // TLA inhibits callout
+                &TestAltitudeThreshold2::new(Length::new::<foot>(15.), false),
+                &TestCfmFlightPhasesDef::new_below_flex(),
+                &TestFlightPhasesGround::new(7),
+                &TestFlightPhasesAir::new(7),
+                &TestTwentyRetardAnnounce::default(),
+                &TestAutoFlightAutopilotOffVoluntary::default(),
+            );
+            assert_eq!(sheet.audio(), false);
+        }
+    }
+
+    mod intermediate_audio_activation_tests {
         use super::*;
 
         #[test]
@@ -2517,8 +2659,8 @@ pub mod tests {
                 Duration::from_secs_f64(0.1),
                 &TestAltitudeThreshold1::new(Length::new::<foot>(49.)),
                 &TestAltitudeThreshold3::default(),
-                &TestThresholdDetection::new(false),
-                &TestMinimum::new(false),
+                &TestThresholdDetection::default(),
+                &TestMinimum::default(),
                 false,
                 false,
             );
@@ -2526,8 +2668,8 @@ pub mod tests {
                 Duration::from_secs_f64(0.1),
                 &TestAltitudeThreshold1::new(Length::new::<foot>(49.)),
                 &TestAltitudeThreshold3::new_at_threshold(),
-                &TestThresholdDetection::new(false),
-                &TestMinimum::new(false),
+                &TestThresholdDetection::default(),
+                &TestMinimum::default(),
                 false,
                 true,
             );
@@ -2538,8 +2680,8 @@ pub mod tests {
                 Duration::from_secs_f64(0.9),
                 &TestAltitudeThreshold1::new(Length::new::<foot>(45.)),
                 &TestAltitudeThreshold3::default(),
-                &TestThresholdDetection::new(false),
-                &TestMinimum::new(false),
+                &TestThresholdDetection::default(),
+                &TestMinimum::default(),
                 false,
                 false,
             );
@@ -2550,8 +2692,8 @@ pub mod tests {
                 Duration::from_secs_f64(3.1),
                 &TestAltitudeThreshold1::new(Length::new::<foot>(43.)),
                 &TestAltitudeThreshold3::default(),
-                &TestThresholdDetection::new(false),
-                &TestMinimum::new(false),
+                &TestThresholdDetection::default(),
+                &TestMinimum::default(),
                 false,
                 false,
             );
@@ -2705,8 +2847,8 @@ pub mod tests {
         }
 
         fn alt_inf_10_ft(&self) -> bool {
-            Length::new::<foot>(-12.) <= self.radio_height
-                && self.radio_height < Length::new::<foot>(5.)
+            Length::new::<foot>(-5.) <= self.radio_height
+                && self.radio_height < Length::new::<foot>(12.)
         }
 
         fn alt_5_ft(&self) -> bool {
@@ -2715,7 +2857,7 @@ pub mod tests {
         }
 
         fn alt_inf_3_ft(&self) -> bool {
-            self.radio_height < Length::new::<foot>(3.)
+            self.radio_height <= Length::new::<foot>(3.)
         }
 
         fn dh_inhibition(&self) -> bool {
@@ -2768,6 +2910,7 @@ pub mod tests {
         }
     }
 
+    #[derive(Default)]
     struct TestThresholdDetection {
         non_inhibited_threshold_detection: bool,
     }
@@ -2786,6 +2929,32 @@ pub mod tests {
         }
     }
 
+    #[derive(Default)]
+    struct TestTwentyRetardAnnounce {
+        toga: bool,
+        retard_toga: bool,
+    }
+
+    impl TestTwentyRetardAnnounce {
+        pub fn new(toga: bool, retard_toga: bool) -> Self {
+            if toga {
+                assert!(retard_toga);
+            }
+            Self { toga, retard_toga }
+        }
+    }
+
+    impl AutoCallOutTwentyRetardAnnounce for TestTwentyRetardAnnounce {
+        fn retard_toga(&self) -> bool {
+            self.retard_toga
+        }
+
+        fn toga(&self) -> bool {
+            self.toga
+        }
+    }
+
+    #[derive(Default)]
     struct TestMinimum {
         dh_generated: bool,
     }
@@ -2799,6 +2968,23 @@ pub mod tests {
     impl Minimum for TestMinimum {
         fn dh_generated(&self) -> bool {
             self.dh_generated
+        }
+    }
+
+    #[derive(Default)]
+    struct TestRetardTlaInhibition {
+        tla_inhibition: bool,
+    }
+
+    impl TestRetardTlaInhibition {
+        fn new(tla_inhibition: bool) -> Self {
+            Self { tla_inhibition }
+        }
+    }
+
+    impl RetardTlaInhibition for TestRetardTlaInhibition {
+        fn tla_inhibition(&self) -> bool {
+            self.tla_inhibition
         }
     }
 }
