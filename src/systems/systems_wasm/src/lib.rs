@@ -3,6 +3,7 @@ pub mod aspects;
 mod electrical;
 mod failures;
 mod msfs;
+mod navigation;
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::msfs::legacy::{AircraftVariable, NamedVariable};
@@ -145,6 +146,7 @@ pub struct MsfsHandler {
     aspects: Vec<Box<dyn Aspect>>,
     failures: Option<Failures>,
     time: Time,
+    ra_ray: bool,
 }
 impl MsfsHandler {
     fn new(
@@ -178,6 +180,21 @@ impl MsfsHandler {
 
                     simulation.tick(delta_time, self.time.simulation_time(), self);
                     self.post_tick(sim_connect)?;
+                }
+                if !self.ra_ray {
+                    sim_connect.ai_create_simulated_object(
+                        "".to_owned(),
+                        sys::SIMCONNECT_DATA_INITPOSITION {
+                            Latitude: f64,
+                            Longitude: f64,
+                            Altitude: f64,
+                            Pitch: f64,
+                            Bank: f64,
+                            Heading: f64,
+                            OnGround: DWORD,
+                            Airspeed: DWORD,
+                        },
+                    );
                 }
             }
             MSFSEvent::SimConnect(message) => match message {
@@ -542,7 +559,7 @@ struct Time {
 
 impl Time {
     fn new(sim_connect: &mut SimConnect) -> Result<Self, Box<dyn Error>> {
-        sim_connect.request_data_on_sim_object::<SimulationTime>(
+        sim_connect.ai::<SimulationTime>(
             SimulationTime::REQUEST_ID,
             SIMCONNECT_OBJECT_ID_USER,
             Period::VisualFrame,
