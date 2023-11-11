@@ -3,7 +3,10 @@ use uom::si::f64::*;
 use crate::simulation::InitContext;
 use crate::{
     overhead::FirePushButton,
-    shared::{EngineCorrectedN1, EngineCorrectedN2, EngineFirePushButtons, EngineUncorrectedN2},
+    shared::{
+        EngineCorrectedN1, EngineCorrectedN2, EngineFirePushButtons, EngineOilPressureLow,
+        EngineUncorrectedN2,
+    },
     simulation::{SimulationElement, SimulationElementVisitor},
 };
 
@@ -12,15 +15,17 @@ pub mod reverser;
 pub mod reverser_thrust;
 pub mod trent_engine;
 
-pub trait Engine: EngineCorrectedN2 + EngineUncorrectedN2 + EngineCorrectedN1 {
+pub trait Engine:
+    EngineCorrectedN2 + EngineUncorrectedN2 + EngineCorrectedN1 + EngineOilPressureLow
+{
     fn hydraulic_pump_output_speed(&self) -> AngularVelocity;
-    fn oil_pressure_is_low(&self) -> bool;
     fn is_above_minimum_idle(&self) -> bool;
     fn net_thrust(&self) -> Mass;
     fn gearbox_speed(&self) -> AngularVelocity;
 }
 
 use std::convert::TryInto;
+
 pub struct EngineFireOverheadPanel<const N: usize> {
     engine_fire_push_buttons: [FirePushButton; N],
 }
