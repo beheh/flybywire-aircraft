@@ -1,7 +1,7 @@
 use uom::si::{angular_velocity::revolution_per_minute, f64::*, pressure::psi, ratio::percent};
 
 use crate::{
-    shared::{EngineCorrectedN1, EngineCorrectedN2, EngineUncorrectedN2},
+    shared::{EngineCorrectedN1, EngineCorrectedN2, EngineOilPressureLow, EngineUncorrectedN2},
     simulation::{Read, SimulationElement, SimulatorReader, UpdateContext},
 };
 
@@ -101,13 +101,14 @@ impl EngineUncorrectedN2 for TrentEngine {
         self.uncorrected_n2
     }
 }
+impl EngineOilPressureLow for TrentEngine {
+    fn oil_pressure_is_low(&self) -> bool {
+        self.oil_pressure.get::<psi>() < TrentEngine::LOW_OIL_PRESSURE_THRESHOLD_PSI
+    }
+}
 impl Engine for TrentEngine {
     fn hydraulic_pump_output_speed(&self) -> AngularVelocity {
         self.hydraulic_pump_output_speed
-    }
-
-    fn oil_pressure_is_low(&self) -> bool {
-        self.oil_pressure.get::<psi>() < TrentEngine::LOW_OIL_PRESSURE_THRESHOLD_PSI
     }
 
     fn is_above_minimum_idle(&self) -> bool {

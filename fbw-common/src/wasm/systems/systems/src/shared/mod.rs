@@ -206,6 +206,10 @@ pub trait EngineUncorrectedN2 {
     fn uncorrected_n2(&self) -> Ratio;
 }
 
+pub trait EngineOilPressureLow {
+    fn oil_pressure_is_low(&self) -> bool;
+}
+
 pub trait CabinAltitude {
     fn altitude(&self) -> Length;
 }
