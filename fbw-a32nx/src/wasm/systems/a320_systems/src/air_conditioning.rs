@@ -126,6 +126,14 @@ impl A320AirConditioning {
         self.a320_pressurization_system
             .update_ambient_conditions(context, adirs);
     }
+
+    pub fn cpc1(&self) -> &CabinPressureController<A320PressurizationConstants> {
+        &self.a320_pressurization_system.cpc[0]
+    }
+
+    pub fn cpc2(&self) -> &CabinPressureController<A320PressurizationConstants> {
+        &self.a320_pressurization_system.cpc[1]
+    }
 }
 
 impl PackFlowControllers for A320AirConditioning {
@@ -941,7 +949,7 @@ impl SimulationElement for PressurizationSystemInterfaceUnit {
     }
 }
 
-struct A320PressurizationConstants;
+pub(super) struct A320PressurizationConstants;
 
 impl PressurizationConstants for A320PressurizationConstants {
     // Volume data from A320 AIRCRAFT CHARACTERISTICS - AIRPORT AND MAINTENANCE PLANNING
