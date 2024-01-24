@@ -54,8 +54,8 @@ class AircraftPresetProcedures_A32NX {
         ProcedureStep{"Strobe Auto",              2122, false, 1000, "(L:LIGHTING_STROBE_0) 1 ==",                           "1 (>L:STROBE_0_AUTO) 0 (>K:STROBES_ON)"},
         ProcedureStep{"Nav & Logo Lt On",         1070, false, 1000, "(A:LIGHT LOGO, Bool) (A:LIGHT NAV, Bool) &&",          "1 (>K:2:LOGO_LIGHTS_SET) 1 (>K:2:NAV_LIGHTS_SET)"},
 
-        ProcedureStep{"SEAT BELTS On",            2140, false, 1000, "(A:CABIN SEATBELTS ALERT SWITCH:1, BOOL)",             "(A:CABIN SEATBELTS ALERT SWITCH:1, BOOL) ! if{ 1 (>K:CABIN_SEATBELTS_ALERT_SWITCH_TOGGLE) }"},
-        ProcedureStep{"NO SMOKING Auto",          1130, false, 1000, "(L:XMLVAR_SWITCH_OVHD_INTLT_NOSMOKING_POSITION) 1 ==", "1 (>L:XMLVAR_SWITCH_OVHD_INTLT_NOSMOKING_POSITION)"},
+        ProcedureStep{"SEAT BELTS On",            2140, false, 1000, "(L:A32NX_OVHD_SIGNS_SEAT_BELTS) 0 ==",                 "0 (>L:A32NX_OVHD_SIGNS_SEAT_BELTS)"},
+        ProcedureStep{"NO SMOKING Auto",          1130, false, 1000, "(L:A32NX_OVHD_SIGNS_NO_SMOKING) 1 ==",                 "1 (>L:A32NX_OVHD_SIGNS_NO_SMOKING)"},
         ProcedureStep{"EMER EXT Lt Arm",          1140, false, 1000, "(L:XMLVAR_SWITCH_OVHD_INTLT_EMEREXIT_POSITION) 1 ==",  "1 (>L:XMLVAR_SWITCH_OVHD_INTLT_EMEREXIT_POSITION)"},
 
         // For the fire tests the FWC needs to be initialized
@@ -88,10 +88,10 @@ class AircraftPresetProcedures_A32NX {
       },
 
       .POWERED_CONFIG_OFF = {
-        ProcedureStep{"NO SMOKING Off",        1170, false, 1000, "(L:XMLVAR_SWITCH_OVHD_INTLT_NOSMOKING_POSITION) 2 ==", "2 (>L:XMLVAR_SWITCH_OVHD_INTLT_NOSMOKING_POSITION)"},
+        ProcedureStep{"NO SMOKING Off",        1170, false, 1000, "(L:A32NX_OVHD_SIGNS_NO_SMOKING) 2 ==",                 "2 (>L:A32NX_OVHD_SIGNS_NO_SMOKING)"},
         ProcedureStep{"EMER EXT Lt Off",       1180, false, 1500, "(L:XMLVAR_SWITCH_OVHD_INTLT_EMEREXIT_POSITION) 2 ==",  "2 (>L:XMLVAR_SWITCH_OVHD_INTLT_EMEREXIT_POSITION)"},
         ProcedureStep{"GND CTL Off",           1200, false, 1000, "(L:A32NX_RCDR_GROUND_CONTROL_ON) 0 ==",                "0 (>L:A32NX_RCDR_GROUND_CONTROL_ON)"},
-        ProcedureStep{"SEAT BELTS Off",        2200, false, 2000, "(A:CABIN SEATBELTS ALERT SWITCH:1, BOOL) !",           "(A:CABIN SEATBELTS ALERT SWITCH:1, BOOL) if{ 1 (>K:CABIN_SEATBELTS_ALERT_SWITCH_TOGGLE) }"},
+        ProcedureStep{"SEAT BELTS Off",        2200, false, 2000, "(L:A32NX_OVHD_SIGNS_SEAT_BELTS) 2 ==",                 "2 (>L:A32NX_OVHD_SIGNS_SEAT_BELTS)"},
         ProcedureStep{"Strobe Off",            2121, false, 1000, "(L:LIGHTING_STROBE_0) 2 ==",                           "0 (>L:STROBE_0_AUTO) 0 (>K:STROBES_OFF)"},
         ProcedureStep{"Nav & Logo Lt Off",     1240, false, 500,  "(A:LIGHT LOGO, Bool) ! (A:LIGHT NAV, Bool) ! &&",      "0 (>K:2:LOGO_LIGHTS_SET) 0 (>K:2:NAV_LIGHTS_SET)"},
         ProcedureStep{"Crew Oxy Off",          1190, false, 1000, "(L:PUSH_OVHD_OXYGEN_CREW) 1 ==",                       "1 (>L:PUSH_OVHD_OXYGEN_CREW)"},

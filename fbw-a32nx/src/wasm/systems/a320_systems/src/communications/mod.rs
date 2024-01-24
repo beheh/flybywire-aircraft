@@ -1,0 +1,1 @@
+pub mod cabin_intercommunication_data;

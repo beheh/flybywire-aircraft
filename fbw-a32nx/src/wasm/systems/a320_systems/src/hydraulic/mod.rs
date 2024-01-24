@@ -75,6 +75,7 @@ use systems::{
 };
 
 mod flaps_computer;
+pub use flaps_computer::A320SlatFlapComputerDiscretes;
 use flaps_computer::SlatFlapComplex;
 
 #[cfg(test)]
@@ -1916,6 +1917,10 @@ impl A320Hydraulic {
 
     pub fn reversers_position(&self) -> &[impl ReverserPosition] {
         self.reversers_assembly.reversers_position()
+    }
+
+    pub fn sfcc_discretes(&self) -> &impl A320SlatFlapComputerDiscretes {
+        self.slats_flaps_complex.sfcc_discretes()
     }
 
     #[cfg(test)]

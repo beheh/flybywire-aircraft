@@ -124,7 +124,7 @@ export const globalSyncedSettings: SyncedSettingDefinition[] = [
   },
   {
     configKey: 'CONFIG_USING_PORTABLE_DEVICES',
-    localVarName: 'L:A32NX_CONFIG_USING_PORTABLE_DEVICES',
+    localVarName: 'L:A32NX_CIDS_USING_PORTABLE_DEVICES',
     localVarUnit: 'bool',
     defaultValue: '1',
   },

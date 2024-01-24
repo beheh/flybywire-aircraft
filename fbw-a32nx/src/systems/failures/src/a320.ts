@@ -29,6 +29,9 @@ export const A320Failure = Object.freeze({
   Fac1Failure: 22000,
   Fac2Failure: 22001,
 
+  Cids1Failure: 23100,
+  Cids2Failure: 23101,
+
   TransformerRectifier1: 24000,
   TransformerRectifier2: 24001,
   TransformerRectifierEssential: 24002,
@@ -134,6 +137,9 @@ export const A320FailureDefinitions: FailureDefinition[] = [
 
   [22, A320Failure.Fac1Failure, 'FAC 1'],
   [22, A320Failure.Fac2Failure, 'FAC 2'],
+
+  [23, A320Failure.Cids1Failure, 'FAC 1'],
+  [23, A320Failure.Cids2Failure, 'FAC 2'],
 
   [24, A320Failure.TransformerRectifier1, 'TR 1'],
   [24, A320Failure.TransformerRectifier2, 'TR 2'],
