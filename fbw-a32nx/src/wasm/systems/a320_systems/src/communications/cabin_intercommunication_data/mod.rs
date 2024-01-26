@@ -1,4 +1,7 @@
+mod audio;
+
 use crate::hydraulic::A320SlatFlapComputerDiscretes;
+use std::collections::VecDeque;
 use std::time::Duration;
 
 use systems::{
@@ -15,6 +18,7 @@ use systems::{
     },
 };
 
+use crate::communications::cabin_intercommunication_data::audio::{AudioSynthesizer, Sound};
 use uom::si::f64::Power;
 use uom::si::power::watt;
 
@@ -57,6 +61,10 @@ pub struct A320CabinIntercommunicationDataSystemOverheadPanel {
     no_smoking_id: VariableIdentifier,
     fasten_seat_belt_id: VariableIdentifier,
     configured_using_portable_devices_id: VariableIdentifier,
+    calls_all_id: VariableIdentifier,
+    calls_fwd_id: VariableIdentifier,
+    calls_aft_id: VariableIdentifier,
+    emer_call_on_id: VariableIdentifier,
 
     no_smoking_auto: bool,
     no_smoking_command: bool,
@@ -64,12 +72,21 @@ pub struct A320CabinIntercommunicationDataSystemOverheadPanel {
     fasten_seat_belt_command: bool,
     no_ped_auto: bool,
     no_ped_command: bool,
+
+    calls_all: bool,
+    calls_fwd: bool,
+    calls_aft: bool,
+    emer_call_on: bool,
 }
 
 impl A320CabinIntercommunicationDataSystemOverheadPanel {
     const FASTEN_SEAT_BELT: &'static str = "OVHD_SIGNS_SEAT_BELTS";
     const NO_SMOKING: &'static str = "OVHD_SIGNS_NO_SMOKING";
     const USING_PORTABLE_DEVICES: &'static str = "CIDS_USING_PORTABLE_DEVICES";
+    const CALLS_ALL: &'static str = "OVHD_CALLS_ALL";
+    const CALLS_FWD: &'static str = "OVHD_CALLS_FWD";
+    const CALLS_AFT: &'static str = "OVHD_CALLS_AFT";
+    const EMER_CALL_ON: &'static str = "CALLS_EMER_ON";
 
     pub fn new(context: &mut InitContext) -> Self {
         Self {
@@ -77,12 +94,20 @@ impl A320CabinIntercommunicationDataSystemOverheadPanel {
             fasten_seat_belt_id: context.get_identifier(Self::FASTEN_SEAT_BELT.to_owned()),
             configured_using_portable_devices_id: context
                 .get_identifier(Self::USING_PORTABLE_DEVICES.to_owned()),
+            calls_all_id: context.get_identifier(Self::CALLS_ALL.to_owned()),
+            calls_fwd_id: context.get_identifier(Self::CALLS_FWD.to_owned()),
+            calls_aft_id: context.get_identifier(Self::CALLS_AFT.to_owned()),
+            emer_call_on_id: context.get_identifier(Self::EMER_CALL_ON.to_owned()),
             no_smoking_auto: false,
             no_smoking_command: false,
             fasten_seat_belt_auto: false,
             fasten_seat_belt_command: false,
             no_ped_auto: false,
             no_ped_command: false,
+            calls_all: false,
+            calls_fwd: false,
+            calls_aft: false,
+            emer_call_on: false,
         }
     }
 }
@@ -116,6 +141,11 @@ impl SimulationElement for A320CabinIntercommunicationDataSystemOverheadPanel {
         self.no_ped_command = no_ped.map_or(false, |pos| pos == SwitchPosition::On);
         self.no_smoking_auto = no_smoking.map_or(false, |pos| pos == SwitchPosition::Auto);
         self.no_smoking_command = no_smoking.map_or(false, |pos| pos == SwitchPosition::On);
+
+        self.calls_all = reader.read(&self.calls_all_id);
+        self.calls_fwd = reader.read(&self.calls_fwd_id);
+        self.calls_aft = reader.read(&self.calls_aft_id);
+        self.emer_call_on = reader.read(&self.emer_call_on_id);
     }
 }
 
@@ -124,7 +154,7 @@ pub struct A320CabinIntercommunicationDataSystem {
 
     configured_using_portable_devices_id: VariableIdentifier,
     cids_audio_operational_id: VariableIdentifier,
-    cids_audio_chime_id: VariableIdentifier,
+    cids_audio_code_id: VariableIdentifier,
     cabin_fasten_seat_belt_signs_id: VariableIdentifier,
     cabin_return_to_seat_signs_id: VariableIdentifier,
     cabin_no_smoking_signs_id: VariableIdentifier,
@@ -145,7 +175,7 @@ pub struct A320CabinIntercommunicationDataSystem {
 
     // audio
     cids_audio_operational: bool,
-    cids_audio_chime: bool,
+    cids_audio_code: Option<u8>,
 
     // configuration
     no_smoking_switch_type: NoSmokingSwitchType,
@@ -158,7 +188,7 @@ impl A320CabinIntercommunicationDataSystem {
     const FWC_FLIGHT_PHASE: &'static str = "FWC_FLIGHT_PHASE";
     const USING_PORTABLE_DEVICES: &'static str = "CIDS_USING_PORTABLE_DEVICES";
     const AUDIO_OPERATIONAL: &'static str = "CIDS_AUDIO_OPERATIONAL";
-    const AUDIO_CHIME: &'static str = "CIDS_AUDIO_CHIME";
+    const AUDIO_CODE: &'static str = "CIDS_AUDIO_CODE";
     const CABIN_FASTEN_SEAT_BELT_SIGNS: &'static str = "CIDS_CABIN_FASTEN_SEAT_BELT_SIGNS";
     const CABIN_RETURN_TO_SEAT_SIGNS: &'static str = "CIDS_CABIN_RETURN_TO_SEAT_SIGNS";
     const CABIN_NO_SMOKING_SIGNS: &'static str = "CIDS_CABIN_NO_SMOKING_SIGNS";
@@ -174,7 +204,7 @@ impl A320CabinIntercommunicationDataSystem {
             configured_using_portable_devices_id: context
                 .get_identifier(Self::USING_PORTABLE_DEVICES.to_owned()),
             cids_audio_operational_id: context.get_identifier(Self::AUDIO_OPERATIONAL.to_owned()),
-            cids_audio_chime_id: context.get_identifier(Self::AUDIO_CHIME.to_owned()),
+            cids_audio_code_id: context.get_identifier(Self::AUDIO_CODE.to_owned()),
             cabin_fasten_seat_belt_signs_id: context
                 .get_identifier(Self::CABIN_FASTEN_SEAT_BELT_SIGNS.to_owned()),
             cabin_return_to_seat_signs_id: context
@@ -188,7 +218,7 @@ impl A320CabinIntercommunicationDataSystem {
             director_1: A320CabinIntercommunicationDataDirector::new(context, 1),
             director_2: A320CabinIntercommunicationDataDirector::new(context, 2),
             cids_audio_operational: false,
-            cids_audio_chime: false,
+            cids_audio_code: None,
             cabin_fasten_seat_belt_signs: false,
             cabin_return_to_seat_signs: false,
             cabin_no_smoking_signs: false,
@@ -216,7 +246,7 @@ impl A320CabinIntercommunicationDataSystem {
         let outputs = if !outputs1.fail { outputs1 } else { outputs2 };
 
         self.cids_audio_operational = !outputs.fail;
-        self.cids_audio_chime = outputs.audio_chime;
+        self.cids_audio_code = outputs.audio_code;
         self.cabin_fasten_seat_belt_signs = outputs.fasten_seat_belt_signs;
         self.cabin_return_to_seat_signs = outputs.return_to_seat_signs;
         self.cabin_no_smoking_signs = outputs.no_smoking_signs;
@@ -254,6 +284,10 @@ impl A320CabinIntercommunicationDataSystem {
                 no_smoking_auto: overhead.no_smoking_auto,
                 no_ped_command: overhead.no_ped_command,
                 no_ped_auto: overhead.no_ped_auto,
+                fwd_attnd: overhead.calls_fwd,
+                aft_attnd: overhead.calls_aft,
+                all_attnd: overhead.calls_all,
+                emer_call: overhead.emer_call_on,
                 oil_pressure_low_on_ground: lg_compressed
                     && engines[0].oil_pressure_is_low()
                     && engines[1].oil_pressure_is_low(),
@@ -278,6 +312,10 @@ impl A320CabinIntercommunicationDataSystem {
                 no_smoking_auto: overhead.no_smoking_auto,
                 no_ped_command: overhead.no_ped_command,
                 no_ped_auto: overhead.no_ped_auto,
+                fwd_attnd: overhead.calls_fwd,
+                aft_attnd: overhead.calls_aft,
+                all_attnd: overhead.calls_all,
+                emer_call: overhead.emer_call_on,
                 oil_pressure_low_on_ground: lg_compressed
                     && engines[0].oil_pressure_is_low()
                     && engines[1].oil_pressure_is_low(),
@@ -325,7 +363,10 @@ impl SimulationElement for A320CabinIntercommunicationDataSystem {
 
     fn write(&self, writer: &mut SimulatorWriter) {
         writer.write(&self.cids_audio_operational_id, self.cids_audio_operational);
-        writer.write(&self.cids_audio_chime_id, self.cids_audio_chime);
+        writer.write(
+            &self.cids_audio_code_id,
+            self.cids_audio_code.unwrap_or_default(),
+        );
         writer.write(
             &self.cabin_fasten_seat_belt_signs_id,
             self.cabin_fasten_seat_belt_signs,
@@ -390,6 +431,10 @@ struct A320CabinIntercommunicationDataDirectorInputs {
     no_smoking_auto: bool,
     no_ped_command: bool,
     no_ped_auto: bool,
+    fwd_attnd: bool,
+    aft_attnd: bool,
+    all_attnd: bool,
+    emer_call: bool,
     oil_pressure_low_on_ground: bool,
     lg_down_locked: bool,
     slats_1: bool,
@@ -415,7 +460,7 @@ struct A320CabinIntercommunicationDataSystemOutputs {
     exit_signs: bool,
 
     // Audio
-    audio_chime: bool,
+    audio_code: Option<u8>,
 }
 
 impl Default for A320CabinIntercommunicationDataSystemOutputs {
@@ -429,7 +474,7 @@ impl Default for A320CabinIntercommunicationDataSystemOutputs {
             no_smoking_signs: false,
             no_portable_devices_signs: false,
             exit_signs: false,
-            audio_chime: false,
+            audio_code: None,
         }
     }
 }
@@ -457,8 +502,9 @@ struct A320CabinIntercommunicationDataDirector {
     slats_were_retracted_in_flight: bool,
     cabin_ready_available: bool,
 
-    remaining_chimes: u8,
-    chime_cooldown: Duration,
+    // audio
+    synthesizer: AudioSynthesizer,
+    sound_queue: VecDeque<Sound>,
 
     // output
     output: A320CabinIntercommunicationDataSystemOutputs,
@@ -484,8 +530,8 @@ impl A320CabinIntercommunicationDataDirector {
             slats_were_retracted_in_flight: false,
             cabin_ready_available: false,
 
-            remaining_chimes: 0,
-            chime_cooldown: Duration::ZERO,
+            synthesizer: Default::default(),
+            sound_queue: VecDeque::with_capacity(10),
 
             powered_by: if context.has_engines_running() {
                 Some(Self::NORMAL_POWER_SUPPLY)
@@ -527,8 +573,7 @@ impl A320CabinIntercommunicationDataDirector {
         };
 
         if !active || !is_powered {
-            self.remaining_chimes = 0;
-            self.chime_cooldown = Duration::ZERO;
+            //self.synthesizer.reset();
             self.output = A320CabinIntercommunicationDataSystemOutputs::default();
             return &self.output;
         }
@@ -586,13 +631,6 @@ impl A320CabinIntercommunicationDataDirector {
         delta: Duration,
         inputs: &A320CabinIntercommunicationDataDirectorInputs,
     ) -> A320CabinIntercommunicationDataSystemOutputs {
-        // Chime cooldown
-        if let Some(remaining) = self.chime_cooldown.checked_sub(delta) {
-            self.chime_cooldown = remaining;
-        } else {
-            self.chime_cooldown = Duration::ZERO;
-        }
-
         // Lights
         let fasten_seat_belt_signs = self.determine_fasten_seat_belt_signs(inputs);
         let no_smoking_signs_arinc = self.determine_no_smoking_signs(inputs);
@@ -632,15 +670,25 @@ impl A320CabinIntercommunicationDataDirector {
             || no_portable_devices_signs != self.output.no_portable_devices_signs
             || exit_signs != self.output.exit_signs
         {
-            self.remaining_chimes = self.remaining_chimes.checked_add(1).unwrap_or(u8::MAX);
+            self.sound_queue.push_back(Sound::GenericChime);
         }
 
-        let mut audio_chime = false;
-        if self.remaining_chimes > 0 && self.chime_cooldown == Duration::ZERO {
-            audio_chime = true;
-            self.chime_cooldown = Duration::from_millis(2_700); // TODO
-            self.remaining_chimes -= 1;
+        if (inputs.fwd_attnd || inputs.aft_attnd || inputs.all_attnd)
+            && !self.sound_queue.contains(&Sound::CabinCall)
+        {
+            self.sound_queue.push_back(Sound::CabinCall);
         }
+
+        if inputs.emer_call && !self.sound_queue.contains(&Sound::EmergencyCall) {
+            self.sound_queue.push_back(Sound::EmergencyCall);
+        }
+
+        let requested_sound = if self.synthesizer.ready_in(delta) {
+            self.sound_queue.pop_front()
+        } else {
+            None
+        };
+        self.synthesizer.update(delta, requested_sound);
 
         A320CabinIntercommunicationDataSystemOutputs {
             fail: false,
@@ -651,7 +699,7 @@ impl A320CabinIntercommunicationDataDirector {
             return_to_seat_signs,
             no_portable_devices_signs,
             exit_signs,
-            audio_chime,
+            audio_code: self.synthesizer.audio_code(),
         }
     }
 

@@ -1928,7 +1928,23 @@
 
         <!-- CIDS -->
 
-        <Sound WwiseData="true" WwiseEvent="light_switch_seatbelt" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" LocalVar="A32NX_CIDS_AUDIO_CHIME" Units="BOOL" ViewPoint="Inside" Continuous="false">
+        <Sound WwiseData="true" WwiseEvent="lochime" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" LocalVar="A32NX_CIDS_AUDIO_CODE" Units="BOOL" ViewPoint="Inside" Continuous="false">
+            <Range LowerBound="1" UpperBound="1" />
+            <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
+            <Requires LocalVar="A32NX_CIDS_AUDIO_OPERATIONAL">
+                <Range LowerBound="1" />
+            </Requires>
+        </Sound>
+
+        <Sound WwiseData="true" WwiseEvent="hilochime" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" LocalVar="A32NX_CIDS_AUDIO_CODE" Units="BOOL" ViewPoint="Inside" Continuous="false">
+            <Range LowerBound="2" UpperBound="2" />
+            <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
+            <Requires LocalVar="A32NX_CIDS_AUDIO_OPERATIONAL">
+                <Range LowerBound="1" />
+            </Requires>
+        </Sound>
+
+        <!--<Sound WwiseData="true" WwiseEvent="hilochime" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" LocalVar="PUSH_OVHD_CALLS_FWD" Continuous="false">
             <Range LowerBound="1" />
             <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
             <Requires LocalVar="A32NX_CIDS_AUDIO_OPERATIONAL">
@@ -1936,7 +1952,7 @@
             </Requires>
         </Sound>
 
-        <Sound WwiseData="true" WwiseEvent="cockpit_cabin_call_fwd" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" LocalVar="PUSH_OVHD_CALLS_FWD" Continuous="false">
+        <Sound WwiseData="true" WwiseEvent="hilochime" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" LocalVar="PUSH_OVHD_CALLS_ALL" Continuous="false">
             <Range LowerBound="1" />
             <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
             <Requires LocalVar="A32NX_CIDS_AUDIO_OPERATIONAL">
@@ -1944,15 +1960,7 @@
             </Requires>
         </Sound>
 
-        <Sound WwiseData="true" WwiseEvent="cockpit_cabin_call_fwd" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" LocalVar="PUSH_OVHD_CALLS_ALL" Continuous="false">
-            <Range LowerBound="1" />
-            <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
-            <Requires LocalVar="A32NX_CIDS_AUDIO_OPERATIONAL">
-                <Range LowerBound="1" />
-            </Requires>
-        </Sound>
-
-        <Sound WwiseData="true" WwiseEvent="cockpit_cabin_call_aft" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" LocalVar="PUSH_OVHD_CALLS_AFT" Continuous="false">
+        <Sound WwiseData="true" WwiseEvent="hilochime" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" LocalVar="PUSH_OVHD_CALLS_AFT" Continuous="false">
             <Range LowerBound="1" />
             <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
             <Requires LocalVar="A32NX_CIDS_AUDIO_OPERATIONAL">
@@ -1966,7 +1974,7 @@
             <Requires LocalVar="A32NX_CIDS_AUDIO_OPERATIONAL">
                 <Range LowerBound="1" />
             </Requires>
-        </Sound>
+        </Sound>-->
 
         <Sound WwiseData="true" WwiseEvent="mechhorn" NodeName="WHEELS_C" LocalVar="PUSH_OVHD_CALLS_MECH" Continuous="true">
             <Range LowerBound="1" />

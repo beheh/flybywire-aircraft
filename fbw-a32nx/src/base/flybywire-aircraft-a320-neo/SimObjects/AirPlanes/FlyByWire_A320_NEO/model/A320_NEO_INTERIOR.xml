@@ -3682,7 +3682,7 @@
                                 <ANIM_TEMPLATE>FBW_Push_Held</ANIM_TEMPLATE>
                                 <NODE_ID>PUSH_OVHD_CALLS_ALL</NODE_ID>
                                 <PART_ID>PUSH_OVHD_CALLS_ALL</PART_ID>
-                                <HOLD_SIMVAR>L:PUSH_OVHD_CALLS_ALL</HOLD_SIMVAR>
+                                <HOLD_SIMVAR>L:A32NX_OVHD_CALLS_ALL</HOLD_SIMVAR>
                                 <LEFT_SINGLE_CODE>1 (&gt;L:A32NX_FAP_CABIN_READY_BUTTON)</LEFT_SINGLE_CODE>
                             </UseTemplate>
                             <!-- CALLS FWD -->
@@ -3690,7 +3690,7 @@
                                 <ANIM_TYPE>BUTTON_HELD</ANIM_TYPE>
                                 <ANIM_TEMPLATE>FBW_Push_Held</ANIM_TEMPLATE>
                                 <NODE_ID>PUSH_OVHD_CALLS_FWD</NODE_ID>
-                                <HOLD_SIMVAR>L:PUSH_OVHD_CALLS_FWD</HOLD_SIMVAR>
+                                <HOLD_SIMVAR>L:A32NX_OVHD_CALLS_FWD</HOLD_SIMVAR>
                                 <LEFT_SINGLE_CODE>1 (&gt;L:A32NX_FAP_CABIN_READY_BUTTON)</LEFT_SINGLE_CODE>
                             </UseTemplate>
                             <!-- CALLS AFT -->
@@ -3698,7 +3698,7 @@
                                 <ANIM_TYPE>BUTTON_HELD</ANIM_TYPE>
                                 <ANIM_TEMPLATE>FBW_Push_Held</ANIM_TEMPLATE>
                                 <NODE_ID>PUSH_OVHD_CALLS_AFT</NODE_ID>
-                                <HOLD_SIMVAR>L:PUSH_OVHD_CALLS_AFT</HOLD_SIMVAR>
+                                <HOLD_SIMVAR>L:A32NX_OVHD_CALLS_ALL</HOLD_SIMVAR>
                                 <LEFT_SINGLE_CODE>1 (&gt;L:A32NX_FAP_CABIN_READY_BUTTON)</LEFT_SINGLE_CODE>
                             </UseTemplate>
                             <!-- CALLS EMER -->

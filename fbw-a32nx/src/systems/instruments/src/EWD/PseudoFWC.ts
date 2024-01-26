@@ -4340,7 +4340,7 @@ export class PseudoFWC {
       flightPhaseInhib: [],
       simVarIsActive: MappedSubject.create(
         ([cabinReadyInToLdgMemo, cabinReady, gearDownlocked, fwcFlightPhase]) =>
-          cabinReadyInToLdgMemo &&
+          !cabinReadyInToLdgMemo &&
           cabinReady &&
           (fwcFlightPhase === 2 || (gearDownlocked && [6, 7].includes(fwcFlightPhase))),
         this.cabinReadyInToLdgMemo,
