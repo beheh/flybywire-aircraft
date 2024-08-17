@@ -179,6 +179,10 @@ pub trait VcmShared {
     }
 }
 
+pub trait AirCondToCidsInterface {
+    fn excessive_cabin_altitude(&self) -> bool;
+}
+
 /// Cabin Zones with double digit IDs are specific to the A380
 /// 1X is main deck, 2X is upper deck
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -468,6 +472,7 @@ pub trait PressurizationConstants {
     const EXCESSIVE_ALT_WARNING: f64;
     const EXCESSIVE_RESIDUAL_PRESSURE_WARNING: f64;
     const LOW_DIFFERENTIAL_PRESSURE_WARNING: f64;
+    const CABIN_SIGNS_ALT: f64;
 }
 
 /// A320neo fan part number: VD3900-03

@@ -14,8 +14,8 @@ use crate::{
 
 use super::{
     pressure_valve::{OutflowValve, SafetyValve},
-    AdirsToAirCondInterface, Air, OutflowValveSignal, PressurizationConstants,
-    PressurizationOverheadShared,
+    AdirsToAirCondInterface, Air, AirCondToCidsInterface, OutflowValveSignal,
+    PressurizationConstants, PressurizationOverheadShared,
 };
 
 use std::{fmt::Display, marker::PhantomData, time::Duration};
@@ -633,6 +633,12 @@ impl<C: PressurizationConstants> CabinPressureController<C> {
 
     pub fn reference_pressure(&self) -> Pressure {
         self.reference_pressure
+    }
+}
+
+impl<C: PressurizationConstants> AirCondToCidsInterface for CabinPressureController<C> {
+    fn excessive_cabin_altitude(&self) -> bool {
+        self.cabin_alt > Length::new::<foot>(C::CABIN_SIGNS_ALT)
     }
 }
 
@@ -1467,6 +1473,7 @@ mod tests {
         const EXCESSIVE_ALT_WARNING: f64 = 9550.; // feet
         const EXCESSIVE_RESIDUAL_PRESSURE_WARNING: f64 = 0.03; // PSI
         const LOW_DIFFERENTIAL_PRESSURE_WARNING: f64 = 1.45; // PSI
+        const CABIN_SIGNS_ALT: f64 = 11300.; // feet
     }
 
     struct TestAircraft {

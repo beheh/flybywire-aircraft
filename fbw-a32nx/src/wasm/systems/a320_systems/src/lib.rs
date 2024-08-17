@@ -2,6 +2,7 @@ extern crate systems;
 
 mod air_conditioning;
 mod airframe;
+mod communications;
 mod electrical;
 mod fuel;
 pub mod hydraulic;
@@ -17,6 +18,10 @@ use self::{
     pneumatic::{A320Pneumatic, A320PneumaticOverheadPanel},
 };
 use airframe::A320Airframe;
+use communications::cabin_intercommunication_data::{
+    A320CabinIntercommunicationDataSystem, A320CabinIntercommunicationDataSystemOverheadPanel,
+    A320ForwardAttendantPanel,
+};
 use electrical::{
     A320Electrical, A320ElectricalOverheadPanel, A320EmergencyElectricalOverheadPanel,
     APU_START_MOTOR_BUS_TYPE,
@@ -76,6 +81,9 @@ pub struct A320 {
     radio_altimeters: A320RadioAltimeters,
     egpwc: EnhancedGroundProximityWarningComputer,
     reverse_thrust: ReverserForce,
+    fap: A320ForwardAttendantPanel,
+    cids: A320CabinIntercommunicationDataSystem,
+    cids_overhead: A320CabinIntercommunicationDataSystemOverheadPanel,
 }
 impl A320 {
     pub fn new(context: &mut InitContext) -> A320 {
@@ -131,6 +139,9 @@ impl A320 {
                 0,
             ),
             reverse_thrust: ReverserForce::new(context),
+            fap: A320ForwardAttendantPanel::new(context),
+            cids_overhead: A320CabinIntercommunicationDataSystemOverheadPanel::new(context),
+            cids: A320CabinIntercommunicationDataSystem::new(context),
         }
     }
 }
@@ -255,6 +266,20 @@ impl Aircraft for A320 {
             [self.lgcius.lgciu1(), self.lgcius.lgciu2()],
         );
 
+        self.cids.update(
+            context,
+            &self.cids_overhead,
+            [self.lgcius.lgciu1(), self.lgcius.lgciu2()],
+            [self.air_conditioning.cpc1(), self.air_conditioning.cpc2()],
+            [&self.engine_1, &self.engine_2],
+            [
+                self.hydraulic.sfcc_discretes(),
+                self.hydraulic.sfcc_discretes(),
+            ],
+            &self.fap,
+        );
+        self.fap.update(context, &self.cids);
+
         self.egpwc.update(&self.adirs, self.lgcius.lgciu1());
     }
 }
@@ -289,6 +314,9 @@ impl SimulationElement for A320 {
         self.pneumatic.accept(visitor);
         self.egpwc.accept(visitor);
         self.reverse_thrust.accept(visitor);
+        self.cids_overhead.accept(visitor);
+        self.cids.accept(visitor);
+        self.fap.accept(visitor);
 
         visitor.visit(self);
     }

@@ -521,7 +521,6 @@ class FMCMainDisplay extends BaseAirliners {
             this.constraintAlt
         );
         SimVar.SetSimVarValue("L:A32NX_TO_CONFIG_NORMAL", "Bool", 0);
-        SimVar.SetSimVarValue("L:A32NX_CABIN_READY", "Bool", 0);
         SimVar.SetSimVarValue("L:A32NX_FM_GROSS_WEIGHT", "Number", 0);
 
         if (

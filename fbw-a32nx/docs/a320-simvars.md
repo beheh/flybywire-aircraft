@@ -22,6 +22,7 @@
       - [FCU AFS CP](#fcu-afs-cp)
       - [FCU Output Bus](#fcu-output-bus)
     - [Flight Augmentation Computer (FAC)](#flight-augmentation-computer-fac)
+  - [Communications (ATA 23)](#communications-ata-23)
   - [Flaps / Slats (ATA 27)](#flaps--slats-ata-27)
   - [Flight Controls (ATA 27)](#flight-controls-ata-27)
   - [Landing Gear (ATA 32)](#landing-gear-ata-32)
@@ -61,10 +62,6 @@
       Cruise | 6
       Approach | 7
       Final | 8
-
-- A32NX_NO_SMOKING_MEMO
-    - Boolean that determines whether the NO SMOKING memo should be visible on the upper ECAM
-    - Also is used for knowing when to play the no smoking chime sound
 
 - A32NX_BRAKE_TEMPERATURE_{1,2,3,4}
     - celsius
@@ -157,6 +154,24 @@
 - A32NX_OVHD_HYD_PTU_PB_IS_AUTO
     - Bool
     - True if PTU system on/auto
+
+- A32NX_OVHD_SIGNS_SEAT_BELTS
+    - The Seat Belt signs switch position
+    - Enum
+      Mode | Value
+      ---  | ---
+      ON   | 0
+      AUTO | 1
+      OFF  | 2
+
+- A32NX_OVHD_SIGNS_NO_SMOKING
+    - The No Smoking/No Portable Elec Devices/Exit signs switch position
+    - Enum
+      Mode | Value
+      ---  | ---
+      ON   | 0
+      AUTO | 1
+      OFF  | 2
 
 - A32NX_ENGMANSTART1_TOGGLE
     - Bool
@@ -3419,6 +3434,58 @@ In the variables below, {number} should be replaced with one item in the set: { 
       | 19  | Right Main Gear Pressed           |
       | 20  | Main Gear Out                     |
       | 29  | Alpha Floor Condition             |
+
+## Communications (ATA 23)
+
+- A32NX_CIDS_AUDIO_OPERATIONAL
+    - Indicates whether a CIDS is powered and able to play audio and announcements
+    - Boolean
+
+- A32NX_CIDS_USING_PORTABLE_DEVICES
+    - Indicates whether a CIDS is powered and able to play audio and announcements
+    - Boolean
+
+- A32NX_CIDS_CABIN_FASTEN_SEAT_BELT_SIGNS
+    - Bool
+    - Indicates that the fasten seat belt signs are illuminated in the cabin
+
+- A32NX_CIDS_CABIN_RETURN_TO_SEAT_SIGNS
+    - Bool
+    - Indicates that return to seat signs are illuminated in the lavatories
+
+- A32NX_CIDS_CABIN_NO_SMOKING_SIGNS
+    - Bool
+    - Indicates that the no smoking signs are installed and illuminated in the cabin
+
+- A32NX_CIDS_CABIN_NO_PORTABLE_DEVICES_SIGNS
+    - Bool
+    - Indicates that the no portable electronic devices signs are installed and illuminated in the cabin
+
+- A32NX_CIDS_CABIN_EXIT_SIGNS
+    - Bool
+    - Indicates that the exit signs are illuminated in the cabin
+
+- A32NX_CIDS_{number}_DISCRETE_WORD_1
+    - Arinc429<Discrete>
+    - | Bit |              Description              |
+      |:---:|:--------------------------------------|
+      | 11  | CIDS Class 2 Fault                    |
+      | 12  | CIDS Fault                            |
+      | 15  | No Portable Electronic Devices Active |
+      | 16  | Fasten Seat Belt Active               |
+      | 17  | No Smoking Active                     |
+      | 22  | Cabin Ready                           |
+      | 23  | Cabin Ready in T.O/LDG memo           |
+      | 27  | No PED Installed                      |
+      | 28  | Fasten Seat Belt Installed            |
+      | 29  | No Smoking Installed                  |
+
+- A32NX_CIDS_{number}_DISCRETE_WORD_2
+    - Arinc429<Discrete>
+    - | Bit |     Description     |
+      |:---:|:--------------------|
+      | 11  | No Mobile Active    |
+      | 12  | No Mobile Installed |
 
 ## Flaps / Slats (ATA 27)
 

@@ -19,12 +19,6 @@ class A32NX_LocalVarUpdater {
 
         this.updaters = [
             {
-                varName: "L:A32NX_NO_SMOKING_MEMO",
-                type: "Bool",
-                selector: this._noSmokingMemoSelector,
-                refreshInterval: 1000,
-            },
-            {
                 varName: "L:A32NX_FLAPS_IN_MOTION",
                 type: "Bool",
                 selector: this._flapsInMotionSelector.bind(this),
@@ -62,23 +56,6 @@ class A32NX_LocalVarUpdater {
         if (newValue !== currentValue) {
             SimVar.SetSimVarValue(varName, type, newValue);
         }
-    }
-
-    _noSmokingMemoSelector() {
-        const gearPercent = SimVar.GetSimVarValue("L:A32NX_GEAR_CENTER_POSITION", "Percent");
-        const noSmokingSwitch = SimVar.GetSimVarValue("L:XMLVAR_SWITCH_OVHD_INTLT_NOSMOKING_Position", "Position");
-
-        // Switch is ON
-        if (noSmokingSwitch === 0) {
-            return true;
-        }
-
-        // Switch is AUTO and gear more than 50% down
-        if (noSmokingSwitch === 1 && gearPercent > 50) {
-            return true;
-        }
-
-        return false;
     }
 
     _flapsInMotionSelector() {

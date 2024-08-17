@@ -37,6 +37,8 @@ pub enum FailureType {
     BulkIsolValve,
     BulkExtractFan,
     CargoHeater,
+    // ATA23
+    CabinIntercommunicationDataSystem(usize),
     // ATA24
     Generator(usize),
     ApuGenerator(usize),

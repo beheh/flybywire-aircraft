@@ -289,6 +289,22 @@ impl SlatFlapControlComputer {
         )
     }
 }
+pub trait A320SlatFlapComputerDiscretes {
+    fn flaps_at_or_above_19deg_discrete(&self) -> bool;
+    fn slats_at_or_above_17deg_discrete(&self) -> bool;
+}
+
+impl A320SlatFlapComputerDiscretes for SlatFlapControlComputer {
+    fn flaps_at_or_above_19deg_discrete(&self) -> bool {
+        self.flaps_feedback_angle > Angle::new::<degree>(163.7)
+            && self.flaps_feedback_angle < Angle::new::<degree>(254.)
+    }
+
+    fn slats_at_or_above_17deg_discrete(&self) -> bool {
+        self.slats_feedback_angle > Angle::new::<degree>(210.4)
+            && self.slats_feedback_angle < Angle::new::<degree>(337.)
+    }
+}
 
 trait SlatFlapLane {
     fn signal_demanded_angle(&self, surface_type: &str) -> Option<Angle>;
@@ -375,6 +391,10 @@ impl SlatFlapComplex {
     pub fn slat_demand(&self) -> Option<Angle> {
         self.sfcc.signal_demanded_angle("SLATS")
     }
+
+    pub fn sfcc_discretes(&self) -> &impl A320SlatFlapComputerDiscretes {
+        &self.sfcc
+    } // TODO dual SFCC simulation
 }
 impl SimulationElement for SlatFlapComplex {
     fn accept<T: SimulationElementVisitor>(&mut self, visitor: &mut T) {

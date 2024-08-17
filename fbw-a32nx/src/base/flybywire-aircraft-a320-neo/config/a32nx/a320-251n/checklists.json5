@@ -53,8 +53,8 @@
           "result": "ON",
           "condition": [
             {
-              varName: "CABIN SEATBELTS ALERT SWITCH",
-              result: 1
+              varName: "L:A32NX_OVHD_SIGNS_SEAT_BELTS",
+              result: 0
             }
           ]
         },
@@ -221,8 +221,8 @@
           "result": "ON",
           "condition": [
             {
-              varName: "CABIN SEATBELTS ALERT SWITCH",
-              result: 1
+              varName: "L:A32NX_OVHD_SIGNS_SEAT_BELTS",
+              result: 0
             }
           ]
         },

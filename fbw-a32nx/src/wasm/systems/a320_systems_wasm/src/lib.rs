@@ -8,6 +8,7 @@ mod nose_wheel_steering;
 mod payload;
 mod reversers;
 mod rudder;
+mod signs;
 mod spoilers;
 mod trimmable_horizontal_stabilizer;
 
@@ -22,6 +23,7 @@ use nose_wheel_steering::nose_wheel_steering;
 use payload::payload;
 use reversers::reversers;
 use rudder::rudder;
+use signs::signs;
 use spoilers::spoilers;
 use std::error::Error;
 use systems::air_conditioning::{
@@ -98,6 +100,8 @@ async fn systems(mut gauge: msfs::Gauge) -> Result<(), Box<dyn Error>> {
         (21_017, FailureType::OutflowValveFault),
         (21_018, FailureType::SafetyValveFault),
         (21_019, FailureType::RapidDecompression),
+        (23_100, FailureType::CabinIntercommunicationDataSystem(1)),
+        (23_101, FailureType::CabinIntercommunicationDataSystem(2)),
         (24_000, FailureType::TransformerRectifier(1)),
         (24_001, FailureType::TransformerRectifier(2)),
         (24_002, FailureType::TransformerRectifier(3)),
@@ -448,6 +452,7 @@ async fn systems(mut gauge: msfs::Gauge) -> Result<(), Box<dyn Error>> {
     .with_aspect(gear)?
     .with_aspect(payload)?
     .with_aspect(trimmable_horizontal_stabilizer)?
+    .with_aspect(signs)?
     .build(A320::new)?;
 
     while let Some(event) = gauge.next_event().await {

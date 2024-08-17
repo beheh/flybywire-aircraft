@@ -978,6 +978,7 @@ impl PressurizationConstants for A320PressurizationConstants {
     const EXCESSIVE_ALT_WARNING: f64 = 9550.; // feet
     const EXCESSIVE_RESIDUAL_PRESSURE_WARNING: f64 = 0.036; // PSI
     const LOW_DIFFERENTIAL_PRESSURE_WARNING: f64 = 1.45; // PSI
+    const CABIN_SIGNS_ALT: f64 = 11300.; // feet
 }
 
 pub struct A320PressurizationOverheadPanel {

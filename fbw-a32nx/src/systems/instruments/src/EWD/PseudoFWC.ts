@@ -630,7 +630,7 @@ export class PseudoFWC {
 
   private readonly lgciu2DiscreteWord2 = Arinc429Register.empty();
 
-  private isAllGearDownlocked = false;
+  private readonly isAllGearDownlocked = Subject.create(false);
 
   private readonly nwSteeringDisc = Subject.create(false);
 
@@ -892,13 +892,19 @@ export class PseudoFWC {
 
   private readonly manLandingElevation = Subject.create(false);
 
-  private readonly noSmoking = Subject.create(0);
-
-  private readonly noSmokingSwitchPosition = Subject.create(0);
-
   private readonly predWSOn = Subject.create(false);
 
-  private readonly seatBelt = Subject.create(0);
+  private readonly cabinReady = Subject.create(false);
+
+  private readonly cabinReadyInToLdgMemo = Subject.create(false);
+
+  private readonly noPortableDevices = Subject.create(false);
+
+  private readonly noSmoking = Subject.create(false);
+
+  private readonly seatBelt = Subject.create(false);
+
+  private readonly allSigns = Subject.create(false);
 
   private readonly strobeLightsOn = Subject.create(0);
 
@@ -1272,9 +1278,10 @@ export class PseudoFWC {
     const mainGearDownlocked =
       (this.lgciu1DiscreteWord1.bitValueOr(23, false) || this.lgciu2DiscreteWord1.bitValueOr(23, false)) &&
       (this.lgciu1DiscreteWord1.bitValueOr(24, false) || this.lgciu2DiscreteWord1.bitValueOr(24, false));
-    this.isAllGearDownlocked =
+    this.isAllGearDownlocked.set(
       mainGearDownlocked &&
-      (this.lgciu1DiscreteWord1.bitValueOr(25, false) || this.lgciu2DiscreteWord1.bitValueOr(25, false));
+        (this.lgciu1DiscreteWord1.bitValueOr(25, false) || this.lgciu2DiscreteWord1.bitValueOr(25, false)),
+    );
 
     // on ground logic
     const lgciu1Disagree = xor(leftCompressedHardwireLgciu1, this.lgciu1DiscreteWord2.bitValue(13));
@@ -1596,6 +1603,34 @@ export class PseudoFWC {
       ),
     );
 
+    /* CIDS */
+    const cids1DiscreteWord1 = Arinc429Word.fromSimVarValue('L:A32NX_CIDS_1_DISCRETE_WORD_1');
+    const cids2DiscreteWord1 = Arinc429Word.fromSimVarValue('L:A32NX_CIDS_2_DISCRETE_WORD_1');
+    this.noPortableDevices.set(
+      (cids1DiscreteWord1.getBitValueOr(15, false) && cids1DiscreteWord1.getBitValueOr(27, false)) ||
+        (cids2DiscreteWord1.getBitValueOr(15, false) && cids2DiscreteWord1.getBitValueOr(27, false)),
+    );
+    this.seatBelt.set(cids1DiscreteWord1.getBitValueOr(16, false) || cids2DiscreteWord1.getBitValueOr(16, false));
+    this.noSmoking.set(
+      (cids1DiscreteWord1.getBitValueOr(17, false) && cids1DiscreteWord1.getBitValueOr(29, false)) ||
+        (cids2DiscreteWord1.getBitValueOr(17, false) && cids2DiscreteWord1.getBitValueOr(29, false)),
+    );
+    this.cabinReady.set(cids1DiscreteWord1.getBitValueOr(22, false) || cids2DiscreteWord1.getBitValueOr(22, false));
+    this.cabinReadyInToLdgMemo.set(
+      cids1DiscreteWord1.getBitValueOr(23, false) || cids2DiscreteWord1.getBitValueOr(23, false),
+    );
+    this.allSigns.set(
+      (cids1DiscreteWord1.getBitValueOr(15, false) ||
+        !cids1DiscreteWord1.getBitValueOr(27, false) ||
+        cids2DiscreteWord1.getBitValueOr(15, false) ||
+        !cids2DiscreteWord1.getBitValueOr(27, false)) &&
+        cids1DiscreteWord1.getBitValueOr(16, false) &&
+        (cids1DiscreteWord1.getBitValueOr(17, false) ||
+          !cids1DiscreteWord1.getBitValueOr(29, false) ||
+          cids2DiscreteWord1.getBitValueOr(17, false) ||
+          !cids2DiscreteWord1.getBitValueOr(29, false)),
+    );
+
     /* OTHER STUFF */
 
     this.airKnob.set(SimVar.GetSimVarValue('L:A32NX_AIR_DATA_SWITCHING_KNOB', 'enum'));
@@ -1603,10 +1638,7 @@ export class PseudoFWC {
     this.compMesgCount.set(SimVar.GetSimVarValue('L:A32NX_COMPANY_MSG_COUNT', 'number'));
     this.dmcSwitchingKnob.set(SimVar.GetSimVarValue('L:A32NX_EIS_DMC_SWITCHING_KNOB', 'enum'));
     this.manLandingElevation.set(activeCpc.bitValueOr(17, false));
-    this.seatBelt.set(SimVar.GetSimVarValue('A:CABIN SEATBELTS ALERT SWITCH', 'bool'));
     this.ndXfrKnob.set(SimVar.GetSimVarValue('L:A32NX_ECAM_ND_XFR_SWITCHING_KNOB', 'enum'));
-    this.noSmoking.set(SimVar.GetSimVarValue('L:A32NX_NO_SMOKING_MEMO', 'bool'));
-    this.noSmokingSwitchPosition.set(SimVar.GetSimVarValue('L:XMLVAR_SWITCH_OVHD_INTLT_NOSMOKING_Position', 'Enum'));
     this.strobeLightsOn.set(SimVar.GetSimVarValue('L:LIGHTING_STROBE_0', 'Bool'));
     this.gpwsFlaps3.set(SimVar.GetSimVarValue('L:A32NX_GPWS_FLAPS3', 'Bool'));
     this.gpwsFlapMode.set(SimVar.GetSimVarValue('L:A32NX_GPWS_FLAP_OFF', 'Bool'));
@@ -2150,15 +2182,6 @@ export class PseudoFWC {
     /* SETTINGS */
 
     this.configPortableDevices.set(NXDataStore.get('CONFIG_USING_PORTABLE_DEVICES', '0') !== '0');
-
-    /* CABIN READY */
-
-    const callPushAft = SimVar.GetSimVarValue('L:PUSH_OVHD_CALLS_AFT', 'bool');
-    const callPushAll = SimVar.GetSimVarValue('L:PUSH_OVHD_CALLS_ALL', 'bool');
-    const callPushFwd = SimVar.GetSimVarValue('L:PUSH_OVHD_CALLS_FWD', 'bool');
-    if (callPushAft || callPushAll || callPushFwd) {
-      SimVar.SetSimVarValue('L:A32NX_CABIN_READY', 'bool', 1);
-    }
 
     /* MASTER CAUT/WARN BUTTONS */
 
@@ -3142,7 +3165,7 @@ export class PseudoFWC {
       whichCodeToReturn: () => [
         0,
         this.cabAltSetResetState1.get() ? 1 : null,
-        this.cabAltSetResetState2.get() && this.seatBelt.get() !== 1 ? 2 : null,
+        this.cabAltSetResetState2.get() && this.allSigns.get() ? 2 : null,
         this.cabAltSetResetState2.get() ? 3 : null,
         this.cabAltSetResetState1.get() ? 4 : null,
         this.cabAltSetResetState2.get() &&
@@ -3945,11 +3968,8 @@ export class PseudoFWC {
       simVarIsActive: this.toMemo.map((t) => !!t),
       whichCodeToReturn: () => [
         this.autoBrake.get() === 3 ? 1 : 0,
-        SimVar.GetSimVarValue('L:A32NX_NO_SMOKING_MEMO', 'bool') === 1 &&
-        SimVar.GetSimVarValue('A:CABIN SEATBELTS ALERT SWITCH', 'bool') === 1
-          ? 3
-          : 2,
-        SimVar.GetSimVarValue('L:A32NX_CABIN_READY', 'bool') ? 5 : 4,
+        this.seatBelt.get() ? 3 : 2,
+        this.cabinReadyInToLdgMemo.get() ? (this.cabinReady.get() ? 5 : 4) : null,
         this.spoilersArmed.get() ? 7 : 6,
         this.slatFlapSelectionS18F10 || this.slatFlapSelectionS22F15 || this.slatFlapSelectionS22F20 ? 9 : 8,
         this.toConfigNormal.get() ? 11 : 10,
@@ -3978,12 +3998,9 @@ export class PseudoFWC {
       flightPhaseInhib: [1, 2, 3, 4, 5, 9, 10],
       simVarIsActive: this.ldgMemo.map((t) => !!t),
       whichCodeToReturn: () => [
-        this.isAllGearDownlocked ? 1 : 0,
-        SimVar.GetSimVarValue('L:XMLVAR_SWITCH_OVHD_INTLT_NOSMOKING_Position', 'enum') !== 2 &&
-        SimVar.GetSimVarValue('A:CABIN SEATBELTS ALERT SWITCH', 'bool') === 1
-          ? 3
-          : 2,
-        SimVar.GetSimVarValue('L:A32NX_CABIN_READY', 'bool') ? 5 : 4,
+        this.isAllGearDownlocked.get() ? 1 : 0,
+        this.seatBelt.get() ? 3 : 2,
+        this.cabinReadyInToLdgMemo.get() ? (this.cabinReady.get() ? 5 : 4) : null,
         this.spoilersArmed.get() ? 7 : 6,
         !SimVar.GetSimVarValue('L:A32NX_GPWS_FLAPS3', 'bool') &&
         SimVar.GetSimVarValue('L:A32NX_FLAPS_HANDLE_INDEX', 'enum') !== 4
@@ -4137,11 +4154,7 @@ export class PseudoFWC {
     '0000090': {
       // NO SMOKING
       flightPhaseInhib: [],
-      simVarIsActive: MappedSubject.create(
-        ([noSmoking, configPortableDevices]) => noSmoking === 1 && !configPortableDevices,
-        this.noSmoking,
-        this.configPortableDevices,
-      ),
+      simVarIsActive: this.noSmoking.map((v) => !!v),
       whichCodeToReturn: () => [0],
       codesToReturn: ['000009001'],
       memoInhibit: () => this.toMemo.get() === 1 || this.ldgMemo.get() === 1,
@@ -4152,11 +4165,7 @@ export class PseudoFWC {
     '0000095': {
       // PORTABLE DEVICES
       flightPhaseInhib: [],
-      simVarIsActive: MappedSubject.create(
-        ([noSmoking, configPortableDevices]) => noSmoking === 1 && !!configPortableDevices,
-        this.noSmoking,
-        this.configPortableDevices,
-      ),
+      simVarIsActive: this.noPortableDevices.map((v) => !!v),
       whichCodeToReturn: () => [0],
       codesToReturn: ['000009501'],
       memoInhibit: () => this.toMemo.get() === 1 || this.ldgMemo.get() === 1,
@@ -4321,6 +4330,26 @@ export class PseudoFWC {
       simVarIsActive: this.engSelectorPosition.map((v) => v === 2),
       whichCodeToReturn: () => [0],
       codesToReturn: ['000007001'],
+      memoInhibit: () => false,
+      failure: 0,
+      sysPage: -1,
+      side: 'RIGHT',
+    },
+    '0000510': {
+      // CABIN READY
+      flightPhaseInhib: [],
+      simVarIsActive: MappedSubject.create(
+        ([cabinReadyInToLdgMemo, cabinReady, gearDownlocked, fwcFlightPhase]) =>
+          cabinReadyInToLdgMemo &&
+          cabinReady &&
+          (fwcFlightPhase === 2 || (gearDownlocked && [6, 7].includes(fwcFlightPhase))),
+        this.cabinReadyInToLdgMemo,
+        this.cabinReady,
+        this.isAllGearDownlocked,
+        this.fwcFlightPhase,
+      ),
+      whichCodeToReturn: () => [0],
+      codesToReturn: ['000051001'],
       memoInhibit: () => false,
       failure: 0,
       sysPage: -1,

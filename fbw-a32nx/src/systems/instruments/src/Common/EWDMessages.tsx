@@ -98,6 +98,7 @@ const EWDMessages = {
   '000032501': '\x1b<4mTCAS STBY',
   '000035001': '\x1b<2mLAND ASAP',
   '000036001': '\x1b<4mLAND ASAP',
+  '000051001': '\x1b<3mCABIN READY',
   '000054001': '\x1b<3mPRED W/S OFF',
   '000054002': '\x1b<4mPRED W/S OFF',
   '000054501': '\x1b<3mTERR OFF',

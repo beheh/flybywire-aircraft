@@ -247,7 +247,7 @@
          <Test>
             <TestValue>
                <Operator OpType="EQUAL">
-                  <Val Code="(L:XMLVAR_SWITCH_OVHD_INTLT_NOSMOKING_Position)"/>
+                  <Val Code="(L:A32NX_OVHD_SIGNS_NO_SMOKING)"/>
                   <Val Value="1"/>
                </Operator>
             </TestValue>
@@ -259,8 +259,8 @@
          <Test>
             <TestValue>
                <Operator OpType="EQUAL">
-                  <Val Code="(A:CABIN SEATBELTS ALERT SWITCH)"/>
-                  <Val Value="1"/>
+                  <Val Code="(L:A32NX_OVHD_SIGNS_SEAT_BELTS)"/>
+                  <Val Value="2"/>
                </Operator>
             </TestValue>
          </Test>
@@ -1530,8 +1530,8 @@
          <Test>
             <TestValue>
                <Operator OpType="EQUAL">
-                  <Val Code="(A:CABIN SEATBELTS ALERT SWITCH)"/>
-                  <Val Value="1"/>
+                  <Val Code="(L:A32NX_OVHD_SIGNS_SEAT_BELTS)"/>
+                  <Val Value="0"/>
                </Operator>
             </TestValue>
          </Test>
@@ -1743,8 +1743,8 @@
          <Test>
             <TestValue>
                <Operator OpType="EQUAL">
-                  <Val Code="(A:CABIN SEATBELTS ALERT SWITCH)"/>
-                  <Val Value="1"/>
+                  <Val Code="(L:A32NX_OVHD_SIGNS_SEAT_BELTS)"/>
+                  <Val Value="0"/>
                </Operator>
             </TestValue>
          </Test>
@@ -2323,7 +2323,7 @@
          <Test>
             <TestValue>
                <Operator OpType="EQUAL">
-                  <Val Code="(L:XMLVAR_SWITCH_OVHD_INTLT_NOSMOKING_Position)"/>
+                  <Val Code="(L:A32NX_OVHD_SIGNS_NO_SMOKING)"/>
                   <Val Value="2"/>
                </Operator>
             </TestValue>

@@ -616,24 +616,12 @@
             <Range LowerBound="1" />
         </Sound>
 
-        <Sound WwiseEvent="CIDSchimes" WwiseData="true" ConeHeading="180" CancelConeHeadingWhenInside="false" NodeName="SOUND_FWD_GALLEY" Continuous="false" LocalVar="A32NX_ELEC_DC_ESS_BUS_IS_POWERED" Units="Bool" Index="1">
-            <Range LowerBound="1" />
-            <WwiseRTPC LocalVar="A32NX_ELEC_DC_ESS_BUS_IS_POWERED" RTPCName="LOCALVAR_A32NX_DC_ESS_BUS" />
-            <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
-        </Sound>
-
         <Sound WwiseEvent="cockpitdooropen" WwiseData="true" NodeName="SOUND_FWD_GALLEY" Continuous="false" LocalVar="A32NX_COCKPIT_DOOR_LOCKED" Units="Bool" Index="1">
             <Range UpperBound="0" />
         </Sound>
 
          <Sound WwiseEvent="cockpitdoorclosed" WwiseData="true" NodeName="SOUND_FWD_GALLEY" Continuous="false" LocalVar="A32NX_COCKPIT_DOOR_LOCKED" Units="Bool" Index="1">
             <Range LowerBound="1" />
-        </Sound>
-
-        <Sound WwiseEvent="CIDSchimes" WwiseData="true" ConeHeading="180" CancelConeHeadingWhenInside="false" NodeName="LIGHT_ASOBO_NAVIGATIONTAILRIGHT" Continuous="false" LocalVar="A32NX_ELEC_AC_1_BUS_IS_POWERED" Units="Bool" Index="1">
-            <Range LowerBound="1" />
-            <WwiseRTPC LocalVar="A32NX_ELEC_DC_ESS_BUS_IS_POWERED" RTPCName="LOCALVAR_A32NX_DC_ESS_BUS" />
-            <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
         </Sound>
 
         <Sound WwiseData="true" WwiseEvent="gearleverclick" Continuous="false" NodeName="PEDALS_LEFT" ViewPoint="Inside" LocalVar="A32NX_GEAR_HANDLE_POSITION">
@@ -1938,62 +1926,45 @@
             <Range UpperBound="0" />
         </Sound>
 
-        <!-- Play sound whenever the seat belts switch position changes -->
+        <!-- CIDS -->
 
-        <Sound WwiseData="true" WwiseEvent="light_switch_seatbelt" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" SimVar="CABIN SEATBELTS ALERT SWITCH" Units="BOOL" ViewPoint="Inside" Continuous="false">
-            <Range UpperBound="0" />
-            <WwiseRTPC SimVar="ELECTRICAL MAIN BUS VOLTAGE" Units="VOLTS" Index="1" RTPCName="SIMVAR_ELECTRICAL_MAIN_BUS_VOLTAGE" />
-            <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
-        </Sound>
-
-        <Sound WwiseData="true" WwiseEvent="light_switch_seatbelt" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" SimVar="CABIN SEATBELTS ALERT SWITCH" Units="BOOL" ViewPoint="Inside" Continuous="false">
+        <Sound WwiseData="true" WwiseEvent="light_switch_seatbelt" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" LocalVar="A32NX_CIDS_AUDIO_CHIME" Units="BOOL" ViewPoint="Inside" Continuous="false">
             <Range LowerBound="1" />
-            <WwiseRTPC SimVar="ELECTRICAL MAIN BUS VOLTAGE" Units="VOLTS" Index="1" RTPCName="SIMVAR_ELECTRICAL_MAIN_BUS_VOLTAGE" />
             <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
-        </Sound>
-
-        <!-- Play sound whenever the no smoking ecam memo changes -->
-        <Sound WwiseData="true" WwiseEvent="light_switch_seatbelt" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" LocalVar="A32NX_NO_SMOKING_MEMO" ViewPoint="Inside" Continuous="false">
-            <Range UpperBound="0" />
-            <WwiseRTPC SimVar="ELECTRICAL MAIN BUS VOLTAGE" Units="VOLTS" Index="1" RTPCName="SIMVAR_ELECTRICAL_MAIN_BUS_VOLTAGE" />
-            <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
-        </Sound>
-
-        <Sound WwiseData="true" WwiseEvent="light_switch_seatbelt" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" LocalVar="A32NX_NO_SMOKING_MEMO" ViewPoint="Inside" Continuous="false">
-            <Range LowerBound="1" />
-            <WwiseRTPC SimVar="ELECTRICAL MAIN BUS VOLTAGE" Units="VOLTS" Index="1" RTPCName="SIMVAR_ELECTRICAL_MAIN_BUS_VOLTAGE" />
-            <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
+            <Requires LocalVar="A32NX_CIDS_AUDIO_OPERATIONAL">
+                <Range LowerBound="1" />
+            </Requires>
         </Sound>
 
         <Sound WwiseData="true" WwiseEvent="cockpit_cabin_call_fwd" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" LocalVar="PUSH_OVHD_CALLS_FWD" Continuous="false">
             <Range LowerBound="1" />
             <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
-            <Requires LocalVar="A32NX_ELEC_AC_1_BUS_IS_POWERED" Units="Bool" Index="1">
-            <Range LowerBound="1" />
+            <Requires LocalVar="A32NX_CIDS_AUDIO_OPERATIONAL">
+                <Range LowerBound="1" />
             </Requires>
         </Sound>
 
         <Sound WwiseData="true" WwiseEvent="cockpit_cabin_call_fwd" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" LocalVar="PUSH_OVHD_CALLS_ALL" Continuous="false">
             <Range LowerBound="1" />
             <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
-            <Requires LocalVar="A32NX_ELEC_AC_1_BUS_IS_POWERED" Units="Bool" Index="1">
-            <Range LowerBound="1" />
+            <Requires LocalVar="A32NX_CIDS_AUDIO_OPERATIONAL">
+                <Range LowerBound="1" />
             </Requires>
         </Sound>
 
         <Sound WwiseData="true" WwiseEvent="cockpit_cabin_call_aft" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" LocalVar="PUSH_OVHD_CALLS_AFT" Continuous="false">
             <Range LowerBound="1" />
             <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
-            <Requires LocalVar="A32NX_ELEC_AC_1_BUS_IS_POWERED" Units="Bool" Index="1">
-            <Range LowerBound="1" />
+            <Requires LocalVar="A32NX_CIDS_AUDIO_OPERATIONAL">
+                <Range LowerBound="1" />
             </Requires>
         </Sound>
 
         <Sound WwiseData="true" WwiseEvent="emercabincall" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" LocalVar="A32NX_CALLS_EMER_ON" Continuous="false">
             <Range LowerBound="1" />
             <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
-            <Requires LocalVar="A32NX_ELEC_AC_1_BUS_IS_POWERED" Units="Bool" Index="1">
-            <Range LowerBound="1" />
+            <Requires LocalVar="A32NX_CIDS_AUDIO_OPERATIONAL">
+                <Range LowerBound="1" />
             </Requires>
         </Sound>
 
@@ -2182,7 +2153,7 @@
 
         <Sound WwiseEvent="boardingcompleted" WwiseData="true" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" Continuous="false" LocalVar="A32NX_SOUND_BOARDING_COMPLETE">
             <Range LowerBound="1" />
-            <Requires LocalVar="A32NX_CIDS_IS_POWERED">
+            <Requires LocalVar="A32NX_CIDS_AUDIO_OPERATIONAL">
                 <Range LowerBound="1" />
             </Requires>
             <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" RTPCAttackTime="0.5" RTPCReleaseTime="0.5" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
@@ -2191,7 +2162,7 @@
 
         <Sound WwiseEvent="welcomeonboard" WwiseData="true" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" Continuous="false" LocalVar="A32NX_SOUND_BOARDING_COMPLETE">
             <Range LowerBound="1" />
-            <Requires LocalVar="A32NX_CIDS_IS_POWERED">
+            <Requires LocalVar="A32NX_CIDS_AUDIO_OPERATIONAL">
                 <Range LowerBound="1" />
             </Requires>
             <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" RTPCAttackTime="0.5" RTPCReleaseTime="0.5" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
@@ -2200,7 +2171,7 @@
 
         <Sound WwiseEvent="armdoors" WwiseData="true" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" Continuous="true" SimVar="LIGHT BEACON" Index="0" Units="Bool">
             <Range LowerBound="1" />
-            <Requires LocalVar="A32NX_CIDS_IS_POWERED">
+            <Requires LocalVar="A32NX_CIDS_AUDIO_OPERATIONAL">
                 <Range LowerBound="1" />
             </Requires>
             <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" RTPCAttackTime="0.5" RTPCReleaseTime="0.5" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />
@@ -2212,7 +2183,7 @@
 
         <Sound WwiseEvent="safetydemo" WwiseData="true" NodeName="SOUND_FWD_GALLEY" ConeHeading="180" CancelConeHeadingWhenInside="false" Continuous="true" SimVar="LIGHT BEACON" Index="0" Units="Bool">
             <Range LowerBound="1" />
-            <Requires LocalVar="A32NX_CIDS_IS_POWERED">
+            <Requires LocalVar="A32NX_CIDS_AUDIO_OPERATIONAL">
                 <Range LowerBound="1" />
             </Requires>
             <WwiseRTPC LocalVar="A32NX_COCKPIT_DOOR_LOCKED" RTPCAttackTime="0.5" RTPCReleaseTime="0.5" Units="bool" Index="1" RTPCName="LOCALVAR_A32NX_COCKPIT_DOOR_LOCKED" />

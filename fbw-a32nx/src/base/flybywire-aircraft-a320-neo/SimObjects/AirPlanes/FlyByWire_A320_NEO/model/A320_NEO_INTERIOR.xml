@@ -1719,27 +1719,24 @@
                     </SYNC_TOGGLE_BUSES>
                 </UseTemplate>
 
-                <Update Once="True">
-                    (L:XMLVAR_SWITCH_OVHD_INTLT_SEATBELT_Position) 1 == (A:CABIN SEATBELTS ALERT SWITCH, bool) 0 == and if{
-                      (&gt;K:CABIN_SEATBELTS_ALERT_SWITCH_TOGGLE)
-                    }
-                    (L:XMLVAR_SWITCH_OVHD_INTLT_SEATBELT_Position) 0 == (A:CABIN SEATBELTS ALERT SWITCH, bool) 1 == and if{
-                      (&gt;K:CABIN_SEATBELTS_ALERT_SWITCH_TOGGLE)
-                    }
-                </Update>
-
                 <!-- INT SEATBELTS -->
                 <UseTemplate Name="FBW_Anim_Interactions">
                     <ANIM_TYPE>SWITCH</ANIM_TYPE>
-                    <ANIM_TEMPLATE>FBW_Switch_LeftClick_MouseWheel</ANIM_TEMPLATE>
+                    <ANIM_TEMPLATE>A32NX_GT_Switch_Dummy</ANIM_TEMPLATE>
                     <ANIM_NAME>SWITCH_OVHD_INTLT_SEATBELT</ANIM_NAME>
                     <NODE_ID>SWITCH_OVHD_INTLT_SEATBELT</NODE_ID>
                     <PART_ID>Seatbelt_Switch</PART_ID>
-                    <TOGGLE_EVENT>CABIN_SEATBELTS_ALERT_SWITCH_TOGGLE</TOGGLE_EVENT>
-                    <SIMVAR_NAME>CABIN SEATBELTS ALERT SWITCH</SIMVAR_NAME>
+                    <NUM_STATES>3</NUM_STATES>
+                    <SWITCH_DIRECTION>Vertical</SWITCH_DIRECTION>
+                    <INVERT_ANIM>True</INVERT_ANIM>
+                    <SWITCH_POSITION_TYPE>L</SWITCH_POSITION_TYPE>
+                    <SWITCH_POSITION_VAR>A32NX_OVHD_SIGNS_SEAT_BELTS</SWITCH_POSITION_VAR>
                     <LIGHT_TYPE>SEATBELT</LIGHT_TYPE>
-                    <ANIMTIP_0>Turn ON seatbelt light</ANIMTIP_0>
-                    <ANIMTIP_1>Turn OFF seatbelt light</ANIMTIP_1>
+                    <ANIMTIP_1_ON_PERCENT>0.5</ANIMTIP_1_ON_PERCENT>
+                    <ANIMTIP_0>TT:COCKPIT.TOOLTIPS.LIGHTS_SEATBELT_ON</ANIMTIP_0>
+                    <ANIMTIP_1>Set seatbelt prompt light to AUTO</ANIMTIP_1>
+                    <ANIMTIP_2>TT:COCKPIT.TOOLTIPS.LIGHTS_SEATBELT_OFF</ANIMTIP_2>
+                    <WWISE_EVENT>lswitch</WWISE_EVENT>
                 </UseTemplate>
 
                 <!-- INT LT NO SMOKING -->
@@ -1753,10 +1750,9 @@
                     <SWITCH_DIRECTION>Vertical</SWITCH_DIRECTION>
                     <INVERT_ANIM>True</INVERT_ANIM>
                     <SWITCH_POSITION_TYPE>L</SWITCH_POSITION_TYPE>
-                    <SWITCH_POSITION_VAR>XMLVAR_SWITCH_OVHD_INTLT_NOSMOKING_Position</SWITCH_POSITION_VAR>
+                    <SWITCH_POSITION_VAR>A32NX_OVHD_SIGNS_NO_SMOKING</SWITCH_POSITION_VAR>
                     <LIGHT_TYPE>NO_SMOKING</LIGHT_TYPE>
                     <ANIMTIP_1_ON_PERCENT>0.5</ANIMTIP_1_ON_PERCENT>
-                    <!-- TODO: Figure out how to add custom TT in .locPak and .loc files. -->
                     <ANIMTIP_0>TT:COCKPIT.TOOLTIPS.LIGHTS_NOSMOKE_ON</ANIMTIP_0>
                     <ANIMTIP_1>TT:COCKPIT.TOOLTIPS.LIGHTS_NOSMOKE_AUTO</ANIMTIP_1>
                     <ANIMTIP_2>TT:COCKPIT.TOOLTIPS.LIGHTS_NOSMOKE_OFF</ANIMTIP_2>
@@ -2016,7 +2012,7 @@
                             <NODE_ID>LIGHTS_OVHD_NO_SMOKING</NODE_ID>
                         </UseTemplate>
                         <UseTemplate Name="ASOBO_GT_Visibility_Code">
-                            <VISIBILITY_CODE>(L:A32NX_CONFIG_USING_PORTABLE_DEVICES, Bool) !</VISIBILITY_CODE>
+                            <VISIBILITY_CODE>(L:A32NX_CIDS_USING_PORTABLE_DEVICES, Bool) !</VISIBILITY_CODE>
                         </UseTemplate>
                     </Component>
 
@@ -2025,7 +2021,7 @@
                             <NODE_ID>LIGHTS_OVHD_NO_PED</NODE_ID>
                         </UseTemplate>
                         <UseTemplate Name="ASOBO_GT_Visibility_Code">
-                            <VISIBILITY_CODE>(L:A32NX_CONFIG_USING_PORTABLE_DEVICES, Bool)</VISIBILITY_CODE>
+                            <VISIBILITY_CODE>(L:A32NX_CIDS_USING_PORTABLE_DEVICES, Bool)</VISIBILITY_CODE>
                         </UseTemplate>
                     </Component>
 
@@ -2045,7 +2041,7 @@
                         </UseTemplate>
                         <UseTemplate Name="ASOBO_GT_Visibility_Code">
                             <!-- FIXME implement -->
-                            <VISIBILITY_CODE>0</VISIBILITY_CODE>
+                            <VISIBILITY_CODE>1</VISIBILITY_CODE>
                         </UseTemplate>
                     </Component>
 
@@ -3687,6 +3683,7 @@
                                 <NODE_ID>PUSH_OVHD_CALLS_ALL</NODE_ID>
                                 <PART_ID>PUSH_OVHD_CALLS_ALL</PART_ID>
                                 <HOLD_SIMVAR>L:PUSH_OVHD_CALLS_ALL</HOLD_SIMVAR>
+                                <LEFT_SINGLE_CODE>1 (&gt;L:A32NX_FAP_CABIN_READY_BUTTON)</LEFT_SINGLE_CODE>
                             </UseTemplate>
                             <!-- CALLS FWD -->
                             <UseTemplate Name="FBW_Anim_Interactions">
@@ -3694,6 +3691,7 @@
                                 <ANIM_TEMPLATE>FBW_Push_Held</ANIM_TEMPLATE>
                                 <NODE_ID>PUSH_OVHD_CALLS_FWD</NODE_ID>
                                 <HOLD_SIMVAR>L:PUSH_OVHD_CALLS_FWD</HOLD_SIMVAR>
+                                <LEFT_SINGLE_CODE>1 (&gt;L:A32NX_FAP_CABIN_READY_BUTTON)</LEFT_SINGLE_CODE>
                             </UseTemplate>
                             <!-- CALLS AFT -->
                             <UseTemplate Name="FBW_Anim_Interactions">
@@ -3701,6 +3699,7 @@
                                 <ANIM_TEMPLATE>FBW_Push_Held</ANIM_TEMPLATE>
                                 <NODE_ID>PUSH_OVHD_CALLS_AFT</NODE_ID>
                                 <HOLD_SIMVAR>L:PUSH_OVHD_CALLS_AFT</HOLD_SIMVAR>
+                                <LEFT_SINGLE_CODE>1 (&gt;L:A32NX_FAP_CABIN_READY_BUTTON)</LEFT_SINGLE_CODE>
                             </UseTemplate>
                             <!-- CALLS EMER -->
                             <UseTemplate Name="FBW_Anim_Interactions">
@@ -4425,16 +4424,6 @@
             </UseTemplate>
 
             <CameraTitle>ECAM</CameraTitle>
-        </Component>
-
-        <!-- CABIN INTERACTION DATA SYS -->
-        <Component ID="Airbus_CIDS">
-            <UseTemplate Name="ASOBO_GT_Update">
-                <FREQUENCY>1</FREQUENCY>
-                <UPDATE_CODE>
-                    (L:A32NX_ELEC_DC_GND_FLT_SVC_BUS_IS_POWERED, Bool) (L:A32NX_ELEC_DC_ESS_BUS_IS_POWERED, Bool) or (&gt;L:A32NX_CIDS_IS_POWERED)
-                </UPDATE_CODE>
-            </UseTemplate>
         </Component>
 
         <Component ID="Airbus_FDW">

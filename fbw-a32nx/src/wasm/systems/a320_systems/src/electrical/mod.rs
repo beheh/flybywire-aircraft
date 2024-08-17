@@ -440,7 +440,8 @@ mod a320_electrical_circuit_tests {
         failures::FailureType,
         shared::{
             ApuAvailable, ContactorSignal, ControllerSignal, ElectricalBusType, ElectricalBuses,
-            EngineCorrectedN1, EngineCorrectedN2, EngineUncorrectedN2, PotentialOrigin,
+            EngineCorrectedN1, EngineCorrectedN2, EngineOilPressureLow, EngineUncorrectedN2,
+            PotentialOrigin,
         },
         simulation::{
             test::{ReadByName, SimulationTestBed, TestBed, WriteByName},
@@ -2251,12 +2252,13 @@ mod a320_electrical_circuit_tests {
             unimplemented!()
         }
     }
-    impl Engine for TestEngine {
-        fn hydraulic_pump_output_speed(&self) -> AngularVelocity {
+    impl EngineOilPressureLow for TestEngine {
+        fn oil_pressure_is_low(&self) -> bool {
             unimplemented!()
         }
-
-        fn oil_pressure_is_low(&self) -> bool {
+    }
+    impl Engine for TestEngine {
+        fn hydraulic_pump_output_speed(&self) -> AngularVelocity {
             unimplemented!()
         }
 
