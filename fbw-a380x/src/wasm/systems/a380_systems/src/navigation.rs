@@ -28,12 +28,12 @@ impl A380RadioAltimeters {
                     // Aft distance from Sim CG
                     Length::new::<meter>(12.50),
                     // Electric length of the antennas and cable modeling some material variation
-                    Length::new::<foot>(27.0),
+                    Length::new::<foot>(29.4),
                 ),
                 AntennaInstallation::new(
                     Length::new::<foot>(14.75) - Length::new::<meter>(3.69),
                     Length::new::<meter>(11.69),
-                    Length::new::<foot>(27.0),
+                    Length::new::<foot>(29.4),
                 ),
             ),
             radio_altimeter_2: A380RadioAltimeter::new(
@@ -43,12 +43,12 @@ impl A380RadioAltimeters {
                 AntennaInstallation::new(
                     Length::new::<foot>(14.75) - Length::new::<meter>(3.89),
                     Length::new::<meter>(13.35),
-                    Length::new::<foot>(26.2),
+                    Length::new::<foot>(28.7),
                 ),
                 AntennaInstallation::new(
                     Length::new::<foot>(14.75) - Length::new::<meter>(4.01),
                     Length::new::<meter>(14.20),
-                    Length::new::<foot>(26.2),
+                    Length::new::<foot>(28.7),
                 ),
             ),
             radio_altimeter_3: A380RadioAltimeter::new(
@@ -58,12 +58,12 @@ impl A380RadioAltimeters {
                 AntennaInstallation::new(
                     Length::new::<foot>(14.75) - Length::new::<meter>(4.27),
                     Length::new::<meter>(15.90),
-                    Length::new::<foot>(25.4),
+                    Length::new::<foot>(27.6),
                 ),
                 AntennaInstallation::new(
                     Length::new::<foot>(14.75) - Length::new::<meter>(4.14),
                     Length::new::<meter>(15.05),
-                    Length::new::<foot>(25.4),
+                    Length::new::<foot>(27.6),
                 ),
             ),
         }
