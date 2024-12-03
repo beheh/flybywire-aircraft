@@ -1607,28 +1607,28 @@ export class PseudoFWC {
     const cids1DiscreteWord1 = Arinc429Word.fromSimVarValue('L:A32NX_CIDS_1_DISCRETE_WORD_1');
     const cids2DiscreteWord1 = Arinc429Word.fromSimVarValue('L:A32NX_CIDS_2_DISCRETE_WORD_1');
     this.noPortableDevices.set(
-      (cids1DiscreteWord1.getBitValueOr(15, false) && cids1DiscreteWord1.getBitValueOr(27, false)) ||
-        (cids2DiscreteWord1.getBitValueOr(15, false) && cids2DiscreteWord1.getBitValueOr(27, false)),
+      (cids1DiscreteWord1.bitValueOr(15, false) && cids1DiscreteWord1.bitValueOr(27, false)) ||
+        (cids2DiscreteWord1.bitValueOr(15, false) && cids2DiscreteWord1.bitValueOr(27, false)),
     );
-    this.seatBelt.set(cids1DiscreteWord1.getBitValueOr(16, false) || cids2DiscreteWord1.getBitValueOr(16, false));
+    this.seatBelt.set(cids1DiscreteWord1.bitValueOr(16, false) || cids2DiscreteWord1.bitValueOr(16, false));
     this.noSmoking.set(
-      (cids1DiscreteWord1.getBitValueOr(17, false) && cids1DiscreteWord1.getBitValueOr(29, false)) ||
-        (cids2DiscreteWord1.getBitValueOr(17, false) && cids2DiscreteWord1.getBitValueOr(29, false)),
+      (cids1DiscreteWord1.bitValueOr(17, false) && cids1DiscreteWord1.bitValueOr(29, false)) ||
+        (cids2DiscreteWord1.bitValueOr(17, false) && cids2DiscreteWord1.bitValueOr(29, false)),
     );
-    this.cabinReady.set(cids1DiscreteWord1.getBitValueOr(22, false) || cids2DiscreteWord1.getBitValueOr(22, false));
+    this.cabinReady.set(cids1DiscreteWord1.bitValueOr(22, false) || cids2DiscreteWord1.bitValueOr(22, false));
     this.cabinReadyInToLdgMemo.set(
-      cids1DiscreteWord1.getBitValueOr(23, false) || cids2DiscreteWord1.getBitValueOr(23, false),
+      cids1DiscreteWord1.bitValueOr(23, false) || cids2DiscreteWord1.bitValueOr(23, false),
     );
     this.allSigns.set(
-      (cids1DiscreteWord1.getBitValueOr(15, false) ||
-        !cids1DiscreteWord1.getBitValueOr(27, false) ||
-        cids2DiscreteWord1.getBitValueOr(15, false) ||
-        !cids2DiscreteWord1.getBitValueOr(27, false)) &&
-        cids1DiscreteWord1.getBitValueOr(16, false) &&
-        (cids1DiscreteWord1.getBitValueOr(17, false) ||
-          !cids1DiscreteWord1.getBitValueOr(29, false) ||
-          cids2DiscreteWord1.getBitValueOr(17, false) ||
-          !cids2DiscreteWord1.getBitValueOr(29, false)),
+      (cids1DiscreteWord1.bitValueOr(15, false) ||
+        !cids1DiscreteWord1.bitValueOr(27, false) ||
+        cids2DiscreteWord1.bitValueOr(15, false) ||
+        !cids2DiscreteWord1.bitValueOr(27, false)) &&
+        cids1DiscreteWord1.bitValueOr(16, false) &&
+        (cids1DiscreteWord1.bitValueOr(17, false) ||
+          !cids1DiscreteWord1.bitValueOr(29, false) ||
+          cids2DiscreteWord1.bitValueOr(17, false) ||
+          !cids2DiscreteWord1.bitValueOr(29, false)),
     );
 
     /* OTHER STUFF */
